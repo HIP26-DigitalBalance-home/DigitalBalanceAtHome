@@ -105,6 +105,7 @@ Each subsection below must include:
 
 <!-- Replace the path below with the actual path to your exported AOM image -->
 ![Analysis Object Model](docs/aom.png)
+![Analysis Object Model](docs/aom.jpeg)
 
 ### Architecture
 
