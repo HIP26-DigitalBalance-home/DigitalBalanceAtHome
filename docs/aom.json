@@ -1,0 +1,435 @@
+{
+  "id": "3061261d-981d-4adf-9eef-baa869b62c26",
+  "version": "4.0.0",
+  "title": "Class Diagram",
+  "type": "ClassDiagram",
+  "nodes": [
+    {
+      "id": "dd674a28-5f96-42f7-9e4f-b490675ed264",
+      "width": 160,
+      "height": 70,
+      "type": "class",
+      "position": {
+        "x": 630,
+        "y": 540
+      },
+      "data": {
+        "name": "Challenge",
+        "methods": [],
+        "attributes": [
+          {
+            "id": "1ab0c850-b81a-4fa8-bd9b-5d8b6fe5ea3e",
+            "name": "title"
+          }
+        ]
+      },
+      "measured": {
+        "width": 160,
+        "height": 70
+      }
+    },
+    {
+      "id": "215f103b-b048-41c5-9708-fadeec5e3caa",
+      "width": 160,
+      "height": 70,
+      "type": "class",
+      "position": {
+        "x": 630,
+        "y": 40
+      },
+      "data": {
+        "name": "Family",
+        "methods": [
+          {
+            "id": "2d880804-1334-4c60-859c-058f482f89ed",
+            "name": "calculateStreak()"
+          }
+        ],
+        "attributes": []
+      },
+      "measured": {
+        "width": 160,
+        "height": 70
+      }
+    },
+    {
+      "id": "961547e4-c9bc-4b5d-b11e-96cf762c2a5d",
+      "width": 160,
+      "height": 40,
+      "type": "class",
+      "position": {
+        "x": 450,
+        "y": -180
+      },
+      "data": {
+        "name": "Parent",
+        "methods": [],
+        "attributes": []
+      },
+      "measured": {
+        "width": 160,
+        "height": 40
+      }
+    },
+    {
+      "id": "78ca911c-f7ae-440f-9d7c-1d551f1f191d",
+      "width": 160,
+      "height": 40,
+      "type": "class",
+      "position": {
+        "x": 200,
+        "y": -180
+      },
+      "data": {
+        "name": "Teacher/Admin",
+        "methods": [],
+        "attributes": []
+      },
+      "measured": {
+        "width": 160,
+        "height": 40
+      }
+    },
+    {
+      "id": "1728c14d-e152-48e0-8a62-fc8afa56d8c6",
+      "width": 160,
+      "height": 160,
+      "type": "class",
+      "position": {
+        "x": 200,
+        "y": 30
+      },
+      "data": {
+        "name": "Classroom/Feed",
+        "methods": [
+          {
+            "id": "cb33960b-c467-4c32-b2f7-316e489e69fb",
+            "name": "addFamily()"
+          },
+          {
+            "id": "5ffafd99-425c-41b5-a26d-7d8d901ef081",
+            "name": "removeFamily()"
+          },
+          {
+            "id": "7c828718-8364-4d30-b327-833a3570a0ff",
+            "name": "toggleFeed()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "a8157cf6-3ae7-4495-a72c-af1ac4710415",
+            "name": "name"
+          }
+        ]
+      },
+      "measured": {
+        "width": 160,
+        "height": 160
+      }
+    },
+    {
+      "id": "4392bbc4-83b3-4596-b885-0ae805dd0e4d",
+      "width": 180,
+      "height": 40,
+      "type": "class",
+      "position": {
+        "x": 620,
+        "y": 290
+      },
+      "data": {
+        "name": "ChallengeDashboard",
+        "methods": [],
+        "attributes": []
+      },
+      "measured": {
+        "width": 180,
+        "height": 0
+      }
+    },
+    {
+      "id": "f23d2626-168d-4146-b9eb-52d12ab13a60",
+      "width": 160,
+      "height": 100,
+      "type": "class",
+      "position": {
+        "x": 360,
+        "y": 530
+      },
+      "data": {
+        "name": "Photo",
+        "methods": [
+          {
+            "id": "f113cdfc-cbd8-47c5-b584-aaffaab4839d",
+            "name": "upload()"
+          },
+          {
+            "id": "b2999536-51ae-4258-a07f-cf23a15f1e43",
+            "name": "take()"
+          }
+        ],
+        "attributes": []
+      },
+      "measured": {
+        "width": 160,
+        "height": 100
+      }
+    },
+    {
+      "id": "096a0839-9b94-4fca-addb-e6709618bfdf",
+      "width": 160,
+      "height": 40,
+      "type": "class",
+      "position": {
+        "x": 640,
+        "y": -180
+      },
+      "data": {
+        "name": "Child",
+        "methods": [],
+        "attributes": []
+      },
+      "measured": {
+        "width": 160,
+        "height": 40
+      }
+    },
+    {
+      "id": "97e5a1f6-9a78-4942-b357-a7038a1577d4",
+      "width": 160,
+      "height": 110,
+      "type": "class",
+      "position": {
+        "x": 450,
+        "y": -430
+      },
+      "data": {
+        "name": "User",
+        "stereotype": "Abstract",
+        "methods": [],
+        "attributes": [
+          {
+            "id": "a0a3eab9-6f1b-4147-be8f-8cca94d162e6",
+            "name": "name"
+          },
+          {
+            "id": "5887a378-f4a0-40de-9d7b-fe98b98c62ec",
+            "name": "profilePicture"
+          }
+        ]
+      },
+      "measured": {
+        "width": 160,
+        "height": 110
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "a91171eb-5384-4ae1-93c8-5e0d0116206b",
+      "source": "961547e4-c9bc-4b5d-b11e-96cf762c2a5d",
+      "target": "215f103b-b048-41c5-9708-fadeec5e3caa",
+      "type": "ClassComposition",
+      "sourceHandle": "bottom",
+      "targetHandle": "top-left",
+      "data": {
+        "sourceRole": "1,2",
+        "points": [
+          {
+            "x": 530,
+            "y": -139
+          },
+          {
+            "x": 530,
+            "y": -65.2578125
+          },
+          {
+            "x": 662,
+            "y": -65.2578125
+          },
+          {
+            "x": 662,
+            "y": 39
+          }
+        ]
+      }
+    },
+    {
+      "id": "ece6f1b5-196f-4a01-a178-14b45dce784d",
+      "source": "dd674a28-5f96-42f7-9e4f-b490675ed264",
+      "target": "4392bbc4-83b3-4596-b885-0ae805dd0e4d",
+      "type": "ClassComposition",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "049dea39-5159-4e99-9f58-64e445cfc24b",
+      "source": "f23d2626-168d-4146-b9eb-52d12ab13a60",
+      "target": "dd674a28-5f96-42f7-9e4f-b490675ed264",
+      "type": "ClassAggregation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": 521,
+            "y": 580
+          },
+          {
+            "x": 521.65625,
+            "y": 580
+          },
+          {
+            "x": 521.65625,
+            "y": 575
+          },
+          {
+            "x": 629,
+            "y": 575
+          }
+        ]
+      }
+    },
+    {
+      "id": "01ccff69-afc5-4ba4-869c-5c8b660047e9",
+      "source": "f23d2626-168d-4146-b9eb-52d12ab13a60",
+      "target": "1728c14d-e152-48e0-8a62-fc8afa56d8c6",
+      "type": "ClassDependency",
+      "sourceHandle": "left",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "82831aff-1742-40e9-82fd-2186510ca4a4",
+      "source": "4392bbc4-83b3-4596-b885-0ae805dd0e4d",
+      "target": "215f103b-b048-41c5-9708-fadeec5e3caa",
+      "type": "ClassBidirectional",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [],
+        "sourceRole": "",
+        "targetRole": "*"
+      }
+    },
+    {
+      "id": "1af686e3-2493-404b-bf3f-166bd8c4e99f",
+      "source": "78ca911c-f7ae-440f-9d7c-1d551f1f191d",
+      "target": "1728c14d-e152-48e0-8a62-fc8afa56d8c6",
+      "type": "ClassBidirectional",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "targetRole": "1..*",
+        "points": []
+      }
+    },
+    {
+      "id": "979852e4-2a55-4038-8ba2-502648ce04c1",
+      "source": "215f103b-b048-41c5-9708-fadeec5e3caa",
+      "target": "1728c14d-e152-48e0-8a62-fc8afa56d8c6",
+      "type": "ClassBidirectional",
+      "sourceHandle": "left",
+      "targetHandle": "right-mid-top",
+      "data": {
+        "points": [
+          {
+            "x": 629,
+            "y": 90
+          },
+          {
+            "x": 630.140625,
+            "y": 90
+          },
+          {
+            "x": 630.140625,
+            "y": 86
+          },
+          {
+            "x": 361,
+            "y": 86
+          }
+        ],
+        "sourceRole": "1..*"
+      }
+    },
+    {
+      "id": "90cf5e03-5b9b-45a9-9a62-6d6cc2618cea",
+      "source": "096a0839-9b94-4fca-addb-e6709618bfdf",
+      "target": "215f103b-b048-41c5-9708-fadeec5e3caa",
+      "type": "ClassComposition",
+      "sourceHandle": "bottom",
+      "targetHandle": "top-right",
+      "data": {
+        "sourceRole": "1..*",
+        "points": [
+          {
+            "x": 720,
+            "y": -139
+          },
+          {
+            "x": 720,
+            "y": -77.13359374999999
+          },
+          {
+            "x": 758,
+            "y": -77.13359374999999
+          },
+          {
+            "x": 758,
+            "y": 39
+          }
+        ]
+      }
+    },
+    {
+      "id": "c53e0134-9f23-4e87-8298-4e077407febd",
+      "source": "78ca911c-f7ae-440f-9d7c-1d551f1f191d",
+      "target": "79c45bda-0ba7-4d66-b364-e42370aec5ec",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom-left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "35bc68eb-5eb5-47b3-9af2-62405ab09d0c",
+      "source": "78ca911c-f7ae-440f-9d7c-1d551f1f191d",
+      "target": "97e5a1f6-9a78-4942-b357-a7038a1577d4",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom-left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "aa93a560-9faf-4e9a-8b33-848e6582f74c",
+      "source": "961547e4-c9bc-4b5d-b11e-96cf762c2a5d",
+      "target": "97e5a1f6-9a78-4942-b357-a7038a1577d4",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "fd462ba7-aef0-4517-a2de-dcd02a5adf60",
+      "source": "096a0839-9b94-4fca-addb-e6709618bfdf",
+      "target": "97e5a1f6-9a78-4942-b357-a7038a1577d4",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom-right",
+      "data": {
+        "points": []
+      }
+    }
+  ],
+  "assessments": {}
+}

@@ -1,0 +1,104 @@
+openapi: 3.0.2
+info:
+  title: DigitalBalanceAtHome
+  description: API for DigitalBalanceAtHome Project
+  version: 0.0.1
+  contact:
+    name: Viktoria Kabaivanova
+    email: viktoria.kabaivanova@tum.de
+
+servers:
+  - url: http://localhost:8000
+    description: during development
+
+
+paths:
+  /users:
+    get: 
+      description: Obtain information about users from the database
+      parameters:
+        - name: bodyLimit
+          in: query
+          description: The amount of parents returned
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 20
+            example: 15
+
+        - name: pageLimit
+          in: query
+          description: The pages to return users info
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+            example: 2
+      
+      responses:
+        '200':
+          description: Successful pull of users information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Users'
+    
+    post:
+      description: Creates a new user in the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '#/components/schemas/User'
+
+      responses:
+        '200':
+          description: Successfully created a new employee
+  
+  /users/{id}:
+    get:
+      description: Obtain information about specific user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: The ID of the user
+          schema:
+            type: integer
+            example: 54
+      responses:
+        '200':
+          description: Successful
+          content:
+            application/json:
+              schema:
+                type: array
+                $ref: '#/components/schemas/User'
+
+components:
+  schemas:
+    Users:
+      description: Array of user info
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
+
+    User:
+      description: Model containing user information
+      properties:
+        id:
+          type: integer
+          example: 4
+        name:
+          type: string
+          example: Max Mustermann
+        role:
+          type: string
+          example: parent
+          description: role can be either parent, child or teacher/admin
+    
+              
