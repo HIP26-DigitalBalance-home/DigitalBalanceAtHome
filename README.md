@@ -107,50 +107,6 @@ Each subsection below must include:
 ![Analysis Object Model](docs/aom.png)
 ![Analysis Object Model](docs/aom.jpeg)
 
-### Server Setup
-
-#### Prerequisites
-
-Next install [fastapi-code-generator](https://github.com/koxudaxi/fastapi-code-generator) with pip
-
-```
-pip install fastapi-code-generator
-```
-
-#### Generating the Server
-
-Lastly download your OpenAPI Specification from [Swagger Editor](https://editor.swagger.io/) and save it in a file `openapi.yml`.
-Then generate the FastAPI server code with
-
-```
-fastapi-codegen --input openapi.yaml --output server
-```
-
-#### Running the Server
-
-Add a `requirements.txt` with the following dependencies file in the server folder.
-
-```
-fastapi
-pymongo
-pydantic
-uvicorn[standard]
-```
-
-Install the requirements with:
-
-```
-pip install -r requirements.txt
-```
-
-Now you can start the server with
-
-```
-uvicorn main:app --reload
-```
-
-If you now go to http://localhost:8000/docs FastAPI shows an interactive generated OpenAPI Specification for your running server. So you don't have to worry about writing/extending the specification at this point.
-
 ### Architecture
 
 #### Subsystem Decomposition
