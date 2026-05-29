@@ -93,6 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     registerAuthHandlers({
       getAccessToken: () => accessTokenRef.current,
       refreshTokens,
+      // Force logout when refresh fails (stale token after DB wipe, expiry, etc.)
+      onRefreshFailed: () => {
+        tokenStore.clear();
+        accessTokenRef.current = null;
+        setCurrentUser(null);
+      },
     });
   }, [refreshTokens]);
 

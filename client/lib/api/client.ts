@@ -12,16 +12,19 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Injected by AuthContext once tokens are available (M2)
+// Injected by AuthContext once tokens are available
 let getAccessToken: (() => string | null) | null = null;
 let refreshTokens: (() => Promise<void>) | null = null;
+let onRefreshFailed: (() => void) | null = null;
 
 export function registerAuthHandlers(handlers: {
   getAccessToken: () => string | null;
   refreshTokens: () => Promise<void>;
+  onRefreshFailed: () => void;
 }) {
   getAccessToken = handlers.getAccessToken;
   refreshTokens = handlers.refreshTokens;
+  onRefreshFailed = handlers.onRefreshFailed;
 }
 
 // Attach Authorization header
@@ -33,12 +36,20 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Retry once on 401 after refreshing tokens
+// Retry once on 401 after refreshing tokens.
+// Auth endpoints (/auth/*) are excluded — they must not trigger another refresh cycle.
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    if (error.response?.status === 401 && !originalRequest._retry && refreshTokens) {
+    const isAuthEndpoint = originalRequest.url?.startsWith('/auth/') ?? false;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthEndpoint &&
+      refreshTokens
+    ) {
       originalRequest._retry = true;
       try {
         await refreshTokens();
@@ -48,7 +59,9 @@ apiClient.interceptors.response.use(
         }
         return apiClient(originalRequest);
       } catch {
-        // refresh failed — caller will handle the 401
+        // Refresh failed (stale token, DB wipe, etc.) — force logout so the
+        // user lands on the sign-in screen instead of looping.
+        onRefreshFailed?.();
       }
     }
     return Promise.reject(error);
