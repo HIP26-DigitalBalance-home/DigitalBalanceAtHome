@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import '@/assets/styles/global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { StandardProvider } from '@/lib/services/standard-context';
@@ -16,18 +17,30 @@ export const unstable_settings = {
 };
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const onboardingComplete = useOnboardingStatus();
   const segments = useSegments();
 
-  if (isLoading) return <LoadingScreen />;
+  // Wait for both auth and onboarding status to resolve
+  if (authLoading || (isAuthenticated && onboardingComplete === null)) {
+    return <LoadingScreen />;
+  }
 
   const onSignIn = (segments[0] as string) === 'sign-in';
+  const onOnboarding = (segments[0] as string) === '(onboarding)';
 
   if (!isAuthenticated && !onSignIn) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Redirect href={'/sign-in' as any} />;
   }
   if (isAuthenticated && onSignIn) {
+    return <Redirect href="/(tabs)" />;
+  }
+  if (isAuthenticated && !onboardingComplete && !onOnboarding) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <Redirect href={'/(onboarding)/welcome' as any} />;
+  }
+  if (isAuthenticated && onboardingComplete && onOnboarding) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -39,6 +52,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="sign-in" />
+      <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
     </Stack>
   );
