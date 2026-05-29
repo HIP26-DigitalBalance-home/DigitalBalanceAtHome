@@ -1123,10 +1123,18 @@ components:
 
     GoogleCallbackRequest:
       type: object
-      required: [code]
+      required: [code, redirect_uri]
       properties:
         code:
           type: string
+          description: Authorization code from Google OAuth
+        redirect_uri:
+          type: string
+          description: Redirect URI used in the authorization request (must match exactly)
+        code_verifier:
+          type: string
+          nullable: true
+          description: PKCE code verifier (required when PKCE was used)
 
     RefreshRequest:
       type: object
