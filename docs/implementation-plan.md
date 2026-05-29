@@ -51,7 +51,7 @@
 | 17 | "Today's suggestion" card on home screen | UX brief | Must | Custom UI |
 | 18 | Challenge creation (title, activities, dates, group) | UX brief | Must | Custom UI + backend |
 | 19 | Collage grid view (filled + empty slots) | UX brief | Must | Custom UI component |
-| 20 | Group aggregate view (X/N members completed) | UX brief | Must | Custom UI + backend |
+| 20 | Group aggregate view (X/N families completed) | UX brief | Must | Custom UI + backend |
 | 21 | Challenge list (upcoming / active / completed) | UX brief | Must | Custom UI + backend |
 | 22 | Photo capture (camera + gallery picker) | UX brief | Must | `expo-camera`, `expo-image-picker` |
 | 23 | Photo upload with 202 + loading placeholder | Architecture | Must | Custom upload service |
@@ -91,7 +91,8 @@
    - `app/api/users.py` → `GET /users/me`, `PATCH /users/me`, `DELETE /users/me`, `POST /users/me/cancel-deletion`, `GET /users/me/export`
    - `app/api/children.py` → `POST /children`, `GET /children`, `PATCH /children/{id}`, `DELETE /children/{id}`
    - `app/api/consents.py` → `POST /consents`, `GET /consents`
-   - `app/api/groups.py` → `POST /groups`, `GET /groups/me`, `GET /groups/{id}`, `DELETE /groups/{id}/members/{user_id}`, `POST /groups/{id}/invites`, `POST /groups/join`
+   - `app/api/families.py` → `POST /families`, `GET /families/me`, `GET /families/{id}`, `POST /families/{id}/invites`, `POST /families/join`, `PATCH /families/{id}/members/{user_id}`, `DELETE /families/{id}/members/{user_id}`
+   - `app/api/groups.py` → `POST /groups`, `GET /groups/me`, `GET /groups/{id}`, `POST /groups/{id}/invites`, `POST /groups/join`, `DELETE /groups/{id}/members/{family_id}`, `POST /groups/{id}/admins`, `DELETE /groups/{id}/admins/{user_id}`
    - `app/api/activities.py` → `GET /activities`, `GET /activities/suggestions`
    - `app/api/challenges.py` → `POST /challenges`, `GET /challenges/active`, `GET /challenges/me`, `GET /challenges/{id}`
    - `app/api/photos.py` → `POST /photos`, `GET /photos/{completion_id}/url`
@@ -178,29 +179,36 @@
 **Depends on:** Milestone 2
 
 #### Backend tasks
-1. Create `app/models/consent.py` (`ConsentRecord`), `app/models/child_profile.py` (`ChildProfile`); Alembic migration
-2. Create repositories and schemas for both entities
-3. Implement `POST /consents`: create a ConsentRecord; require valid JWT; 201
+1. Create `app/models/consent.py` (`ConsentRecord`), `app/models/family.py` (`Family`, `FamilyMembership`, `FamilyInvite`), `app/models/child_profile.py` (`ChildProfile`); Alembic migration
+2. Create repositories and schemas for all new models
+3. Implement `POST /consents`: create ConsentRecord; require valid JWT; 201
 4. Implement `GET /consents`: return the user's most recent consent record
-5. Implement `POST /children`: create a ChildProfile owned by the authenticated user; 201
-6. Implement `GET /children`: return all child profiles owned by the authenticated user
-7. Implement `PATCH /children/{id}`: update nickname, date_of_birth, interests; validate ownership
-8. Implement `DELETE /children/{id}`: hard delete; validate ownership
+5. Implement `POST /families`: create Family; add creator as `admin` FamilyMembership; 201 with `{family, membership}`
+6. Implement `GET /families/me`: return all families the authenticated user belongs to, with their role and member list
+7. Implement `POST /families/{id}/invites`: create FamilyInvite token (7-day expiry); require `admin` role; return `{invite_url}`
+8. Implement `POST /families/join`: validate token; add the authenticated user as `member` of the family; 200
+9. Implement `PATCH /families/{id}/members/{user_id}`: update role; require `admin`; block demotion of last admin
+10. Implement `DELETE /families/{id}/members/{user_id}`: remove FamilyMembership; require `admin`; block removal of last admin
+11. Implement `POST /children`: create ChildProfile under the authenticated user's family (`family_id` derived server-side from the user's FamilyMembership); require the user to have a family — 400 if not; 201
+12. Implement `GET /children`: return all ChildProfiles for the user's family
+13. Implement `PATCH /children/{id}`: update nickname, date_of_birth, interests; validate family membership
+14. Implement `DELETE /children/{id}`: hard delete; validate family membership
 
 #### Frontend tasks
 1. Add `useOnboardingStatus()` gate in `app/_layout.tsx`: if not complete, redirect to the onboarding flow
-2. Build welcome screens (2–3 screens) using `@spezivibe/onboarding` `FeatureCard` + `PaginationDots`; describe the core value proposition
-3. Build GDPR consent screen using `ConsentCheckbox` (data storage [required], photo processing [required], location/weather [optional]); block progression until required boxes are checked; `POST /consents` on submission
-4. Build child profile creation form: nickname, date of birth (`@react-native-community/datetimepicker`), interests (free-text chip input with a hint warning against medical data); `POST /children`
-5. Call `markOnboardingCompleted()` after the child profile is saved; redirect to Home tab
-6. Handle the invite-link entry path: if the app was opened via deep link with a group token, preserve it through onboarding and trigger the group join after the child profile is saved (join logic implemented in Milestone 4)
+2. Build welcome screens (2–3 screens) using `@spezivibe/onboarding` `FeatureCard` + `PaginationDots`
+3. Build GDPR consent screen using `ConsentCheckbox` (data storage [required], photo processing [required], location/weather [optional]); `POST /consents` on submission
+4. Build **family setup screen**: "Create your family" — optional family name input; `POST /families`; this step sits between consent and child profile creation
+5. Build child profile creation form: nickname, date of birth, interests chip input with safety hint; `POST /children` (backend derives `family_id` from the authenticated user's family)
+6. Call `markOnboardingCompleted()` after the child profile is saved; redirect to Home tab
+7. Handle two deep-link entry paths through onboarding: **group invite** (preserve group token; join group after child profile saved — M4 logic) and **family invite** (bypass family creation step; join the inviting family instead)
 
 **Verify:**
-- Fresh install shows welcome → consent → child profile in sequence
+- Fresh install shows welcome → consent → family setup → child profile in sequence
 - Required consent checkboxes cannot be skipped
-- Consent record is persisted in the DB and retrievable via `GET /consents`
+- ConsentRecord and Family are created in the DB
 - Returning user skips onboarding and lands on Home
-- Child profile is retrievable via `GET /children`
+- Child profile is retrievable via `GET /children` and is linked to the family (not the individual user)
 
 ---
 
@@ -211,28 +219,31 @@
 **Depends on:** Milestone 3
 
 #### Backend tasks
-1. Create `app/models/group.py` (`Group`, `GroupMembership`, `Invite`); Alembic migration
+1. Create `app/models/group.py` (`Group`, `GroupMembership`, `GroupAdmin`, `GroupInvite`); Alembic migration
 2. Create repositories and schemas
-3. Implement `POST /groups`: create Group; add creator as `admin` GroupMembership; 201
-4. Implement `GET /groups/me`: return all groups the authenticated user is a member of, with their role
-5. Implement `GET /groups/{id}`: return group detail (name, members with roles); validate membership
-6. Implement `POST /groups/{id}/invites`: create single-use Invite token (UUID, expires in 7 days); return `{invite_url}`; require admin role
-7. Implement `POST /groups/join`: validate token (exists, not used, not expired); create GroupMembership; mark token as used; 200 with group summary
-8. Implement `DELETE /groups/{id}/members/{user_id}`: remove GroupMembership; require admin role; prevent removing the last admin
+3. Implement `POST /groups`: create Group; add creator's family as the first GroupMembership; add creator as the first GroupAdmin; 201
+4. Implement `GET /groups/me`: return all groups where the authenticated user's family has a GroupMembership; include whether the user personally holds GroupAdmin rights
+5. Implement `GET /groups/{id}`: return group detail (name, member families with display names); validate that the requesting user's family is a member
+6. Implement `POST /groups/{id}/invites`: create single-use GroupInvite token (7-day expiry); require GroupAdmin; return `{invite_url}`
+7. Implement `POST /groups/join`: validate token; require the authenticated user to have a family — 400 if not; create GroupMembership for the user's family; mark token as used; 200 with group summary
+8. Implement `DELETE /groups/{id}/members/{family_id}`: remove GroupMembership and any GroupAdmin rows for parents of that family; require GroupAdmin; block if it would leave the group with no admins
+9. Implement `POST /groups/{id}/admins`: grant GroupAdmin to a user; require GroupAdmin; user must be a member of a family in the group
+10. Implement `DELETE /groups/{id}/admins/{user_id}`: revoke GroupAdmin; require GroupAdmin; block if it would leave the group with no admins
 
 #### Frontend tasks
-1. Build `GroupsTab`: list of the parent's groups (`GET /groups/me`); empty state with "Create a group" and "Join via code" CTAs
+1. Build `GroupsTab`: list of the user's groups (`GET /groups/me`); empty state with "Create a group" and "Join via code" CTAs
 2. Build `CreateGroupScreen`: name input → `POST /groups` → navigate to `GroupDetailScreen`
-3. Build `GroupDetailScreen`: member list with roles; admin controls section (visible only to admins)
-4. Admin controls: "Generate invite link" → `POST /groups/{id}/invites` → copy to clipboard (`expo-clipboard`) + share sheet (`expo-sharing`); "Remove member" with confirmation dialog
-5. Build `JoinGroupScreen`: invite code input → `POST /groups/join` → navigate to group on success; surface "expired", "already member" error messages
-6. Configure deep link scheme in `app.config.js` (`digitalbalance://join?token=XXXXXX`); parse token on cold open via `expo-linking` and pre-fill `JoinGroupScreen`
+3. Build `GroupDetailScreen`: member **families** list (not individual parents); in-context admin controls section visible only to GroupAdmins
+4. Admin controls: "Generate invite link" → `POST /groups/{id}/invites` → copy (`expo-clipboard`) + share sheet (`expo-sharing`); "Remove family" with confirmation dialog; "Grant/revoke admin" for individual parents in the group
+5. Build `JoinGroupScreen`: invite code input → `POST /groups/join` → navigate to group on success; surface "expired", "no family set up", "already member" errors
+6. Configure two deep link token types in `app.config.js`: `digitalbalance://join-group?token=X` and `digitalbalance://join-family?token=X`; route each to the correct join screen on cold open
 
 **Verify:**
-- Admin can create a group and see it in the list
-- Invite link is generated, copied, and shareable
-- Tapping the invite link opens the app and joins the group
-- Non-admin members do not see admin controls
+- Admin can create a group; their family appears in the member list
+- Invite link adds the redeeming parent's **family** as a member (not just the individual parent)
+- A parent without a family cannot join a group (clear error message)
+- Non-admin parents do not see admin controls
+- Removing a family removes all their GroupAdmin rows too
 - Expired and already-used tokens return clear error messages
 
 ---
@@ -299,14 +310,13 @@
 **Depends on:** Milestone 6
 
 #### Backend tasks
-1. Create `app/models/completion.py` (`Completion`); Alembic migration; unique constraint on `(user_id, challenge_activity_id)`
-2. Create `app/models/consent.py` already done; add `photo_key` and `raw_photo_key` fields to Completion
-3. Configure `boto3` S3 client in `app/core/storage.py` pointing at Hetzner Object Storage (`endpoint_url`, bucket name from settings)
-4. Implement `POST /photos`: validate MIME type (JPEG/PNG) and file size (≤ 10 MB); upload original to `raw/{user_id}/{uuid}.jpg` in Hetzner; create Completion record with `status = "processing"`; enqueue background compression job via FastAPI `BackgroundTasks`; return `202 {completion_id}`
-5. Background compression job: fetch raw image from S3; resize to max 1200 px; compress to JPEG 85%; upload to `photos/{user_id}/{uuid}.jpg`; delete raw original; update Completion to `status = "ready"` with `photo_key`
-6. Implement `POST /completions` (self-reported path): create Completion with `status = "self_reported"` immediately; no photo; 201
-7. Implement `GET /completions/{id}`: return completion with current status; used for polling
-8. Implement `GET /photos/{completion_id}/url`: validate group membership; generate pre-signed GET URL (15-min TTL) from Hetzner; return URL
+1. Create `app/models/completion.py` (`Completion`); Alembic migration; unique constraint on `(family_id, challenge_activity_id)`; `completed_by_user_id` FK → User
+2. Configure `boto3` S3 client in `app/core/storage.py` pointing at Hetzner Object Storage
+3. Implement `POST /photos`: validate MIME type (JPEG/PNG) and file size (≤ 10 MB); upload original to `raw/{family_id}/{uuid}.jpg` in Hetzner; create Completion record (`family_id` from authenticated user's family, `completed_by_user_id` = authenticated user) with `status = "processing"`; enqueue background compression via FastAPI `BackgroundTasks`; return `202 {completion_id}`
+4. Background compression job: fetch raw image; resize to max 1200 px; compress to JPEG 85%; upload to `photos/{family_id}/{uuid}.jpg`; delete raw original; update Completion to `status = "ready"`
+5. Implement `POST /completions` (self-reported path): create Completion with `status = "self_reported"`, `family_id` from authenticated user's family, `completed_by_user_id` = authenticated user; 201
+6. Implement `GET /completions/{id}`: return completion with current status; used for polling
+7. Implement `GET /photos/{completion_id}/url`: validate that the requesting user's family is a member of the group that owns the challenge; generate pre-signed GET URL (15-min TTL); return URL
 
 #### Frontend tasks
 1. Build `CompleteActivitySheet` (bottom sheet triggered from empty collage slot): "Take photo", "Choose from library", "Mark without photo" options
@@ -459,15 +469,19 @@ No new routes. The challenge completion state is already derivable from `GET /ch
 | Entity | Milestone introduced | Notes |
 |---|---|---|
 | User | M2 — auth | Google sub, JWT issuance |
-| ConsentRecord | M3 — onboarding | Append-only; consent gate in onboarding flow |
-| ChildProfile | M3 — onboarding | DOB stored; age derived at query time |
-| Group | M4 | `group_id` nullable on Challenge |
-| GroupMembership | M4 | `role`: member \| admin |
-| Invite | M4 | Single-use, 7-day expiry |
+| ConsentRecord | M3 — onboarding | Append-only; per-user; consent gate in onboarding flow |
+| Family | M3 — onboarding | Created during onboarding before child profiles |
+| FamilyMembership | M3 — onboarding | Creator gets `admin` role; second parent joins via FamilyInvite |
+| FamilyInvite | M3 — onboarding | Same mechanics as GroupInvite; allows second parent to join family |
+| ChildProfile | M3 — onboarding | `family_id` FK (not `user_id`); age derived at query time |
+| Group | M4 | Created by a parent; creating parent's family is the first GroupMembership |
+| GroupMembership | M4 | `family_id` FK — families join groups, not individual parents |
+| GroupAdmin | M4 | Separate from GroupMembership; individual parents hold group admin rights |
+| GroupInvite | M4 | Redeeming parent's family is added as GroupMembership |
 | Activity | M5 | Seeded; paid activities filtered at service layer |
-| Challenge | M6 | Collage mode only; state derived at query time |
+| Challenge | M6 | `group_id` nullable (personal = creating parent's family); state derived at query time |
 | ChallengeActivity | M6 | `grid_position` is layout-only |
-| Completion | M7 | One per `(user_id, challenge_activity_id)`; collage derived from these |
+| Completion | M7 | `family_id` FK; `completed_by_user_id` tracks which parent; unique on `(family_id, challenge_activity_id)` |
 
 ---
 
