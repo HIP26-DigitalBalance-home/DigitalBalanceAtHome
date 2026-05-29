@@ -1,0 +1,500 @@
+# Implementation Plan: DigitalBalance @home
+
+> Updated to reflect a server-first delivery model. Every milestone ships both backend routes and frontend screens together. The server skeleton (Milestone 0) registers all routes from day one — unimplemented ones return `501 Not Implemented` until their milestone arrives. The frontend always calls real endpoints; no mocks, no local stubs.
+
+---
+
+## Context
+
+| Field | Value |
+|---|---|
+| App | DigitalBalance @home — family activity challenge app using positive reinforcement to build offline parent-child time |
+| Client | React Native (Expo) — `/Users/Igo/digital-balance-at-home` |
+| Server | FastAPI + PostgreSQL 16 — new repo, suggested path `/Users/Igo/digital-balance-at-home-api` |
+| Photo storage | Hetzner Object Storage (S3-compatible, EU-hosted) |
+| Auth | Google OAuth 2.0 / OIDC |
+| Deployment (prototype) | Docker Compose, single EU server, Caddy |
+| Study context | No |
+
+---
+
+## Planning Inputs
+
+**UX brief** (`docs/planning/ux-brief.md`) — Two onboarding paths (invite vs. cold), GDPR consent gate, child profile setup, core collage completion loop, activity suggestions (age + season + weather + interests), group aggregate view, opt-in feed sharing, end-of-challenge celebration with confetti and PNG export, personal challenge creation.
+
+**Data model brief** (`docs/planning/data-model-brief.md`) — 10 entities: User, ChildProfile, Group, GroupMembership, Invite, Activity, Challenge, ChallengeActivity, Completion, ConsentRecord. Each parent fills their own collage independently; collage is derived at query time; personal challenges allow `null group_id`; suggestions use age + season + weather + interests.
+
+**Compliance brief** (`docs/planning/compliance-brief.md`) — GDPR is the primary obligation. Granular consent at onboarding. Hetzner confirmed as EU-hosted photo storage. 5 pre-launch legal/process TODOs outstanding (D2–D5, D7).
+
+---
+
+## Feature List
+
+| # | Feature | Source | Priority | Packages / Custom |
+|---|---|---|---|---|
+| 1 | Navigation shell (tab bar + stack) | Architecture | Must | `@react-navigation/native`, bottom-tabs, native-stack |
+| 2 | App theme system (colors, typography, spacing) | UX brief | Must | Custom theme tokens |
+| 3 | API client with auth header injection | Architecture | Must | `axios`, custom interceptors |
+| 4 | Google OAuth 2.0 sign-in | Architecture / UX | Must | `expo-auth-session`, custom OIDC service |
+| 5 | JWT token storage + silent refresh | Architecture | Must | `expo-secure-store`, custom auth context |
+| 6 | Welcome + feature highlight screens | UX brief | Must | `@spezivibe/onboarding` (`FeatureCard`, `PaginationDots`) |
+| 7 | Granular GDPR consent (3 checkboxes) | Compliance | Must | `@spezivibe/onboarding` (`ConsentCheckbox`) |
+| 8 | Child profile creation (nickname, DOB, interests) | UX / data model | Must | Custom UI + API |
+| 9 | Onboarding gate (skip if completed) | UX brief | Must | `@spezivibe/onboarding` (`useOnboardingStatus`) |
+| 10 | Group creation | UX brief | Must | Custom UI + backend |
+| 11 | Join group via invite link / code | UX brief | Must | Custom UI + deep link handling |
+| 12 | Group detail view (members, active challenge) | UX brief | Must | Custom UI + backend |
+| 13 | In-context admin controls (invite, remove member) | UX brief | Must | Custom UI + backend |
+| 14 | Activity list with filter chips | UX brief | Must | Custom UI + backend |
+| 15 | Activity detail screen | UX brief | Must | Custom UI |
+| 16 | Activity suggestion engine (age + season + weather + interests) | UX / data model | Must | Custom backend service, weather API |
+| 17 | "Today's suggestion" card on home screen | UX brief | Must | Custom UI |
+| 18 | Challenge creation (title, activities, dates, group) | UX brief | Must | Custom UI + backend |
+| 19 | Collage grid view (filled + empty slots) | UX brief | Must | Custom UI component |
+| 20 | Group aggregate view (X/N members completed) | UX brief | Must | Custom UI + backend |
+| 21 | Challenge list (upcoming / active / completed) | UX brief | Must | Custom UI + backend |
+| 22 | Photo capture (camera + gallery picker) | UX brief | Must | `expo-camera`, `expo-image-picker` |
+| 23 | Photo upload with 202 + loading placeholder | Architecture | Must | Custom upload service |
+| 24 | Async compression polling (processing → ready) | Architecture | Must | Custom polling hook |
+| 25 | Caption input on completion | UX brief | Should | Custom UI |
+| 26 | Self-reported completion (no photo) | SRS FR-044 | Should | Custom UI |
+| 27 | Opt-in group feed sharing toggle | UX brief | Should | Custom UI + backend |
+| 28 | End-of-challenge celebration screen | UX brief | Must | `react-native-confetti-cannon` |
+| 29 | Collage PNG export + share sheet | UX brief | Should | `react-native-view-shot`, `expo-sharing` |
+| 30 | Group feed screen (shared completions) | UX brief | Should | Custom UI + backend |
+| 31 | Profile screen (display name, photo, points) | SRS FR-006 | Should | `@spezivibe/account` adapted for custom API |
+| 32 | Personal activity history | UX brief | Should | Custom UI + backend |
+| 33 | GDPR data export | Compliance | Must | Custom UI + backend |
+| 34 | Account deletion flow (30-day window) | Compliance | Must | Custom UI + backend |
+| 35 | Consent management + withdrawal | Compliance | Must | Custom UI + backend |
+| 36 | Empty states, error states, offline banner | UX brief | Must | Custom UI |
+| 37 | Accessibility audit (tap targets, contrast, alt text) | Compliance | Must | Manual review |
+
+---
+
+## Milestones
+
+---
+
+### Milestone 0: Server Skeleton
+
+**Goal:** A running FastAPI server with every route registered, returning `501 Not Implemented` for all business endpoints and `200 OK` for the health check — runnable locally via Docker Compose from this point forward.
+
+**Depends on:** Nothing
+
+#### Backend tasks
+1. Create the FastAPI project at `digital-balance-at-home-api/` following the layered structure: `app/api/`, `app/core/`, `app/dependencies/`, `app/models/`, `app/schemas/`, `app/repositories/`, `app/services/`
+2. Create `app/main.py`: FastAPI app factory, CORS middleware (allow all origins in development), structured logging with `structlog`, lifespan hook for DB connection pool
+3. Register all routers with their full path prefixes — each router file contains only route stubs returning `HTTPException(501)`:
+   - `app/api/health.py` → `GET /healthz` (returns `{"status": "ok"}`)
+   - `app/api/auth.py` → `POST /auth/google/callback`, `POST /auth/refresh`, `DELETE /auth/logout`
+   - `app/api/users.py` → `GET /users/me`, `PATCH /users/me`, `DELETE /users/me`, `POST /users/me/cancel-deletion`, `GET /users/me/export`
+   - `app/api/children.py` → `POST /children`, `GET /children`, `PATCH /children/{id}`, `DELETE /children/{id}`
+   - `app/api/consents.py` → `POST /consents`, `GET /consents`
+   - `app/api/groups.py` → `POST /groups`, `GET /groups/me`, `GET /groups/{id}`, `DELETE /groups/{id}/members/{user_id}`, `POST /groups/{id}/invites`, `POST /groups/join`
+   - `app/api/activities.py` → `GET /activities`, `GET /activities/suggestions`
+   - `app/api/challenges.py` → `POST /challenges`, `GET /challenges/active`, `GET /challenges/me`, `GET /challenges/{id}`
+   - `app/api/photos.py` → `POST /photos`, `GET /photos/{completion_id}/url`
+   - `app/api/completions.py` → `POST /completions`, `GET /completions/{id}`, `GET /completions/me`
+4. Create `docker-compose.yml`: `api` service (FastAPI via uvicorn, port 8000) and `db` service (PostgreSQL 16, port 5432); named volume for postgres data
+5. Create `requirements.txt`: `fastapi`, `uvicorn[standard]`, `sqlalchemy[asyncio]`, `asyncpg`, `alembic`, `pydantic-settings`, `structlog`, `python-jose[cryptography]`, `httpx`, `boto3`
+6. Create `app/core/config.py`: `pydantic-settings` `Settings` class reading from environment; include `DATABASE_URL`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `S3_ENDPOINT_URL`, `S3_BUCKET_NAME`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
+7. Create `.env.example` with all required variables; create `.env` for local development (never commit)
+8. Confirm `docker compose up` starts cleanly; `GET /healthz` returns 200; any other route returns 501
+
+**Verify:**
+- `docker compose up` starts without errors
+- `curl http://localhost:8000/healthz` → `{"status": "ok"}`
+- `curl -X POST http://localhost:8000/auth/google/callback` → 501
+- All routes are listed in `http://localhost:8000/docs` (FastAPI auto-generated OpenAPI)
+
+---
+
+### Milestone 1: Foundation
+
+**Goal:** A running React Native app with the correct tab structure, DigitalBalance colour palette, and an API client wired to the local server — ready for every subsequent screen to be built on top of.
+
+**Depends on:** Milestone 0
+
+#### Backend tasks
+1. No new routes. Confirm `GET /healthz` is reachable from the simulator/device (check CORS and network config)
+
+#### Frontend tasks
+1. In `constants/theme.ts`: replace Stanford Cardinal with the DigitalBalance palette (warm, family-friendly tones — not clinical); define semantic colour tokens: `primary`, `surface`, `onSurface`, `accent`, `destructive`, `muted`
+2. Replace the three template tabs with the four app tabs: **Home** (collage), **Activities**, **Groups**, **Profile** — update `app/(tabs)/_layout.tsx` with correct icons and labels; delete `contacts.tsx` and `explore.tsx`; add stub screens for each tab
+3. Create `lib/api/client.ts`: `axios` instance with `baseURL` from environment config (`EXPO_PUBLIC_API_URL`, defaulting to `http://localhost:8000`); request interceptor injecting `Authorization: Bearer <token>`; 401 response interceptor calling `refreshTokens()` then retrying (stub the auth hook for now)
+4. Create `lib/api/index.ts`: barrel export for all future API modules
+5. Set up environment config: `EXPO_PUBLIC_API_URL` in `.env` and `.env.example`; load via `expo-constants`
+6. Add a visible indicator on the Home stub screen confirming the server is reachable: call `GET /healthz` on mount and show "Server connected" / "Server unreachable"
+
+**Verify:**
+- App launches showing four tabs: Home, Activities, Groups, Profile
+- Each tab shows a labelled stub screen
+- Home screen shows "Server connected" when the Docker Compose stack is running
+- Colour palette matches the DigitalBalance theme (no Stanford red)
+
+---
+
+### Milestone 2: Authentication
+
+**Goal:** A parent can sign in with Google; the server verifies the ID token, creates or upserts the user, and issues JWT tokens; the app stores them and injects them into every subsequent request.
+
+**Depends on:** Milestone 1
+
+#### Backend tasks
+1. Implement `GET /healthz` with DB connectivity check (query `SELECT 1`)
+2. Set up SQLAlchemy async engine in `app/core/database.py`; create `app/models/base.py` with `TimestampMixin` (UUID PK, `created_at`, `updated_at`)
+3. Create `app/models/user.py`: `User` model (`id`, `google_sub`, `email`, `display_name`, `profile_photo_key`, `points_balance`, `deletion_pending_at`)
+4. Create `app/schemas/auth.py` and `app/schemas/user.py`; create `app/repositories/user.py` with `upsert_by_google_sub`
+5. Implement `app/services/auth.py`: verify Google ID token against Google's public keys (`https://www.googleapis.com/oauth2/v3/certs`); upsert User; issue signed JWT access token (15 min) and refresh token (7 days)
+6. Implement `POST /auth/google/callback` → returns `{access_token, refresh_token, user}`
+7. Implement `POST /auth/refresh` → validates refresh token, issues new pair (rotation)
+8. Implement `DELETE /auth/logout` → 204 (tokens are stateless; client discards them)
+9. Rate-limit `/auth/*` endpoints: 10 requests per IP per minute (use a simple in-process sliding window for prototype)
+10. Run first Alembic migration: `alembic revision --autogenerate -m "add users table"` → `alembic upgrade head`
+
+#### Frontend tasks
+1. Install `expo-auth-session`, `expo-crypto`, `expo-secure-store`; configure Google OAuth client IDs in `app.config.js`
+2. Create `lib/auth/google-auth.ts`: opens Google consent screen via `expo-auth-session`; exchanges the authorization code with `POST /auth/google/callback`
+3. Create `lib/auth/token-store.ts`: read/write access and refresh tokens via `expo-secure-store`
+4. Create `lib/auth/auth-context.tsx`: `AuthProvider` exposing `isAuthenticated`, `currentUser`, `login()`, `logout()`, `refreshTokens()`; wrap app root
+5. Wire the 401 interceptor in `lib/api/client.ts` to call `refreshTokens()` and retry; on refresh failure, call `logout()` and redirect to sign-in
+6. Build `SignInScreen`: single "Sign in with Google" button; on success, redirect to Home tab
+7. Add route guard in `app/_layout.tsx`: redirect unauthenticated users to `SignInScreen` using `<Redirect />`
+
+**Verify:**
+- "Sign in with Google" opens the Google consent screen
+- After consent, the app returns to Home as an authenticated user
+- Killing and relaunching restores the session from secure storage
+- A forced token expiry triggers silent refresh and retries the original request
+- Sign-out clears tokens and returns to `SignInScreen`
+
+---
+
+### Milestone 3: Onboarding, GDPR Consent, and Child Profile
+
+**Goal:** First-time users complete a welcome flow, give granular GDPR consent (stored in the DB), and create at least one child profile before reaching the home screen.
+
+**Depends on:** Milestone 2
+
+#### Backend tasks
+1. Create `app/models/consent.py` (`ConsentRecord`), `app/models/child_profile.py` (`ChildProfile`); Alembic migration
+2. Create repositories and schemas for both entities
+3. Implement `POST /consents`: create a ConsentRecord; require valid JWT; 201
+4. Implement `GET /consents`: return the user's most recent consent record
+5. Implement `POST /children`: create a ChildProfile owned by the authenticated user; 201
+6. Implement `GET /children`: return all child profiles owned by the authenticated user
+7. Implement `PATCH /children/{id}`: update nickname, date_of_birth, interests; validate ownership
+8. Implement `DELETE /children/{id}`: hard delete; validate ownership
+
+#### Frontend tasks
+1. Add `useOnboardingStatus()` gate in `app/_layout.tsx`: if not complete, redirect to the onboarding flow
+2. Build welcome screens (2–3 screens) using `@spezivibe/onboarding` `FeatureCard` + `PaginationDots`; describe the core value proposition
+3. Build GDPR consent screen using `ConsentCheckbox` (data storage [required], photo processing [required], location/weather [optional]); block progression until required boxes are checked; `POST /consents` on submission
+4. Build child profile creation form: nickname, date of birth (`@react-native-community/datetimepicker`), interests (free-text chip input with a hint warning against medical data); `POST /children`
+5. Call `markOnboardingCompleted()` after the child profile is saved; redirect to Home tab
+6. Handle the invite-link entry path: if the app was opened via deep link with a group token, preserve it through onboarding and trigger the group join after the child profile is saved (join logic implemented in Milestone 4)
+
+**Verify:**
+- Fresh install shows welcome → consent → child profile in sequence
+- Required consent checkboxes cannot be skipped
+- Consent record is persisted in the DB and retrievable via `GET /consents`
+- Returning user skips onboarding and lands on Home
+- Child profile is retrievable via `GET /children`
+
+---
+
+### Milestone 4: Groups
+
+**Goal:** A parent can create a group, generate an invite link, and share it; another parent taps the link and joins the group.
+
+**Depends on:** Milestone 3
+
+#### Backend tasks
+1. Create `app/models/group.py` (`Group`, `GroupMembership`, `Invite`); Alembic migration
+2. Create repositories and schemas
+3. Implement `POST /groups`: create Group; add creator as `admin` GroupMembership; 201
+4. Implement `GET /groups/me`: return all groups the authenticated user is a member of, with their role
+5. Implement `GET /groups/{id}`: return group detail (name, members with roles); validate membership
+6. Implement `POST /groups/{id}/invites`: create single-use Invite token (UUID, expires in 7 days); return `{invite_url}`; require admin role
+7. Implement `POST /groups/join`: validate token (exists, not used, not expired); create GroupMembership; mark token as used; 200 with group summary
+8. Implement `DELETE /groups/{id}/members/{user_id}`: remove GroupMembership; require admin role; prevent removing the last admin
+
+#### Frontend tasks
+1. Build `GroupsTab`: list of the parent's groups (`GET /groups/me`); empty state with "Create a group" and "Join via code" CTAs
+2. Build `CreateGroupScreen`: name input → `POST /groups` → navigate to `GroupDetailScreen`
+3. Build `GroupDetailScreen`: member list with roles; admin controls section (visible only to admins)
+4. Admin controls: "Generate invite link" → `POST /groups/{id}/invites` → copy to clipboard (`expo-clipboard`) + share sheet (`expo-sharing`); "Remove member" with confirmation dialog
+5. Build `JoinGroupScreen`: invite code input → `POST /groups/join` → navigate to group on success; surface "expired", "already member" error messages
+6. Configure deep link scheme in `app.config.js` (`digitalbalance://join?token=XXXXXX`); parse token on cold open via `expo-linking` and pre-fill `JoinGroupScreen`
+
+**Verify:**
+- Admin can create a group and see it in the list
+- Invite link is generated, copied, and shareable
+- Tapping the invite link opens the app and joins the group
+- Non-admin members do not see admin controls
+- Expired and already-used tokens return clear error messages
+
+---
+
+### Milestone 5: Activity Pool and Suggestions
+
+**Goal:** A curated activity pool is seeded in the DB; parents can browse and filter activities; a single weather-appropriate suggestion appears on the home screen.
+
+**Depends on:** Milestone 1 (API client), Milestone 3 (child profile for age/interests)
+
+#### Backend tasks
+1. Create `app/models/activity.py` (`Activity`); Alembic migration
+2. Create repository and schemas; seed the DB with 20–30 activities covering a range of age groups, seasons, weather suitability, and cost indicators (free and low_cost only — no paid activities in the seed data)
+3. Implement `GET /activities`: return the full pool; support query params `age`, `season`, `weather`, `cost`; exclude paid activities from default results (service-layer rule)
+4. Implement `GET /activities/suggestions`: accept `child_id` (derives age + interests), optional `city`; apply filter rules; if no city or weather API unavailable, select a random age-appropriate free activity; return a single activity
+
+#### Frontend tasks
+1. Build `ActivitiesTab`: scrollable activity list from `GET /activities`; filter chips for age, season, weather, cost; `Activity` detail screen (title, description, duration, cost badge, season/weather tags)
+2. Build `SuggestionService` in `lib/api/suggestions.ts`: calls `GET /activities/suggestions` with the first child's age and optional city; handles fallback gracefully
+3. Add "Today's suggestion" card to the Home stub screen: activity title, duration, "Let's do it" CTA navigating to `ActivityDetailScreen`
+4. Add city preference setting reachable from Profile tab (stub): text input for city name stored locally and sent with suggestion requests; only shown if `location_consent = true` from the ConsentRecord
+
+**Verify:**
+- Activity list loads with 20+ activities
+- Filter chips narrow results correctly; no paid activity appears
+- Suggestion card on Home shows an age-appropriate activity
+- Removing the city setting causes the suggestion to fall back to a random activity
+
+---
+
+### Milestone 6: Challenges and Collage View
+
+**Goal:** A parent can create a challenge (group or personal), see their own collage on the Home screen, and see the group's aggregate completion count.
+
+**Depends on:** Milestone 4 (groups), Milestone 5 (activity pool)
+
+#### Backend tasks
+1. Create `app/models/challenge.py` (`Challenge`, `ChallengeActivity`); Alembic migration
+2. Create repositories and schemas
+3. Implement `POST /challenges`: create Challenge with associated ChallengeActivity rows (assign `grid_position` sequentially); `group_id` nullable for personal challenges; require group membership if group is specified; 201
+4. Implement `GET /challenges/active`: return the user's currently active challenge (start_date ≤ today ≤ end_date) with its ChallengeActivity list and the user's Completions for each slot (empty array if none); challenge state derived at query time
+5. Implement `GET /challenges/me`: return all challenges the user participates in, grouped by state (upcoming / active / completed)
+6. Implement `GET /challenges/{id}`: full challenge detail including ChallengeActivity list, user's completions, and group aggregate (count of group members who have completed each activity)
+
+#### Frontend tasks
+1. Build `CreateChallengeFlow` (multi-step): title → select activities (multi-select from pool, order of selection sets `grid_position`) → set dates → assign to group (optional) → `POST /challenges`
+2. Build `CollageGridComponent`: renders a photo grid based on `grid_position`; filled slots (`status = "ready"`) show the compressed photo via pre-signed URL; self-reported slots show a checkmark; empty slots show a neutral placeholder; tap on empty slot opens activity detail with "Mark complete" CTA; tap on filled slot shows photo full-screen
+3. Replace Home stub with the real `HomeScreen`: fetch active challenge via `GET /challenges/active`; render `CollageGridComponent`; show "Today's suggestion" card below; show empty state if no active challenge
+4. Build `ChallengeListScreen` reachable from a header button on Home: upcoming / active / completed sections
+5. Add `GroupProgressView` inside `GroupDetailScreen`: for each ChallengeActivity, show fraction completed by group members (e.g., "4 / 7"); no per-member breakdown
+
+**Verify:**
+- Creating a challenge with 6 activities shows a 6-slot collage grid on Home
+- Empty slots are visually distinct but not negative
+- Group progress view shows correct aggregate counts from the DB
+- A personal challenge (null group_id) appears only for its creator
+
+---
+
+### Milestone 7: Activity Completion and Photo Upload
+
+**Goal:** A parent marks an activity complete with a photo; the collage slot transitions from empty → loading → photo without blocking the UI.
+
+**Depends on:** Milestone 6
+
+#### Backend tasks
+1. Create `app/models/completion.py` (`Completion`); Alembic migration; unique constraint on `(user_id, challenge_activity_id)`
+2. Create `app/models/consent.py` already done; add `photo_key` and `raw_photo_key` fields to Completion
+3. Configure `boto3` S3 client in `app/core/storage.py` pointing at Hetzner Object Storage (`endpoint_url`, bucket name from settings)
+4. Implement `POST /photos`: validate MIME type (JPEG/PNG) and file size (≤ 10 MB); upload original to `raw/{user_id}/{uuid}.jpg` in Hetzner; create Completion record with `status = "processing"`; enqueue background compression job via FastAPI `BackgroundTasks`; return `202 {completion_id}`
+5. Background compression job: fetch raw image from S3; resize to max 1200 px; compress to JPEG 85%; upload to `photos/{user_id}/{uuid}.jpg`; delete raw original; update Completion to `status = "ready"` with `photo_key`
+6. Implement `POST /completions` (self-reported path): create Completion with `status = "self_reported"` immediately; no photo; 201
+7. Implement `GET /completions/{id}`: return completion with current status; used for polling
+8. Implement `GET /photos/{completion_id}/url`: validate group membership; generate pre-signed GET URL (15-min TTL) from Hetzner; return URL
+
+#### Frontend tasks
+1. Build `CompleteActivitySheet` (bottom sheet triggered from empty collage slot): "Take photo", "Choose from library", "Mark without photo" options
+2. Photo capture: `expo-camera` + `expo-image-picker`; validate JPEG/PNG, max 10 MB before upload
+3. Build `PhotoUploadService` in `lib/api/photos.ts`: `POST /photos` with `multipart/form-data`; on 202 response, store `completion_id` and immediately show loading placeholder in the collage slot
+4. Build `useCompletionStatus` hook: polls `GET /completions/{id}` every 3 s; on `status = "ready"`, fetches pre-signed URL via `GET /photos/{id}/url` and updates the collage slot; stops after success or 60 s timeout
+5. Build `CaptionInputScreen`: optional text input after photo selection; "Skip" button; caption included in completion payload
+6. Self-reported path: "Mark without photo" → `POST /completions` with `status = "self_reported"` → collage slot shows checkmark immediately
+7. Update `CollageGridComponent` to fetch pre-signed URLs for filled slots on mount; re-fetch on 403 (expired URL)
+
+**Note:** This milestone requires a development build — `expo-camera` does not work in Expo Go. Run `npx expo prebuild --platform ios && npx expo run:ios`.
+
+**Verify:**
+- Taking a photo transitions the slot to a loading state immediately (202 received)
+- After background compression, the slot shows the real photo
+- Marking without a photo shows a checkmark immediately
+- A slot cannot be completed twice (button disabled on filled slots)
+- Pre-signed URLs expire after 15 minutes; the app re-fetches transparently on 403
+
+---
+
+### Milestone 8: End-of-Challenge Celebration and Export
+
+**Goal:** When a parent fills their last collage slot, they see a full-screen celebration with confetti and can export the collage as a PNG.
+
+**Depends on:** Milestone 7
+
+#### Backend tasks
+No new routes. The challenge completion state is already derivable from `GET /challenges/{id}` (all ChallengeActivity slots have a Completion with `status = "ready"` or `"self_reported"`). No server-side event needed.
+
+#### Frontend tasks
+1. After each successful completion, check locally whether all slots for the active challenge are now filled; if yes, navigate to `CelebrationScreen`
+2. Also trigger `CelebrationScreen` when `end_date` has passed on the next app foreground (check in `HomeScreen` mount)
+3. Build `CelebrationScreen`: full-screen `CollageGridComponent` (read-only); confetti on mount (`react-native-confetti-cannon`); "Save to camera roll" button; "Share" button
+4. "Save to camera roll": capture the `CollageGridComponent` ref as PNG (`react-native-view-shot`) → save to camera roll (`expo-media-library`, request permission); show success toast
+5. "Share": pass the captured PNG to `expo-sharing` native share sheet
+
+**Verify:**
+- Completing the last activity navigates to `CelebrationScreen` automatically
+- Confetti plays on arrival
+- PNG is saved to camera roll
+- Reopening a completed challenge shows the collage in read-only mode
+
+---
+
+### Milestone 9: Group Feed and Social Sharing
+
+**Goal:** A parent can optionally share a completion to the group feed; group members can browse shared completions.
+
+**Depends on:** Milestone 7
+
+#### Backend tasks
+1. Add `shared_to_feed` boolean (default false) to Completion (migration)
+2. Implement `POST /completions` update path: allow `PATCH /completions/{id}` to toggle `shared_to_feed` after the fact — or include it in the initial `POST /completions` payload (either is fine; pick one and document it)
+3. Add `GET /groups/{id}/feed`: return Completions within the group where `shared_to_feed = true`, ordered by `completed_at` desc; include activity title, user display name, photo pre-signed URL (if `status = "ready"`), caption; validate group membership before returning
+
+#### Frontend tasks
+1. Add "Share to group" toggle to `CompleteActivitySheet` (visible only when challenge belongs to a group); default off; include `shared_to_feed` in the completion payload
+2. Build `GroupFeedScreen` accessible from `GroupDetailScreen`: chronological list of shared completions; each card shows photo (or checkmark icon), caption, activity name, member display name; photos loaded via pre-signed URLs
+3. No reactions in the prototype (P3 in SRS)
+
+**Verify:**
+- A completion with `shared_to_feed: true` appears in the group feed
+- A completion with `shared_to_feed: false` does not appear
+- Photos in the feed load from pre-signed URLs; a member cannot access another group's feed
+
+---
+
+### Milestone 10: Profile and Personal History
+
+**Goal:** A parent can view and edit their profile, see their points balance, and browse their completion history across all challenges.
+
+**Depends on:** Milestone 3 (child profile), Milestone 7 (completions)
+
+#### Backend tasks
+1. Implement `GET /users/me`: return authenticated user (email, display_name, profile_photo_key, points_balance)
+2. Implement `PATCH /users/me`: update display_name; accept profile photo upload (same S3 pattern as activity photos, different prefix `avatars/`); return updated user
+3. Implement `GET /completions/me`: return all completions for the authenticated user across all challenges, paginated; include activity title, challenge title, `completed_at`, photo pre-signed URL
+
+#### Frontend tasks
+1. Build `ProfileScreen`: display name, avatar (pre-signed URL), points balance (label only — no redemption UI), child profile list with "Edit" links
+2. Build `EditProfileScreen`: update display name (`PATCH /users/me`); upload profile photo (same `PhotoUploadService`)
+3. Build `ActivityHistoryScreen`: paginated list from `GET /completions/me`; each row shows activity, challenge, date, thumbnail
+4. Build `EditChildProfileScreen`: update nickname, DOB, interests (`PATCH /children/{id}`)
+
+**Verify:**
+- Editing display name persists after app restart
+- Profile photo uploads and displays from pre-signed URL
+- Activity history shows completions across challenges with correct metadata
+
+---
+
+### Milestone 11: GDPR Self-Service
+
+**Goal:** A parent can export all their data, request account deletion, and manage consent — all from within the app.
+
+**Depends on:** Milestone 10
+
+#### Backend tasks
+1. Implement `GET /users/me/export`: collect all the user's data (user record, child profiles, consents, group memberships, completions with metadata); package as JSON; include a list of photo keys (not the photos themselves — client fetches them separately); return as downloadable JSON response
+2. Implement `DELETE /users/me`: set `deletion_pending_at = now()`; return 202 with message about the 30-day window; do not delete data yet
+3. Implement `POST /users/me/cancel-deletion`: clear `deletion_pending_at`; return 200
+
+#### Frontend tasks
+1. Build `PrivacyScreen` (reachable from Profile): sections "My data", "Consent settings", "Delete account"
+2. Data export: "Request export" → `GET /users/me/export` → save JSON to device (`expo-file-system`); show progress and "Download complete" confirmation
+3. Consent management: show current consent state per type; withdrawal of location consent removes the city from suggestion requests; required consents display a message that withdrawal requires account deletion
+4. Account deletion flow: confirmation dialog → `DELETE /users/me` → show "scheduled for deletion" screen with "Cancel" button → `POST /users/me/cancel-deletion` on cancel
+5. On confirmed deletion intent, clear local tokens and navigate to `SignInScreen`
+
+**Verify:**
+- Export downloads a JSON file containing the user's data
+- Deletion request sets `deletion_pending_at` in the DB
+- Cancel deletion within the window restores normal access
+- Withdrawing location consent stops the city from being sent to suggestions
+
+---
+
+### Milestone 12: Polish, Accessibility, and Error Handling
+
+**Goal:** Every screen has correct empty states, error recovery, and meets WCAG 2.1 AA and the GDPR UX bar — the app is prototype-ready.
+
+**Depends on:** All prior milestones
+
+#### Backend tasks
+1. Return structured error responses throughout: `{"detail": "<message>", "code": "<error_code>"}` for all 4xx responses; confirm this is consistent across all implemented routes
+2. Add request correlation IDs to all log lines (`X-Request-ID` header, generated per request)
+
+#### Frontend tasks
+1. Empty states: no groups, no active challenge, no activities matching filters, empty group feed, no history
+2. Error states: retry buttons on all data-fetching screens; plain-language German error messages for common API errors (401, 403, 404, 429, 500, network timeout)
+3. Offline detection: show a persistent banner when the device has no network; disable mutating actions
+4. Loading skeletons: replace `ActivityIndicator` spinners with skeleton screens on collage and list views
+5. Tap target audit: every interactive element ≥ 44×44 px
+6. WCAG 2.1 AA contrast check on all text/background combinations in the theme
+7. `accessibilityLabel` on all images (collage photos, thumbnails, avatars)
+8. Pre-signed URL expiry: re-fetch `GET /photos/{id}/url` transparently on 403 before showing an error
+9. Consent re-prompt: detect `consent_version_mismatch` error from the server; re-present the consent screen
+
+**Verify:**
+- Every screen has a defined empty, loading, and error state
+- App degrades gracefully with no network
+- All interactive elements meet the 44 px tap target requirement
+- All images have `accessibilityLabel` values
+
+---
+
+## Data Model Integration
+
+| Entity | Milestone introduced | Notes |
+|---|---|---|
+| User | M2 — auth | Google sub, JWT issuance |
+| ConsentRecord | M3 — onboarding | Append-only; consent gate in onboarding flow |
+| ChildProfile | M3 — onboarding | DOB stored; age derived at query time |
+| Group | M4 | `group_id` nullable on Challenge |
+| GroupMembership | M4 | `role`: member \| admin |
+| Invite | M4 | Single-use, 7-day expiry |
+| Activity | M5 | Seeded; paid activities filtered at service layer |
+| Challenge | M6 | Collage mode only; state derived at query time |
+| ChallengeActivity | M6 | `grid_position` is layout-only |
+| Completion | M7 | One per `(user_id, challenge_activity_id)`; collage derived from these |
+
+---
+
+## Compliance Integration
+
+| Control | Milestone | Approach |
+|---|---|---|
+| Granular GDPR consent (3 types, versioned) | M3 | `ConsentCheckbox` + `POST /consents`; append-only backend |
+| Consent re-prompt on policy version change | M12 | `consent_version_mismatch` error from server; re-present consent screen |
+| Photo access via pre-signed URLs (15-min TTL) | M7, M9, M10 | `GET /photos/{id}/url`; re-fetch on 403 |
+| Children's data never in group-visible responses | M6, M9 | Enforce in service layer; never include ChildProfile in group API responses |
+| Right to erasure (30-day SLA) | M11 | `DELETE /users/me` → `deletion_pending_at`; async deletion job |
+| Data portability | M11 | `GET /users/me/export` → JSON download |
+| Secure token storage | M2 | `expo-secure-store`; never `AsyncStorage` for tokens |
+| TLS everywhere | M0 | API base URL must be `https://` in staging/production; HTTP allowed in local Docker only |
+| Rate limiting on auth (handle 429) | M2 | In-process sliding window on server; client shows "Too many attempts" |
+| Admin action logging | M4 | Log actor + action + timestamp in server structured logs |
+| Location consent gate | M5 | City sent to suggestions only if `location_consent = true` |
+| Interests field safety hint | M3 | In-app helper text in child profile form |
+| Consent withdrawal mechanics (D4 — TBD) | M11 | Placeholder until D4 is resolved with foundation |
+
+---
+
+## Open Questions
+
+- **Weather API provider** (compliance D4 still TBD): `SuggestionService` on the backend should abstract the weather call behind a thin interface so the provider can be swapped. In Milestone 5, implement with a hardcoded season fallback first; add the real weather API call once the provider is confirmed.
+- **Deep link domain**: use custom URL scheme (`digitalbalance://`) for the prototype; migrate to universal links for MVP (requires a verified domain with a `.well-known` file).
+- **Development build**: required from Milestone 7 for `expo-camera` and `react-native-confetti-cannon`. Set this up before starting M7.
+- **Compliance TODOs D2–D5, D7**: non-code tasks for the foundation. They do not block implementation but must be resolved before any real user data is collected.
+- **Server deployment**: prototype runs locally via Docker Compose during development. Before the first real user test, the server needs to be deployed to a EU-hosted VM with Caddy for TLS. This is not a milestone in this plan but should be tracked separately.
