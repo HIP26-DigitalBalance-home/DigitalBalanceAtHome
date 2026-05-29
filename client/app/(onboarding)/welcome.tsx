@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Dimensions, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FeatureCard } from '@/components/onboarding/FeatureCard';
@@ -8,8 +8,6 @@ import { PaginationDots } from '@/components/onboarding/PaginationDots';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SLIDES = [
   {
@@ -27,44 +25,30 @@ const SLIDES = [
 export default function WelcomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const [activeIndex, setActiveIndex] = useState(0);
-  const listRef = useRef<FlatList>(null);
-
   const isLast = activeIndex === SLIDES.length - 1;
+  const slide = SLIDES[activeIndex];
+
+  function handleNext() {
+    if (isLast) {
+      router.push('/(onboarding)/consent');
+    } else {
+      setActiveIndex((i) => i + 1);
+    }
+  }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, i) => String(i)}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setActiveIndex(index);
-        }}
-        renderItem={({ item }) => (
-          <View style={{ width: SCREEN_WIDTH }}>
-            <FeatureCard icon={item.icon} title={item.title} body={item.body} />
-          </View>
-        )}
-        style={styles.list}
-      />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}>
+      <View style={styles.slide}>
+        <FeatureCard icon={slide.icon} title={slide.title} body={slide.body} />
+      </View>
 
       <View style={styles.footer}>
         <PaginationDots count={SLIDES.length} activeIndex={activeIndex} />
-
         <Pressable
           style={[styles.button, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            if (isLast) {
-              router.push('/(onboarding)/consent');
-            } else {
-              listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
-              setActiveIndex(activeIndex + 1);
-            }
-          }}>
+          onPress={handleNext}>
           <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
             {isLast ? 'Get started' : 'Next'}
           </ThemedText>
@@ -76,7 +60,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { flex: 1 },
+  slide: { flex: 1 },
   footer: {
     alignItems: 'center',
     gap: Spacing.lg,
