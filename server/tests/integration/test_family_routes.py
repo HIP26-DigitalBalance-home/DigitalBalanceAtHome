@@ -18,8 +18,6 @@ from app.services.exceptions import (
     AlreadyFamilyMember,
     InviteExpired,
     InviteNotFound,
-    LastAdminError,
-    NotFamilyAdmin,
     NotFamilyMember,
 )
 
@@ -129,22 +127,33 @@ class TestCreateFamilyInvite:
         assert response.status_code == 201
         assert "invite_url" in response.json()
 
-    async def test_not_admin_returns_403(self, auth_client, mocker):
-        mocker.patch("app.api.families.family_service.create_family_invite", side_effect=NotFamilyAdmin("not admin"))
+    async def test_not_member_returns_403(self, auth_client, mocker):
+        mocker.patch("app.api.families.family_service.create_family_invite", side_effect=NotFamilyMember("not member"))
         response = await auth_client.post(f"/families/{uuid.uuid4()}/invites")
         assert response.status_code == 403
 
 
-class TestRemoveFamilyMember:
-    async def test_last_admin_returns_400(self, auth_client, mocker):
-        mocker.patch("app.api.families.family_service.remove_member", side_effect=LastAdminError("last admin"))
-        fid, uid = str(uuid.uuid4()), str(uuid.uuid4())
-        response = await auth_client.delete(f"/families/{fid}/members/{uid}")
-        assert response.status_code == 400
-        assert response.json()["code"] == "last_admin"
+class TestLeaveFamily:
+    async def test_success(self, auth_client, mocker):
+        from app.dependencies.auth import get_current_user
+        from app.main import app
+        current_user = app.dependency_overrides[get_current_user]()
+        mocker.patch("app.api.families.family_service.leave_family", return_value=None)
+        fid = str(uuid.uuid4())
+        response = await auth_client.delete(f"/families/{fid}/members/{current_user.id}")
+        assert response.status_code == 204
+
+    async def test_cannot_remove_other_user_returns_403(self, auth_client, mocker):
+        # User IDs that don't match current_user.id are rejected at the route level (403)
+        fid, other_uid = str(uuid.uuid4()), str(uuid.uuid4())
+        response = await auth_client.delete(f"/families/{fid}/members/{other_uid}")
+        assert response.status_code == 403
 
     async def test_not_member_returns_403(self, auth_client, mocker):
-        mocker.patch("app.api.families.family_service.remove_member", side_effect=NotFamilyMember("not member"))
-        fid, uid = str(uuid.uuid4()), str(uuid.uuid4())
-        response = await auth_client.delete(f"/families/{fid}/members/{uid}")
+        from app.dependencies.auth import get_current_user
+        from app.main import app
+        current_user = app.dependency_overrides[get_current_user]()
+        mocker.patch("app.api.families.family_service.leave_family", side_effect=NotFamilyMember("not member"))
+        fid = str(uuid.uuid4())
+        response = await auth_client.delete(f"/families/{fid}/members/{current_user.id}")
         assert response.status_code == 403

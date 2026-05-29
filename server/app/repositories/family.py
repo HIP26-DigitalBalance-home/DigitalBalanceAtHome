@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.family import Family, FamilyInvite, FamilyMembership, FamilyRole
+from app.models.family import Family, FamilyInvite, FamilyMembership
 
 
 class FamilyRepository:
@@ -14,7 +14,7 @@ class FamilyRepository:
     async def create(self, name: str | None) -> Family:
         family = Family(name=name)
         self.session.add(family)
-        await self.session.flush()  # get the ID without committing
+        await self.session.flush()
         return family
 
     async def get_by_id(self, family_id: uuid.UUID) -> Family | None:
@@ -45,37 +45,20 @@ class FamilyRepository:
         return result.scalar_one_or_none()
 
     async def add_membership(
-        self, family_id: uuid.UUID, user_id: uuid.UUID, role: FamilyRole
+        self, family_id: uuid.UUID, user_id: uuid.UUID
     ) -> FamilyMembership:
         membership = FamilyMembership(
             family_id=family_id,
             user_id=user_id,
-            role=role,
             joined_at=datetime.now(timezone.utc),
         )
         self.session.add(membership)
         await self.session.flush()
         return membership
 
-    async def update_membership_role(
-        self, membership: FamilyMembership, role: FamilyRole
-    ) -> FamilyMembership:
-        membership.role = role
-        await self.session.flush()
-        return membership
-
     async def delete_membership(self, membership: FamilyMembership) -> None:
         await self.session.delete(membership)
         await self.session.flush()
-
-    async def count_admins(self, family_id: uuid.UUID) -> int:
-        result = await self.session.execute(
-            select(func.count()).where(
-                FamilyMembership.family_id == family_id,
-                FamilyMembership.role == FamilyRole.admin,
-            )
-        )
-        return result.scalar_one()
 
     async def create_invite(
         self, family_id: uuid.UUID, created_by_user_id: uuid.UUID

@@ -14,7 +14,6 @@ import { apiClient } from '@/lib/api';
 interface FamilyMemberItem {
   user_id: string;
   display_name: string;
-  role: string;
 }
 
 interface FamilyData {
@@ -29,6 +28,7 @@ export default function ProfileScreen() {
   const [family, setFamily] = useState<FamilyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const fetchFamily = useCallback(async () => {
     try {
@@ -42,6 +42,21 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => { fetchFamily(); }, [fetchFamily]);
+
+  async function handleLeaveFamily() {
+    if (!family || !currentUser) return;
+    const confirmed = window.confirm(`Leave "${family.name ?? 'your family'}"? You can rejoin with an invite link.`);
+    if (!confirmed) return;
+    setLeaving(true);
+    try {
+      await apiClient.delete(`/families/${family.id}/members/${currentUser.id}`);
+      setFamily(null);
+    } catch {
+      window.alert('Failed to leave family. Please try again.');
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   async function handleInviteToFamily() {
     if (!family) return;
@@ -94,9 +109,9 @@ export default function ProfileScreen() {
                 {family.members.map((m) => (
                   <View key={m.user_id} style={[styles.memberRow, { borderTopColor: colors.border }]}>
                     <ThemedText style={styles.memberName}>{m.display_name}</ThemedText>
-                    <ThemedText style={[styles.memberRole, { color: colors.muted }]}>
-                      {m.role === 'admin' ? 'Admin' : 'Member'}
-                    </ThemedText>
+                    {m.user_id === currentUser?.id && (
+                      <ThemedText style={[styles.memberRole, { color: colors.muted }]}>(you)</ThemedText>
+                    )}
                   </View>
                 ))}
 
@@ -109,6 +124,19 @@ export default function ProfileScreen() {
                   ) : (
                     <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
                       + Invite to family
+                    </ThemedText>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  style={[styles.inviteButton, { borderColor: colors.destructive, opacity: leaving ? 0.6 : 1 }]}
+                  onPress={handleLeaveFamily}
+                  disabled={leaving}>
+                  {leaving ? (
+                    <ActivityIndicator color={colors.destructive} size="small" />
+                  ) : (
+                    <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>
+                      Leave family
                     </ThemedText>
                   )}
                 </Pressable>

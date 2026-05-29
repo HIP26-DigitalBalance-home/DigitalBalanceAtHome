@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.family import Family, FamilyInvite, FamilyMembership, FamilyRole
+from app.models.family import Family, FamilyInvite, FamilyMembership
 from app.repositories.family import FamilyRepository
 from app.schemas.generated import CreateFamilyRequest
 from app.services.exceptions import (
@@ -12,9 +12,6 @@ from app.services.exceptions import (
     InviteAlreadyUsed,
     InviteExpired,
     InviteNotFound,
-    LastAdminError,
-    MemberNotFound,
-    NotFamilyAdmin,
     NotFamilyMember,
 )
 
@@ -24,7 +21,7 @@ async def create_family(
 ) -> tuple[Family, FamilyMembership]:
     repo = FamilyRepository(session)
     family = await repo.create(name=req.name)
-    membership = await repo.add_membership(family.id, user_id, FamilyRole.admin)
+    membership = await repo.add_membership(family.id, user_id)
     await session.commit()
     await session.refresh(family)
     await session.refresh(membership)
@@ -63,12 +60,11 @@ async def get_family(
 async def create_family_invite(
     session: AsyncSession, family_id: uuid.UUID, requesting_user_id: uuid.UUID
 ) -> FamilyInvite:
+    """Any family member can generate an invite link."""
     repo = FamilyRepository(session)
     membership = await repo.get_membership(family_id, requesting_user_id)
     if not membership:
         raise NotFamilyMember("You are not a member of this family")
-    if membership.role != FamilyRole.admin:
-        raise NotFamilyAdmin("Only family admins can generate invite links")
 
     invite = await repo.create_invite(family_id, requesting_user_id)
     await session.commit()
@@ -92,7 +88,7 @@ async def join_family(
     if existing:
         raise AlreadyFamilyMember("You are already a member of this family")
 
-    membership = await repo.add_membership(invite.family_id, user_id, FamilyRole.member)
+    membership = await repo.add_membership(invite.family_id, user_id)
     await repo.mark_invite_used(invite, user_id)
 
     family = await repo.get_by_id(invite.family_id)
@@ -102,60 +98,15 @@ async def join_family(
     return family, membership
 
 
-async def update_member_role(
-    session: AsyncSession,
-    family_id: uuid.UUID,
-    target_user_id: uuid.UUID,
-    new_role: FamilyRole,
-    requesting_user_id: uuid.UUID,
-) -> FamilyMembership:
-    repo = FamilyRepository(session)
-
-    requester = await repo.get_membership(family_id, requesting_user_id)
-    if not requester:
-        raise NotFamilyMember("You are not a member of this family")
-    if requester.role != FamilyRole.admin:
-        raise NotFamilyAdmin("Only family admins can change roles")
-
-    target = await repo.get_membership(family_id, target_user_id)
-    if not target:
-        raise MemberNotFound("Member not found in this family")
-
-    if target.role == FamilyRole.admin and new_role == FamilyRole.member:
-        admin_count = await repo.count_admins(family_id)
-        if admin_count <= 1:
-            raise LastAdminError("Cannot demote the last admin")
-
-    updated = await repo.update_membership_role(target, new_role)
-    await session.commit()
-    await session.refresh(updated)
-    return updated
-
-
-async def remove_member(
-    session: AsyncSession,
-    family_id: uuid.UUID,
-    target_user_id: uuid.UUID,
-    requesting_user_id: uuid.UUID,
+async def leave_family(
+    session: AsyncSession, family_id: uuid.UUID, user_id: uuid.UUID
 ) -> None:
+    """Remove yourself from a family. Anyone can leave; no one can remove others."""
     repo = FamilyRepository(session)
-
-    requester = await repo.get_membership(family_id, requesting_user_id)
-    if not requester:
+    membership = await repo.get_membership(family_id, user_id)
+    if not membership:
         raise NotFamilyMember("You are not a member of this family")
-    if requester.role != FamilyRole.admin:
-        raise NotFamilyAdmin("Only family admins can remove members")
-
-    target = await repo.get_membership(family_id, target_user_id)
-    if not target:
-        raise MemberNotFound("Member not found in this family")
-
-    if target.role == FamilyRole.admin:
-        admin_count = await repo.count_admins(family_id)
-        if admin_count <= 1:
-            raise LastAdminError("Cannot remove the last admin")
-
-    await repo.delete_membership(target)
+    await repo.delete_membership(membership)
     await session.commit()
 
 

@@ -51,12 +51,12 @@ Connects parents to their family. Carries the family-level admin role.
 | `id` | UUID | PK |
 | `family_id` | UUID | FK → Family |
 | `user_id` | UUID | FK → User |
-| `role` | enum | `admin` \| `member` |
 | `joined_at` | timestamptz | UTC |
 
-- A family must always have at least one `admin`; the last admin cannot be demoted or removed.
-- A parent can be a member of multiple families (e.g. divorced parent across two households). Prototype does not restrict this.
-- The parent who creates the family is automatically granted the `admin` role.
+- No roles or admin concept within families — all members are equal.
+- Any member can invite others (generate a FamilyInvite link).
+- Members can only remove themselves (leave the family); no one can remove another member.
+- A parent can be a member of multiple families (e.g. divorced parent across two households).
 
 ---
 

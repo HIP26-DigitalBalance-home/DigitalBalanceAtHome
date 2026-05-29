@@ -25,7 +25,7 @@ from app.core.config import settings
 from app.models.base import Base
 from app.models.child_profile import ChildProfile
 from app.models.consent import ConsentRecord
-from app.models.family import Family, FamilyMembership, FamilyRole
+from app.models.family import Family, FamilyMembership
 from app.models.group import Group, GroupAdmin, GroupMembership
 from app.models.user import User
 
@@ -91,7 +91,7 @@ async def seed():
             admin_membership = FamilyMembership(
                 family_id=admin_family.id,
                 user_id=admin_user.id,
-                role=FamilyRole.admin,
+                
                 joined_at=datetime.now(timezone.utc),
             )
             session.add(admin_membership)
@@ -178,7 +178,7 @@ async def seed():
                 fm = FamilyMembership(
                     family_id=family.id,
                     user_id=mock_user.id,
-                    role=FamilyRole.admin if parent_data == mock["parents"][0] else FamilyRole.member,
+                    
                     joined_at=datetime.now(timezone.utc),
                 )
                 session.add(fm)

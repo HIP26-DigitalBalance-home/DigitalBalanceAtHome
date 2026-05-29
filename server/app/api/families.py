@@ -1,13 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
-from app.models.family import FamilyRole
 from app.models.user import User
 from app.schemas.generated import (
     CreateFamilyRequest,
@@ -16,7 +15,6 @@ from app.schemas.generated import (
     FamilyMember,
     InviteResponse,
     JoinByTokenRequest,
-    UpdateMemberRoleRequest,
 )
 from app.repositories.family import FamilyRepository
 from app.services import family as family_service
@@ -37,7 +35,6 @@ async def _build_family_response(session: AsyncSession, family, memberships) -> 
             "user_id": m.user_id,
             "display_name": user_map[m.user_id].display_name if m.user_id in user_map else "",
             "profile_photo_url": None,
-            "role": m.role.value,
             "joined_at": m.joined_at,
         }
         for m in memberships
@@ -55,7 +52,6 @@ def _member_schema(m, user: User | None = None) -> dict:
         "user_id": m.user_id,
         "display_name": user.display_name if user else "",
         "profile_photo_url": None,
-        "role": m.role.value,
         "joined_at": m.joined_at,
     }
 
@@ -125,29 +121,13 @@ async def create_family_invite(
     return {"invite_url": invite_url, "expires_at": invite.expires_at}
 
 
-@router.patch("/{family_id}/members/{user_id}", response_model=FamilyMember)
-async def update_family_member(
-    family_id: UUID,
-    user_id: UUID,
-    body: UpdateMemberRoleRequest,
-    current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
-) -> dict:
-    role = FamilyRole(body.role.value)
-    membership = await family_service.update_member_role(
-        session, family_id, user_id, role, current_user.id
-    )
-    # Fetch the user to populate display_name
-    result = await session.execute(select(User).where(User.id == membership.user_id))
-    user = result.scalar_one_or_none()
-    return _member_schema(membership, user)
-
-
 @router.delete("/{family_id}/members/{user_id}", status_code=204)
-async def remove_family_member(
+async def leave_family(
     family_id: UUID,
     user_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> None:
-    await family_service.remove_member(session, family_id, user_id, current_user.id)
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only remove yourself from a family")
+    await family_service.leave_family(session, family_id, current_user.id)

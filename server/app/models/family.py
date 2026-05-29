@@ -1,17 +1,11 @@
-import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
-
-
-class FamilyRole(str, enum.Enum):
-    admin = "admin"
-    member = "member"
 
 
 class Family(Base, TimestampMixin):
@@ -21,6 +15,8 @@ class Family(Base, TimestampMixin):
 
 
 class FamilyMembership(Base):
+    """Every authenticated user in the family has equal membership — no roles."""
+
     __tablename__ = "family_memberships"
     __table_args__ = (UniqueConstraint("family_id", "user_id", name="uq_family_membership"),)
 
@@ -32,9 +28,6 @@ class FamilyMembership(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    role: Mapped[FamilyRole] = mapped_column(
-        Enum(FamilyRole, name="family_role"), nullable=False, default=FamilyRole.member
     )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

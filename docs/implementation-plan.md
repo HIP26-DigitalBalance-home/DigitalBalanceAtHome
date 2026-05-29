@@ -209,6 +209,8 @@
 - ConsentRecord and Family are created in the DB
 - Returning user skips onboarding and lands on Home
 - Child profile is retrievable via `GET /children` and is linked to the family (not the individual user)
+- Profile tab shows family members (names only — no admin roles) with "Invite to family" and "Leave family" buttons
+- Any member can generate an invite link; a member can leave the family; no one can remove another member
 
 ---
 
@@ -526,6 +528,7 @@ Changes from the original plan that were made during implementation. Future mile
 - **Family invite URL corrected**: uses `CLIENT_BASE_URL/join-family?token=` (not `API_BASE_URL/families/join?token=` as originally written).
 - **Unauthenticated invite flow** (not in original plan): when an unauthenticated user opens `/join-group?token=X` or `/join-family?token=X`, the RouteGuard stores the token in AsyncStorage. After onboarding completes, `child.tsx` processes the pending token and navigates to the target group.
 - **Groups tab auto-refresh**: uses `useFocusEffect` instead of a one-time `useEffect` so the list refreshes whenever navigating back to the tab.
+- **Family role removed**: `FamilyMembership.role` (admin/member) was removed entirely. All family members are equal — any member can invite others, anyone can leave, no one can remove another member. The `FamilyRole` enum and `PATCH /families/{id}/members/{user_id}` endpoint no longer exist.
 - **Profile tab**: implemented ahead of M10 with a minimal "My Family" section and "Invite to family" button (full profile management remains M10).
 - **Group detail admin detection**: `is_admin` flag from server is supplemented client-side by checking if the current user appears as `is_group_admin` in any family's parents list. Own family is identified by `parents[].user_id === currentUser.id`; remove button is hidden for own family.
 
