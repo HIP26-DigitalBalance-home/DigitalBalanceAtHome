@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Redirect, Stack, useSegments } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import '@/assets/styles/global.css';
@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/ui/loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { pendingInvite } from '@/lib/pending-invite';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -20,14 +21,23 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const onboardingComplete = useOnboardingStatus();
   const segments = useSegments();
+  const { token } = useLocalSearchParams<{ token?: string }>();
 
-  // Wait for both auth and onboarding status to resolve
+  const segment = segments[0] as string;
+  const onSignIn = segment === 'sign-in';
+  const onOnboarding = segment === '(onboarding)';
+
+  // Store pending invite tokens before redirecting unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading && token) {
+      if (segment === 'join-group') pendingInvite.storeGroupToken(token);
+      if (segment === 'join-family') pendingInvite.storeFamilyToken(token);
+    }
+  }, [isAuthenticated, authLoading, segment, token]);
+
   if (authLoading || (isAuthenticated && onboardingComplete === null)) {
     return <LoadingScreen />;
   }
-
-  const onSignIn = (segments[0] as string) === 'sign-in';
-  const onOnboarding = (segments[0] as string) === '(onboarding)';
 
   if (!isAuthenticated && !onSignIn) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +65,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="create-group" />
       <Stack.Screen name="join-group" />
+      <Stack.Screen name="join-family" />
       <Stack.Screen name="group/[id]" />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
     </Stack>

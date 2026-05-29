@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,9 +37,7 @@ export default function GroupsScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
+  useFocusEffect(useCallback(() => { fetchGroups(); }, [fetchGroups]));
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

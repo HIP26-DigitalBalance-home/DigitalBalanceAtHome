@@ -1411,9 +1411,21 @@ components:
 
     # Groups
 
+    FamilyParentInGroup:
+      type: object
+      required: [user_id, display_name, is_group_admin]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        is_group_admin:
+          type: boolean
+
     GroupMemberFamily:
       type: object
-      required: [family_id, joined_at, admin_user_ids]
+      required: [family_id, joined_at, parents]
       properties:
         family_id:
           type: string
@@ -1421,15 +1433,14 @@ components:
         family_name:
           type: string
           nullable: true
-        admin_user_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: Parents in this family who hold group admin rights
         joined_at:
           type: string
           format: date-time
+        parents:
+          type: array
+          items:
+            $ref: "#/components/schemas/FamilyParentInGroup"
+          description: Parents in this family and their group admin status
 
     GroupSummary:
       type: object

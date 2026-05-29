@@ -50,6 +50,10 @@ def _mock_repo(mocker, memberships=None, admins=None) -> MagicMock:
     repo.get_memberships_for_group = AsyncMock(return_value=memberships or [])
     repo.get_admins_for_group = AsyncMock(return_value=admins or [])
     repo.get_admin = AsyncMock(return_value=None)
+    # bulk-fetch helpers used by _build_group_response
+    repo.get_families_by_ids = AsyncMock(return_value=[])
+    repo.get_family_memberships_for_families = AsyncMock(return_value=[])
+    repo.get_users_by_ids = AsyncMock(return_value=[])
     mocker.patch("app.api.groups.GroupRepository", return_value=repo)
     return repo
 

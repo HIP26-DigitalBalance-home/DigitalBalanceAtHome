@@ -7,27 +7,33 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupsApi } from '@/lib/api';
+
+interface Parent {
+  user_id: string;
+  display_name: string;
+  is_group_admin: boolean;
+}
+
+interface GroupMember {
+  family_id: string;
+  family_name: string | null;
+  joined_at: string;
+  parents: Parent[];
+}
 
 interface GroupDetail {
   id: string;
   name: string;
   description: string | null;
   is_admin: boolean;
-  members: Array<{
-    family_id: string;
-    family_name: string | null;
-    admin_user_ids: string[];
-    joined_at: string;
-  }>;
+  members: GroupMember[];
 }
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = Colors[useColorScheme() ?? 'light'];
-  const { currentUser } = useAuth();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +70,10 @@ export default function GroupDetailScreen() {
     }
   }
 
-  function handleRemoveFamily(familyId: string) {
+  function handleRemoveFamily(familyId: string, familyName: string | null) {
     Alert.alert(
       'Remove family',
-      'Are you sure you want to remove this family from the group?',
+      `Remove "${familyName ?? 'this family'}" from the group?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -112,7 +118,9 @@ export default function GroupDetailScreen() {
           <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>{group.name}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
+            {group.name}
+          </ThemedText>
           {group.is_admin && (
             <View style={[styles.adminBadge, { backgroundColor: colors.accent }]}>
               <ThemedText style={styles.adminBadgeText}>Admin</ThemedText>
@@ -133,27 +141,48 @@ export default function GroupDetailScreen() {
               <Pressable
                 style={[styles.adminButton, { borderColor: colors.primary }]}
                 onPress={handleGenerateInvite}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Generate invite link</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
+                  Generate invite link
+                </ThemedText>
               </Pressable>
             </View>
           ) : null
         }
         renderItem={({ item }) => (
-          <View style={[styles.memberRow, { borderColor: colors.border }]}>
-            <View style={styles.memberInfo}>
-              <ThemedText style={styles.familyName}>
-                {item.family_name ?? 'Family'}
-              </ThemedText>
-              <ThemedText style={[styles.joinedAt, { color: colors.muted }]}>
-                Joined {new Date(item.joined_at).toLocaleDateString()}
-              </ThemedText>
+          <View style={[styles.familyCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <View style={styles.familyHeader}>
+              <View style={styles.familyTitleRow}>
+                <ThemedText style={styles.familyName}>
+                  {item.family_name ?? 'Unnamed family'}
+                </ThemedText>
+                <ThemedText style={[styles.joinedAt, { color: colors.muted }]}>
+                  Joined {new Date(item.joined_at).toLocaleDateString()}
+                </ThemedText>
+              </View>
+              {group.is_admin && (
+                <Pressable
+                  style={[styles.removeButton, { borderColor: colors.destructive }]}
+                  onPress={() => handleRemoveFamily(item.family_id, item.family_name)}>
+                  <ThemedText style={{ color: colors.destructive, fontSize: 13 }}>Remove</ThemedText>
+                </Pressable>
+              )}
             </View>
-            {group.is_admin && (
-              <Pressable
-                style={[styles.removeButton, { borderColor: colors.destructive }]}
-                onPress={() => handleRemoveFamily(item.family_id)}>
-                <ThemedText style={{ color: colors.destructive, fontSize: 13 }}>Remove</ThemedText>
-              </Pressable>
+
+            {item.parents.length > 0 && (
+              <View style={[styles.parentsList, { borderTopColor: colors.border }]}>
+                {item.parents.map((parent) => (
+                  <View key={parent.user_id} style={styles.parentRow}>
+                    <ThemedText style={[styles.parentName, { color: colors.muted }]}>
+                      {parent.display_name}
+                    </ThemedText>
+                    {parent.is_group_admin && (
+                      <View style={[styles.parentAdminBadge, { backgroundColor: colors.accent }]}>
+                        <ThemedText style={styles.parentAdminText}>Admin</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
             )}
           </View>
         )}
@@ -179,32 +208,17 @@ const styles = StyleSheet.create({
   adminBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   list: { padding: Spacing.md, gap: Spacing.sm },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginBottom: Spacing.sm },
-  adminPanel: {
-    padding: Spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: Spacing.sm,
-  },
-  adminButton: {
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
-  memberInfo: { flex: 1 },
-  familyName: { fontSize: 15, fontWeight: '500' },
+  adminPanel: { padding: Spacing.md, borderRadius: 12, borderWidth: 1, marginBottom: Spacing.sm },
+  adminButton: { height: 44, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  familyCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  familyHeader: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md },
+  familyTitleRow: { flex: 1 },
+  familyName: { fontSize: 15, fontWeight: '600' },
   joinedAt: { fontSize: 12, marginTop: 2 },
-  removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
+  removeButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  parentsList: { borderTopWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  parentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: Spacing.sm },
+  parentName: { flex: 1, fontSize: 14 },
+  parentAdminBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  parentAdminText: { color: '#fff', fontSize: 11, fontWeight: '600' },
 });

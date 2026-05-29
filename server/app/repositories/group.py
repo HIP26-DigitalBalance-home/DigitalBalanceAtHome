@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.family import Family, FamilyMembership
 from app.models.group import Group, GroupAdmin, GroupInvite, GroupMembership
+from app.models.user import User
 
 
 class GroupRepository:
@@ -138,3 +140,27 @@ class GroupRepository:
         invite.used_at = datetime.now(timezone.utc)
         await self.session.flush()
         return invite
+
+    # ── Bulk-fetch helpers for enriched group responses ──────────────────────
+
+    async def get_families_by_ids(self, ids: list[uuid.UUID]) -> list[Family]:
+        if not ids:
+            return []
+        result = await self.session.execute(select(Family).where(Family.id.in_(ids)))
+        return list(result.scalars().all())
+
+    async def get_family_memberships_for_families(
+        self, family_ids: list[uuid.UUID]
+    ) -> list[FamilyMembership]:
+        if not family_ids:
+            return []
+        result = await self.session.execute(
+            select(FamilyMembership).where(FamilyMembership.family_id.in_(family_ids))
+        )
+        return list(result.scalars().all())
+
+    async def get_users_by_ids(self, ids: list[uuid.UUID]) -> list[User]:
+        if not ids:
+            return []
+        result = await self.session.execute(select(User).where(User.id.in_(ids)))
+        return list(result.scalars().all())

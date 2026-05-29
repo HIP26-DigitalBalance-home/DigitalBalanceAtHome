@@ -1,3 +1,4 @@
+from collections import defaultdict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,20 +23,51 @@ from app.services import group as group_service
 router = APIRouter()
 
 
-def _group_schema(group, memberships, admins, is_admin: bool = False) -> dict:
-    admin_user_ids = [a.user_id for a in admins]
+async def _build_group_response(
+    session: AsyncSession,
+    group,
+    memberships,
+    admins,
+    is_admin: bool,
+) -> dict:
+    repo = GroupRepository(session)
+
+    family_ids = list({m.family_id for m in memberships})
+    families = await repo.get_families_by_ids(family_ids)
+    family_name_map = {f.id: f.name for f in families}
+
+    fm_list = await repo.get_family_memberships_for_families(family_ids)
+    user_ids = list({fm.user_id for fm in fm_list})
+    users = await repo.get_users_by_ids(user_ids)
+    user_map = {u.id: u for u in users}
+
+    admin_user_id_set = {a.user_id for a in admins}
+
+    fm_by_family: dict = defaultdict(list)
+    for fm in fm_list:
+        fm_by_family[fm.family_id].append(fm)
+
     members = []
-    seen_families: set = set()
+    seen: set = set()
     for m in memberships:
-        if m.family_id not in seen_families:
-            seen_families.add(m.family_id)
-            family_admins = [a.user_id for a in admins if a.user_id]  # simplified
-            members.append({
-                "family_id": m.family_id,
-                "family_name": None,
-                "admin_user_ids": [],
-                "joined_at": m.joined_at,
-            })
+        if m.family_id in seen:
+            continue
+        seen.add(m.family_id)
+        parents = [
+            {
+                "user_id": fm.user_id,
+                "display_name": user_map[fm.user_id].display_name if fm.user_id in user_map else "",
+                "is_group_admin": fm.user_id in admin_user_id_set,
+            }
+            for fm in fm_by_family.get(m.family_id, [])
+        ]
+        members.append({
+            "family_id": m.family_id,
+            "family_name": family_name_map.get(m.family_id),
+            "joined_at": m.joined_at,
+            "parents": parents,
+        })
+
     return {
         "id": group.id,
         "name": group.name,
@@ -66,7 +98,7 @@ async def create_group(
     repo = GroupRepository(session)
     memberships = await repo.get_memberships_for_group(group.id)
     admins = await repo.get_admins_for_group(group.id)
-    return _group_schema(group, memberships, admins, is_admin=True)
+    return await _build_group_response(session, group, memberships, admins, is_admin=True)
 
 
 @router.get("/me", response_model=list[GroupSummary])
@@ -89,7 +121,7 @@ async def join_group(
     memberships = await repo.get_memberships_for_group(group.id)
     admins = await repo.get_admins_for_group(group.id)
     admin = await repo.get_admin(group.id, current_user.id)
-    return _group_schema(group, memberships, admins, is_admin=admin is not None)
+    return await _build_group_response(session, group, memberships, admins, is_admin=admin is not None)
 
 
 @router.get("/{group_id}", response_model=Group)
@@ -103,7 +135,7 @@ async def get_group(
     )
     repo = GroupRepository(session)
     admin = await repo.get_admin(group_id, current_user.id)
-    return _group_schema(group, memberships, admins, is_admin=admin is not None)
+    return await _build_group_response(session, group, memberships, admins, is_admin=admin is not None)
 
 
 @router.post("/{group_id}/invites", response_model=InviteResponse, status_code=201)

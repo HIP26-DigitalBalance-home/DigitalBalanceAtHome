@@ -8,7 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { markOnboardingCompleted } from '@/hooks/use-onboarding-status';
-import { onboardingApi } from '@/lib/api';
+import { onboardingApi, groupsApi } from '@/lib/api';
+import { pendingInvite } from '@/lib/pending-invite';
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -39,6 +40,28 @@ export default function ChildScreen() {
         interests,
       });
       await markOnboardingCompleted();
+
+      // Process any pending invite stored before sign-in
+      const groupToken = await pendingInvite.getGroupToken();
+      if (groupToken) {
+        try {
+          const res = await groupsApi.joinGroup(groupToken);
+          await pendingInvite.clearGroupToken();
+          router.replace(`/group/${res.data.id}` as any);
+          return;
+        } catch {
+          await pendingInvite.clearGroupToken();
+        }
+      }
+
+      const familyToken = await pendingInvite.getFamilyToken();
+      if (familyToken) {
+        try {
+          await onboardingApi.postFamilyJoin(familyToken);
+        } catch { /* best-effort */ }
+        await pendingInvite.clearFamilyToken();
+      }
+
       router.replace('/(tabs)');
     } catch {
       setStatus('Failed to save. Please try again.');

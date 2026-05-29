@@ -104,7 +104,7 @@ async def create_family_invite(
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     invite = await family_service.create_family_invite(session, family_id, current_user.id)
-    invite_url = f"{settings.API_BASE_URL}/families/join?token={invite.token}"
+    invite_url = f"{settings.CLIENT_BASE_URL}/join-family?token={invite.token}"
     return {"invite_url": invite_url, "expires_at": invite.expires_at}
 
 

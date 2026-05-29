@@ -1,23 +1,168 @@
-import { StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Sharing from 'expo-sharing';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
+import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { onboardingApi } from '@/lib/api';
+import { apiClient } from '@/lib/api';
+
+interface FamilyMemberItem {
+  user_id: string;
+  display_name: string;
+  role: string;
+}
+
+interface FamilyData {
+  id: string;
+  name: string | null;
+  members: FamilyMemberItem[];
+}
 
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { currentUser, logout } = useAuth();
+  const [family, setFamily] = useState<FamilyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
+
+  const fetchFamily = useCallback(async () => {
+    try {
+      const res = await onboardingApi.getMyFamilies();
+      if (res.data.length > 0) setFamily(res.data[0]);
+    } catch {
+      // silently ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchFamily(); }, [fetchFamily]);
+
+  async function handleInviteToFamily() {
+    if (!family) return;
+    setInviting(true);
+    try {
+      const res = await apiClient.post(`/families/${family.id}/invites`);
+      const url: string = res.data.invite_url;
+      await Clipboard.setStringAsync(url);
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(url, { dialogTitle: 'Invite to family' });
+      } else {
+        Alert.alert('Link copied', 'Share this link to invite your partner:\n\n' + url);
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to generate invite link');
+    } finally {
+      setInviting(false);
+    }
+  }
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.content}>
-        <ThemedText type="title">Profile</ThemedText>
-        <ThemedText style={{ color: colors.muted }}>Coming in Milestone 10</ThemedText>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <ThemedText type="title" style={styles.title}>Profile</ThemedText>
       </View>
+
+      <FlatList
+        data={[]}
+        renderItem={null}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <>
+            {/* User info */}
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ThemedText style={styles.cardLabel}>Signed in as</ThemedText>
+              <ThemedText style={styles.cardValue}>{currentUser?.display_name ?? '—'}</ThemedText>
+              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>{currentUser?.email}</ThemedText>
+            </View>
+
+            {/* My Family */}
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY FAMILY</ThemedText>
+
+            {loading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.lg }} />
+            ) : family ? (
+              <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <ThemedText style={styles.cardValue}>{family.name ?? 'My Family'}</ThemedText>
+
+                {family.members.map((m) => (
+                  <View key={m.user_id} style={[styles.memberRow, { borderTopColor: colors.border }]}>
+                    <ThemedText style={styles.memberName}>{m.display_name}</ThemedText>
+                    <ThemedText style={[styles.memberRole, { color: colors.muted }]}>
+                      {m.role === 'admin' ? 'Admin' : 'Member'}
+                    </ThemedText>
+                  </View>
+                ))}
+
+                <Pressable
+                  style={[styles.inviteButton, { borderColor: colors.primary, opacity: inviting ? 0.6 : 1 }]}
+                  onPress={handleInviteToFamily}
+                  disabled={inviting}>
+                  {inviting ? (
+                    <ActivityIndicator color={colors.primary} size="small" />
+                  ) : (
+                    <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
+                      + Invite to family
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
+                No family found
+              </ThemedText>
+            )}
+
+            {/* Sign out */}
+            <Pressable
+              style={[styles.signOutButton, { borderColor: colors.destructive }]}
+              onPress={logout}>
+              <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>Sign out</ThemedText>
+            </Pressable>
+          </>
+        }
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  header: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  title: { fontSize: 28 },
+  content: { padding: Spacing.md, gap: Spacing.md },
+  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginTop: Spacing.sm },
+  card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
+  cardLabel: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
+  cardValue: { fontSize: 16, fontWeight: '600' },
+  cardSub: { fontSize: 13 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', paddingTop: Spacing.sm, borderTopWidth: 1, marginTop: Spacing.sm },
+  memberName: { flex: 1, fontSize: 15 },
+  memberRole: { fontSize: 13 },
+  inviteButton: {
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+  },
+  signOutButton: {
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+  },
 });
