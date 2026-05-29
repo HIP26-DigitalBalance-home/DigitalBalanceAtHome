@@ -11,7 +11,8 @@ import { useAuth } from '@/lib/auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
 
 export default function SignInScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
@@ -20,7 +21,11 @@ export default function SignInScreen() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    // iosClientId triggers the native iOS flow with the reversed-client-ID
+    // redirect URI (com.googleusercontent.apps.CLIENT_ID:/oauth2redirect).
+    // Requires a development build — does not work in Expo Go.
+    iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
   });
 
   useEffect(() => {

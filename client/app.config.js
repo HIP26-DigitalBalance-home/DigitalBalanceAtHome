@@ -9,7 +9,8 @@ module.exports = {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      bundleIdentifier: 'com.hip26.digitalbalanceathome',
     },
     android: {
       adaptiveIcon: {
