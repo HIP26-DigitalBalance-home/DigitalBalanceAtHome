@@ -139,6 +139,7 @@ export default function ActivitiesScreen() {
         <FlatList
           data={activities}
           keyExtractor={a => a.id}
+          style={styles.listContainer}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -175,12 +176,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   title: { fontSize: 28 },
-  filtersScroll: { maxHeight: 52 },
+  filtersScroll: { maxHeight: 52, flexShrink: 0 },
   filtersRow: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.xs, flexDirection: 'row', alignItems: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: '500' },
   chipDivider: { width: 1, height: 20, backgroundColor: '#ddd', marginHorizontal: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.xl },
+  listContainer: { flex: 1 },
   list: { padding: Spacing.md, gap: Spacing.sm },
   card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   cardMain: { gap: 4 },
