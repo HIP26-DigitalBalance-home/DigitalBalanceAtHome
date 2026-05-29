@@ -2,6 +2,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
+
+def _fake_family_dict(family) -> dict:
+    """Minimal dict that satisfies the Family response schema."""
+    return {
+        "id": str(family.id),
+        "name": family.name,
+        "members": [],
+        "created_at": family.created_at.isoformat(),
+    }
+
 import pytest
 
 from app.services.exceptions import (
@@ -56,6 +66,7 @@ class TestCreateFamily:
         membership = _fake_membership(family.id)
         mocker.patch("app.api.families.family_service.create_family", return_value=(family, membership))
         _mock_repo(mocker, [membership])
+        mocker.patch("app.api.families._build_family_response", new=AsyncMock(return_value=_fake_family_dict(family)))
 
         response = await auth_client.post("/families", json={"name": "The Garcias"})
 
@@ -75,6 +86,7 @@ class TestGetMyFamilies:
         membership = _fake_membership(family.id)
         mocker.patch("app.api.families.family_service.get_families_for_user", return_value=[(family, membership)])
         _mock_repo(mocker, [membership])
+        mocker.patch("app.api.families._build_family_response", new=AsyncMock(return_value=_fake_family_dict(family)))
 
         response = await auth_client.get("/families/me")
         assert response.status_code == 200
@@ -87,6 +99,7 @@ class TestJoinFamily:
         membership = _fake_membership(family.id, "member")
         mocker.patch("app.api.families.family_service.join_family", return_value=(family, membership))
         _mock_repo(mocker, [membership])
+        mocker.patch("app.api.families._build_family_response", new=AsyncMock(return_value=_fake_family_dict(family)))
 
         response = await auth_client.post("/families/join", json={"token": str(uuid.uuid4())})
         assert response.status_code == 200

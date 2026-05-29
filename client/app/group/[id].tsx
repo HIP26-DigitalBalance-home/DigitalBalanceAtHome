@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -72,26 +72,36 @@ export default function GroupDetailScreen() {
     }
   }
 
-  function handleRemoveFamily(familyId: string, familyName: string | null) {
-    Alert.alert(
-      'Remove family',
-      `Remove "${familyName ?? 'this family'}" from the group?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await groupsApi.removeGroupMember(id!, familyId);
-              fetchGroup();
-            } catch {
-              Alert.alert('Error', 'Failed to remove family');
-            }
-          },
+  async function handleRemoveFamily(familyId: string, familyName: string | null) {
+    const message = `Remove "${familyName ?? 'this family'}" from the group?`;
+
+    if (Platform.OS === 'web') {
+      // Alert.alert callbacks are not supported on web — use window.confirm
+      if (!window.confirm(message)) return;
+      try {
+        await groupsApi.removeGroupMember(id!, familyId);
+        fetchGroup();
+      } catch {
+        window.alert('Failed to remove family. Please try again.');
+      }
+      return;
+    }
+
+    Alert.alert('Remove family', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await groupsApi.removeGroupMember(id!, familyId);
+            fetchGroup();
+          } catch {
+            Alert.alert('Error', 'Failed to remove family');
+          }
         },
-      ]
-    );
+      },
+    ]);
   }
 
   if (loading) {

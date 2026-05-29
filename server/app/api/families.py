@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,7 +14,6 @@ from app.schemas.generated import (
     Family,
     FamilyCreatedResponse,
     FamilyMember,
-    GrantAdminRequest,
     InviteResponse,
     JoinByTokenRequest,
     UpdateMemberRoleRequest,
@@ -24,22 +24,39 @@ from app.services import family as family_service
 router = APIRouter()
 
 
-def _member_schema(m) -> dict:
-    return {
-        "user_id": m.user_id,
-        "display_name": "",  # populated by join in full implementation; placeholder for now
-        "profile_photo_url": None,
-        "role": m.role.value,
-        "joined_at": m.joined_at,
-    }
+async def _build_family_response(session: AsyncSession, family, memberships) -> dict:
+    """Build a Family response dict with real User display names."""
+    user_ids = [m.user_id for m in memberships]
+    user_map: dict = {}
+    if user_ids:
+        result = await session.execute(select(User).where(User.id.in_(user_ids)))
+        user_map = {u.id: u for u in result.scalars().all()}
 
-
-def _family_schema(family, memberships) -> dict:
+    members = [
+        {
+            "user_id": m.user_id,
+            "display_name": user_map[m.user_id].display_name if m.user_id in user_map else "",
+            "profile_photo_url": None,
+            "role": m.role.value,
+            "joined_at": m.joined_at,
+        }
+        for m in memberships
+    ]
     return {
         "id": family.id,
         "name": family.name,
-        "members": [_member_schema(m) for m in memberships],
+        "members": members,
         "created_at": family.created_at,
+    }
+
+
+def _member_schema(m, user: User | None = None) -> dict:
+    return {
+        "user_id": m.user_id,
+        "display_name": user.display_name if user else "",
+        "profile_photo_url": None,
+        "role": m.role.value,
+        "joined_at": m.joined_at,
     }
 
 
@@ -53,8 +70,8 @@ async def create_family(
     repo = FamilyRepository(session)
     members = await repo.get_memberships_for_family(family.id)
     return {
-        "family": _family_schema(family, members),
-        "membership": _member_schema(membership),
+        "family": await _build_family_response(session, family, members),
+        "membership": _member_schema(membership, current_user),
     }
 
 
@@ -68,7 +85,7 @@ async def get_my_families(
     result = []
     for family, _ in pairs:
         members = await repo.get_memberships_for_family(family.id)
-        result.append(_family_schema(family, members))
+        result.append(await _build_family_response(session, family, members))
     return result
 
 
@@ -82,8 +99,8 @@ async def join_family(
     repo = FamilyRepository(session)
     members = await repo.get_memberships_for_family(family.id)
     return {
-        "family": _family_schema(family, members),
-        "membership": _member_schema(membership),
+        "family": await _build_family_response(session, family, members),
+        "membership": _member_schema(membership, current_user),
     }
 
 
@@ -94,7 +111,7 @@ async def get_family(
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     family, members = await family_service.get_family(session, family_id, current_user.id)
-    return _family_schema(family, members)
+    return await _build_family_response(session, family, members)
 
 
 @router.post("/{family_id}/invites", response_model=InviteResponse, status_code=201)
@@ -116,12 +133,14 @@ async def update_family_member(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    from app.models.family import FamilyRole as FR
-    role = FR(body.role.value)
+    role = FamilyRole(body.role.value)
     membership = await family_service.update_member_role(
         session, family_id, user_id, role, current_user.id
     )
-    return _member_schema(membership)
+    # Fetch the user to populate display_name
+    result = await session.execute(select(User).where(User.id == membership.user_id))
+    user = result.scalar_one_or_none()
+    return _member_schema(membership, user)
 
 
 @router.delete("/{family_id}/members/{user_id}", status_code=204)
