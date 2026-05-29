@@ -1,8 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
@@ -10,6 +11,8 @@ import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onboardingApi } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+
+const CITY_KEY = '@dba_city_preference';
 
 interface FamilyMemberItem {
   user_id: string;
@@ -29,6 +32,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [locationConsent, setLocationConsent] = useState(false);
+  const [city, setCity] = useState('');
 
   const fetchFamily = useCallback(async () => {
     try {
@@ -42,6 +47,21 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => { fetchFamily(); }, [fetchFamily]);
+
+  // Load location consent and stored city preference
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      apiClient.get('/consents').catch(() => null),
+      AsyncStorage.getItem(CITY_KEY),
+    ]).then(([consentRes, storedCity]) => {
+      if (!cancelled) {
+        if (consentRes?.data?.location_consent) setLocationConsent(true);
+        if (storedCity) setCity(storedCity);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleLeaveFamily() {
     if (!family || !currentUser) return;
@@ -147,6 +167,33 @@ export default function ProfileScreen() {
               </ThemedText>
             )}
 
+            {/* Location / city preference — only shown if user gave location consent */}
+            {locationConsent && (
+              <>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVITY SUGGESTIONS</ThemedText>
+                <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <ThemedText style={styles.cardLabel}>Your city</ThemedText>
+                  <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
+                    Used for weather-based suggestions. Leave blank for season-based suggestions.
+                  </ThemedText>
+                  <TextInput
+                    style={[styles.cityInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
+                    placeholder="e.g. Munich"
+                    placeholderTextColor={colors.muted}
+                    value={city}
+                    onChangeText={setCity}
+                    onBlur={() => {
+                      if (city.trim()) {
+                        AsyncStorage.setItem(CITY_KEY, city.trim());
+                      } else {
+                        AsyncStorage.removeItem(CITY_KEY);
+                      }
+                    }}
+                  />
+                </View>
+              </>
+            )}
+
             {/* Sign out */}
             <Pressable
               style={[styles.signOutButton, { borderColor: colors.destructive }]}
@@ -177,6 +224,7 @@ const styles = StyleSheet.create({
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingTop: Spacing.sm, borderTopWidth: 1, marginTop: Spacing.sm },
   memberName: { flex: 1, fontSize: 15 },
   memberRole: { fontSize: 13 },
+  cityInput: { height: 44, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: Spacing.md, fontSize: 15, marginTop: Spacing.xs },
   inviteButton: {
     height: 44,
     borderRadius: 10,

@@ -67,6 +67,7 @@ function RootLayoutNav() {
       <Stack.Screen name="join-group" />
       <Stack.Screen name="join-family" />
       <Stack.Screen name="group/[id]" />
+      <Stack.Screen name="activity/[id]" />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
     </Stack>
   );
