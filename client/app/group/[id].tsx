@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
+import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupsApi } from '@/lib/api';
 
@@ -34,6 +35,7 @@ interface GroupDetail {
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { currentUser } = useAuth();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +113,10 @@ export default function GroupDetailScreen() {
     );
   }
 
+  // Derive admin status from both the server flag and the parents data (fallback)
+  const isAdmin = group.is_admin ||
+    group.members.some(m => m.parents.some(p => p.user_id === currentUser?.id && p.is_group_admin));
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -121,7 +127,7 @@ export default function GroupDetailScreen() {
           <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
             {group.name}
           </ThemedText>
-          {group.is_admin && (
+          {isAdmin && (
             <View style={[styles.adminBadge, { backgroundColor: colors.accent }]}>
               <ThemedText style={styles.adminBadgeText}>Admin</ThemedText>
             </View>
@@ -135,7 +141,7 @@ export default function GroupDetailScreen() {
         keyExtractor={(m) => m.family_id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          group.is_admin ? (
+          isAdmin ? (
             <View style={[styles.adminPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ADMIN CONTROLS</ThemedText>
               <Pressable
@@ -148,18 +154,21 @@ export default function GroupDetailScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          // True if this family contains the current user — never show remove for own family
+          const isOwnFamily = item.parents.some(p => p.user_id === currentUser?.id);
+          return (
           <View style={[styles.familyCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
             <View style={styles.familyHeader}>
               <View style={styles.familyTitleRow}>
                 <ThemedText style={styles.familyName}>
-                  {item.family_name ?? 'Unnamed family'}
+                  {item.family_name ?? 'Unnamed family'}{isOwnFamily ? ' (you)' : ''}
                 </ThemedText>
                 <ThemedText style={[styles.joinedAt, { color: colors.muted }]}>
                   Joined {new Date(item.joined_at).toLocaleDateString()}
                 </ThemedText>
               </View>
-              {group.is_admin && (
+              {isAdmin && !isOwnFamily && (
                 <Pressable
                   style={[styles.removeButton, { borderColor: colors.destructive }]}
                   onPress={() => handleRemoveFamily(item.family_id, item.family_name)}>
@@ -185,7 +194,8 @@ export default function GroupDetailScreen() {
               </View>
             )}
           </View>
-        )}
+          );
+        }}
       />
     </SafeAreaView>
   );

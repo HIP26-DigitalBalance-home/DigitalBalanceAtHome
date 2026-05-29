@@ -505,6 +505,32 @@ No new routes. The challenge completion state is already derivable from `GET /ch
 
 ---
 
+## As-Built Divergences
+
+Changes from the original plan that were made during implementation. Future milestones should be read in light of these.
+
+### Platform
+- **Target is web**, not native iOS. Expo Go is used for development. `expo-camera` (M7) and `react-native-confetti-cannon` (M8) require a development build when native is needed.
+
+### M2 — Authentication
+- **Google OAuth uses two flows**: `ResponseType.IdToken` on web (client sends `id_token` to server for verification via Google tokeninfo API); authorization code + PKCE on native (server exchanges with Google using client secret). The spec originally assumed only the code flow.
+- **Token storage fallback**: `expo-secure-store` not available in Expo Go SDK 54; falls back to `AsyncStorage` transparently for development.
+
+### M3 — Onboarding
+- **`@spezivibe/onboarding` was not available** in the generated project. `FeatureCard`, `PaginationDots`, `ConsentCheckbox` were built inline in `client/components/onboarding/`.
+- **`useOnboardingStatus`**: implemented with `AsyncStorage` key `@dba_onboarding_v1` (not the Spezi package hook). Status is client-side only — does not sync across device reinstalls.
+- **Family invite flow through onboarding**: if a `FamilyInvite` token is stored before sign-in, the family screen shows "Accept invite" instead of "Create my family".
+
+### M4 — Groups
+- **`GroupMemberFamily` schema enriched**: replaced `admin_user_ids: list[UUID]` with `parents: list[FamilyParentInGroup]` containing `{user_id, display_name, is_group_admin}`. The server batch-fetches Family names and User display names to avoid N+1 queries.
+- **Family invite URL corrected**: uses `CLIENT_BASE_URL/join-family?token=` (not `API_BASE_URL/families/join?token=` as originally written).
+- **Unauthenticated invite flow** (not in original plan): when an unauthenticated user opens `/join-group?token=X` or `/join-family?token=X`, the RouteGuard stores the token in AsyncStorage. After onboarding completes, `child.tsx` processes the pending token and navigates to the target group.
+- **Groups tab auto-refresh**: uses `useFocusEffect` instead of a one-time `useEffect` so the list refreshes whenever navigating back to the tab.
+- **Profile tab**: implemented ahead of M10 with a minimal "My Family" section and "Invite to family" button (full profile management remains M10).
+- **Group detail admin detection**: `is_admin` flag from server is supplemented client-side by checking if the current user appears as `is_group_admin` in any family's parents list. Own family is identified by `parents[].user_id === currentUser.id`; remove button is hidden for own family.
+
+---
+
 ## Open Questions
 
 - **Weather API provider** (compliance D4 still TBD): `SuggestionService` on the backend should abstract the weather call behind a thin interface so the provider can be swapped. In Milestone 5, implement with a hardcoded season fallback first; add the real weather API call once the provider is confirmed.
