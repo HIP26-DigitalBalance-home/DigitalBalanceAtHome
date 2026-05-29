@@ -93,9 +93,10 @@ class TestGoogleCallback:
 
         assert response.status_code == 401
 
-    async def test_missing_required_field_returns_422(self, client):
-        response = await client.post("/auth/google/callback", json={"code": "abc"})
-        assert response.status_code == 422
+    async def test_missing_both_code_and_id_token_returns_400(self, client):
+        # Neither id_token (web flow) nor code (native flow) provided
+        response = await client.post("/auth/google/callback", json={})
+        assert response.status_code == 400
 
     async def test_rate_limit_after_10_requests(self, client, mocker):
         mocker.patch(

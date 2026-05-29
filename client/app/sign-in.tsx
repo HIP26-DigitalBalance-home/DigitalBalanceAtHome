@@ -1,7 +1,8 @@
 import * as Google from 'expo-auth-session/providers/google';
+import { ResponseType } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,21 +23,25 @@ export default function SignInScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
-    // iosClientId triggers the native iOS flow with the reversed-client-ID
-    // redirect URI (com.googleusercontent.apps.CLIENT_ID:/oauth2redirect).
-    // Requires a development build — does not work in Expo Go.
     iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
+    // Web: use id_token flow (no server-side code exchange — web clients can't embed client_secret)
+    // Native: default code flow (server exchanges with client_secret)
+    responseType: Platform.OS === 'web' ? ResponseType.IdToken : undefined,
   });
 
   useEffect(() => {
     if (response?.type !== 'success') return;
 
-    const code = response.params.code;
-    const redirectUri = request?.redirectUri ?? '';
-    const codeVerifier = request?.codeVerifier ?? null;
+    const idToken = response.params.id_token;  // web (ResponseType.IdToken)
+    const code = response.params.code;          // native (ResponseType.Code)
 
     setIsSigningIn(true);
-    login(code, redirectUri, codeVerifier)
+
+    const payload = idToken
+      ? { id_token: idToken }
+      : { code, redirect_uri: request?.redirectUri ?? '', code_verifier: request?.codeVerifier ?? null };
+
+    login(payload)
       .catch((err) => {
         setError(err?.message ?? 'Sign-in failed. Please try again.');
         setIsSigningIn(false);

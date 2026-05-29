@@ -11,6 +11,25 @@ _ACCESS_EXPIRE_MINUTES = 15
 _REFRESH_EXPIRE_DAYS = 7
 
 
+async def verify_google_id_token(id_token: str) -> dict:
+    """Verify a Google ID token via the tokeninfo endpoint (used in the web flow)."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": id_token},
+        )
+    if response.status_code != 200:
+        raise ValueError(f"Invalid Google ID token: {response.text}")
+    claims = response.json()
+    aud = claims.get("aud")
+    if isinstance(aud, list):
+        if settings.GOOGLE_CLIENT_ID not in aud:
+            raise ValueError("Token audience mismatch")
+    elif aud != settings.GOOGLE_CLIENT_ID:
+        raise ValueError("Token audience mismatch")
+    return claims
+
+
 async def exchange_google_code(
     code: str,
     redirect_uri: str,

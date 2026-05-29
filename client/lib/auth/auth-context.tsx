@@ -23,7 +23,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   currentUser: AuthUser | null;
-  login: (code: string, redirectUri: string, codeVerifier: string | null) => Promise<void>;
+  login: (payload: Record<string, string | null | undefined>) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
 }
@@ -69,15 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (
-    code: string,
-    redirectUri: string,
-    codeVerifier: string | null,
+    payload: Record<string, string | null | undefined>,
   ) => {
-    const response = await apiClient.post('/auth/google/callback', {
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier,
-    });
+    const response = await apiClient.post('/auth/google/callback', payload);
     const { access_token, refresh_token, user } = response.data;
 
     await tokenStore.setAccessToken(access_token);

@@ -47,21 +47,24 @@ async def google_callback(
 ) -> dict:
     await _rate_limit(request)
 
-    try:
-        token_data = await auth_service.exchange_google_code(
-            code=body.code,
-            redirect_uri=body.redirect_uri,
-            code_verifier=body.code_verifier,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=401, detail=str(exc))
-
-    id_token = token_data.get("id_token")
-    if not id_token:
-        raise HTTPException(status_code=401, detail="No ID token in Google response")
+    if not body.id_token and not body.code:
+        raise HTTPException(status_code=400, detail="Either 'id_token' (web) or 'code' (native) is required")
 
     try:
-        claims = auth_service.extract_google_claims(id_token, settings.GOOGLE_CLIENT_ID)
+        if body.id_token:
+            # Web flow: id_token received directly from the client
+            claims = await auth_service.verify_google_id_token(body.id_token)
+        else:
+            # Native flow: exchange authorization code on the server
+            token_data = await auth_service.exchange_google_code(
+                code=body.code,
+                redirect_uri=body.redirect_uri or "",
+                code_verifier=body.code_verifier,
+            )
+            id_token = token_data.get("id_token")
+            if not id_token:
+                raise ValueError("No ID token in Google response")
+            claims = auth_service.extract_google_claims(id_token, settings.GOOGLE_CLIENT_ID)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
 

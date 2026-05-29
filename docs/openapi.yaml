@@ -1123,18 +1123,27 @@ components:
 
     GoogleCallbackRequest:
       type: object
-      required: [code, redirect_uri]
+      description: |
+        Supports two flows — exactly one of `id_token` or `code` must be provided:
+        - **Web flow** (`Platform.OS === 'web'`): provide `id_token` obtained via `ResponseType.IdToken`
+        - **Native flow** (iOS/Android): provide `code` + `redirect_uri` + optional `code_verifier`
       properties:
+        id_token:
+          type: string
+          nullable: true
+          description: Google ID token (web flow)
         code:
           type: string
-          description: Authorization code from Google OAuth
+          nullable: true
+          description: Authorization code (native flow)
         redirect_uri:
           type: string
-          description: Redirect URI used in the authorization request (must match exactly)
+          nullable: true
+          description: Redirect URI used in the authorization request (native flow)
         code_verifier:
           type: string
           nullable: true
-          description: PKCE code verifier (required when PKCE was used)
+          description: PKCE code verifier (native flow, optional)
 
     RefreshRequest:
       type: object
