@@ -16,6 +16,7 @@ const MAPPING = {
   'house.fill': 'home',
   'calendar': 'event',
   'person.2.fill': 'people',
+  'person.3.fill': 'groups',
   'paperplane.fill': 'send',
 
   // UI Elements

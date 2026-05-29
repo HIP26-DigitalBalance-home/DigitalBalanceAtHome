@@ -1,88 +1,80 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Colors, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { apiClient } from '@/lib/api';
+
+type ServerStatus = 'checking' | 'connected' | 'unreachable';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#F5E6D3', dark: '#2d2d2d' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/spezivibe-logo.png')}
-          style={styles.logo}
-          contentFit="contain"
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colors = Colors[useColorScheme() ?? 'light'];
+  const [serverStatus, setServerStatus] = useState<ServerStatus>('checking');
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  useEffect(() => {
+    let cancelled = false;
+
+    apiClient
+      .get('/healthz')
+      .then(() => {
+        if (!cancelled) setServerStatus('connected');
+      })
+      .catch(() => {
+        if (!cancelled) setServerStatus('unreachable');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.content}>
+        <ThemedText type="title">DigitalBalance @home</ThemedText>
+        <ThemedText style={{ color: colors.muted }}>Collage screen coming in Milestone 6</ThemedText>
+
+        <View style={styles.statusRow}>
+          {serverStatus === 'checking' && (
+            <>
+              <ActivityIndicator size="small" color={colors.muted} />
+              <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+                Connecting to server…
+              </ThemedText>
+            </>
+          )}
+          {serverStatus === 'connected' && (
+            <ThemedText style={[styles.statusText, { color: colors.accent }]}>
+              ✓ Server connected
+            </ThemedText>
+          )}
+          {serverStatus === 'unreachable' && (
+            <ThemedText style={[styles.statusText, { color: colors.destructive }]}>
+              ✗ Server unreachable — is Docker Compose running?
+            </ThemedText>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: { flex: 1 },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.screenHorizontal,
+  },
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  logo: {
-    height: 200,
-    width: 200,
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-  },
+  statusText: { fontSize: 14 },
 });
