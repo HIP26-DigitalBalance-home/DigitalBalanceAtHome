@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str = ""
     S3_REGION: str = "eu-central-1"
     API_BASE_URL: str = "http://localhost:8000"
+    CLIENT_BASE_URL: str = "http://localhost:8081"
 
 
 settings = Settings()

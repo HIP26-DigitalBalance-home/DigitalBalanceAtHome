@@ -56,3 +56,43 @@ class ChildNotFound(DomainError):
 class NoFamilyError(DomainError):
     status_code = 400
     code = "no_family"
+
+
+class GroupNotFound(DomainError):
+    status_code = 404
+    code = "group_not_found"
+
+
+class NotGroupMember(DomainError):
+    status_code = 403
+    code = "not_group_member"
+
+
+class NotGroupAdmin(DomainError):
+    status_code = 403
+    code = "not_group_admin"
+
+
+class AlreadyGroupMember(DomainError):
+    status_code = 409
+    code = "already_group_member"
+
+
+class LastGroupAdminError(DomainError):
+    status_code = 400
+    code = "last_group_admin"
+
+
+class GroupInviteNotFound(DomainError):
+    status_code = 404
+    code = "group_invite_not_found"
+
+
+class GroupInviteExpired(DomainError):
+    status_code = 400
+    code = "group_invite_expired"
+
+
+class GroupInviteAlreadyUsed(DomainError):
+    status_code = 400
+    code = "group_invite_already_used"

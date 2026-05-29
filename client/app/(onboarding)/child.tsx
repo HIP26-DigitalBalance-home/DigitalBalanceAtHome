@@ -64,7 +64,7 @@ export default function ChildScreen() {
                 <ThemedText style={styles.label}>Nickname *</ThemedText>
                 <TextInput
                   style={[styles.input, { borderColor: touched.nickname && errors.nickname ? colors.destructive : colors.border, color: colors.text, backgroundColor: colors.surface }]}
-                  placeholder="e.g. Lena"
+                  placeholder="e.g. Maxi"
                   placeholderTextColor={colors.muted}
                   value={values.nickname}
                   onChangeText={handleChange('nickname')}

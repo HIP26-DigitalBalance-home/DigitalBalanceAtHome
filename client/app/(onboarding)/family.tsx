@@ -36,7 +36,7 @@ export default function FamilyScreen() {
 
         <TextInput
           style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-          placeholder="e.g. The Garcia Family"
+          placeholder="e.g. The Mustermann Family"
           placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}

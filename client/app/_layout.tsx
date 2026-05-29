@@ -53,6 +53,9 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="create-group" />
+      <Stack.Screen name="join-group" />
+      <Stack.Screen name="group/[id]" />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
     </Stack>
   );
