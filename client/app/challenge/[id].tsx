@@ -70,12 +70,7 @@ export default function ChallengeDetailScreen() {
         const res = await completionsApi.getById(completionId);
         if (res.data.status === 'ready') {
           stopPolling();
-          try {
-            const urlRes = await photosApi.getUrl(completionId);
-            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: urlRes.data.url } }));
-          } catch {
-            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: null } }));
-          }
+          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null } }));
         }
       } catch {
         // keep polling

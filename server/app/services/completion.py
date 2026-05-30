@@ -21,13 +21,19 @@ from app.services.family import get_user_family
 
 
 def _completion_dict(c: Completion) -> dict:
+    photo_url = None
+    if c.status == "ready" and c.photo_key:
+        try:
+            photo_url = storage.generate_presigned_url(c.photo_key, expires=900)
+        except Exception:
+            pass
     return {
         "id": c.id,
         "challenge_activity_id": c.challenge_activity_id,
         "family_id": c.family_id,
         "completed_by_user_id": c.completed_by_user_id,
         "status": c.status,
-        "photo_url": None,  # always null here; client fetches via GET /photos/{id}/url
+        "photo_url": photo_url,
         "caption": c.caption,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { completionsApi, photosApi } from '@/lib/api';
+import { completionsApi } from '@/lib/api';
 
 interface CompletionState {
   status: string | null;
@@ -30,12 +30,8 @@ export function useCompletionStatus(completionId: string | null): CompletionStat
         const { status } = res.data;
         if (status === 'ready') {
           stop();
-          try {
-            const urlRes = await photosApi.getUrl(completionId!);
-            setState({ status: 'ready', photoUrl: urlRes.data.url });
-          } catch {
-            setState({ status: 'ready', photoUrl: null });
-          }
+          // photo_url is now included in the polling response from the server
+          setState({ status: 'ready', photoUrl: res.data.photo_url ?? null });
         } else {
           setState({ status, photoUrl: null });
         }

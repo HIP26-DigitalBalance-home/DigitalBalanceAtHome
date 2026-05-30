@@ -116,12 +116,7 @@ export default function HomeScreen() {
         const { status } = res.data;
         if (status === 'ready') {
           stopPolling();
-          try {
-            const urlRes = await photosApi.getUrl(completionId);
-            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: urlRes.data.url } }));
-          } catch {
-            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: null } }));
-          }
+          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null } }));
         }
       } catch {
         // keep polling
