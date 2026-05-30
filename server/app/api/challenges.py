@@ -43,6 +43,15 @@ async def get_my_challenges(
     return await challenge_service.get_my_challenges(session, current_user.id, status)
 
 
+@router.delete("/{challenge_id}", status_code=204)
+async def delete_challenge(
+    challenge_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> None:
+    await challenge_service.delete_challenge(session, current_user.id, challenge_id)
+
+
 @router.get("/{challenge_id}", response_model=ChallengeWithProgress)
 async def get_challenge(
     challenge_id: uuid.UUID,

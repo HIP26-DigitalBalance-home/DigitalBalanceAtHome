@@ -39,7 +39,7 @@ async function downloadPhoto(url: string, filename: string) {
 
 export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, onClose, onDeleted }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
-  const { width, height } = Dimensions.get('window');
+  const { width } = Dimensions.get('window');
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -75,57 +75,59 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
     }
   }
 
+  const cardWidth = width - Spacing.screenHorizontal * 2;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        {/* Close button */}
-        <Pressable style={styles.closeButton} onPress={onClose}>
-          <ThemedText style={styles.closeText}>✕</ThemedText>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.card, { width: cardWidth, backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          {/* Photo with X overlaid */}
+          <View style={[styles.photoContainer, { width: cardWidth, height: cardWidth * 0.75 }]}>
+            {photoUrl ? (
+              <Image
+                source={{ uri: photoUrl }}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+              />
+            ) : (
+              <ActivityIndicator color={colors.primary} />
+            )}
+            <Pressable style={styles.closeButton} onPress={onClose}>
+              <ThemedText style={styles.closeText}>✕</ThemedText>
+            </Pressable>
+          </View>
+
+          {/* Title + buttons */}
+          <View style={styles.body}>
+            <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
+              {activityTitle}
+            </ThemedText>
+
+            <Pressable
+              style={[styles.actionButton, { borderColor: colors.primary }]}
+              onPress={handleDownload}
+              disabled={downloading}
+            >
+              {downloading
+                ? <ActivityIndicator color={colors.primary} />
+                : <ThemedText style={[styles.actionText, { color: colors.primary }]}>⬇ Download</ThemedText>}
+            </Pressable>
+
+            <Pressable
+              style={[styles.actionButton, { borderColor: colors.destructive }]}
+              onPress={handleDelete}
+              disabled={deleting}
+            >
+              {deleting
+                ? <ActivityIndicator color={colors.destructive} />
+                : <ThemedText style={[styles.actionText, { color: colors.destructive }]}>🗑 Delete</ThemedText>}
+            </Pressable>
+          </View>
         </Pressable>
-
-        {/* Activity title */}
-        <ThemedText style={styles.title} numberOfLines={2}>{activityTitle}</ThemedText>
-
-        {/* Photo */}
-        <View style={[styles.imageContainer, { width, height: height * 0.65 }]}>
-          {photoUrl ? (
-            <Image
-              source={{ uri: photoUrl }}
-              style={{ width, height: height * 0.65 }}
-              resizeMode="contain"
-            />
-          ) : (
-            <ActivityIndicator color="#fff" />
-          )}
-        </View>
-
-        {/* Action buttons */}
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-            onPress={handleDownload}
-            disabled={downloading}
-          >
-            {downloading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.actionText}>⬇ Download</ThemedText>
-            )}
-          </Pressable>
-
-          <Pressable
-            style={[styles.actionButton, { backgroundColor: colors.destructive + 'CC' }]}
-            onPress={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.actionText}>🗑 Delete</ThemedText>
-            )}
-          </Pressable>
-        </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 }
@@ -133,45 +135,41 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.screenHorizontal,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  photoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
   },
   closeButton: {
     position: 'absolute',
-    top: 48,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  title: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    paddingHorizontal: Spacing.xl,
-    marginTop: 60,
-  },
-  imageContainer: { alignItems: 'center', justifyContent: 'center' },
-  actions: {
-    flexDirection: 'column',
-    gap: Spacing.sm,
-    width: '100%',
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingBottom: Spacing.xl,
-  },
+  closeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  body: { padding: Spacing.md, gap: Spacing.sm },
+  title: { fontSize: 15, fontWeight: '600' },
   actionButton: {
-    width: '100%',
-    height: 52,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  actionText: { fontSize: 15, fontWeight: '600' },
 });

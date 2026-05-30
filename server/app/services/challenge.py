@@ -178,6 +178,26 @@ async def get_my_challenges(
     return [_challenge_summary_dict(c, today) for c in challenges]
 
 
+async def delete_challenge(
+    session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID
+) -> None:
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        raise ChallengeNotFound("Challenge not found")
+
+    repo = ChallengeRepository(session)
+    challenge = await repo.get_by_id(challenge_id)
+    if not challenge:
+        raise ChallengeNotFound(f"Challenge {challenge_id} not found")
+
+    # Only the family that created the challenge can delete it
+    if challenge.created_by_family_id != fm.family_id:
+        raise ChallengeNotFound("Challenge not found")
+
+    await session.delete(challenge)
+    await session.commit()
+
+
 async def get_challenge(
     session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID
 ) -> dict:

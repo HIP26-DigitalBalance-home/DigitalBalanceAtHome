@@ -1,4 +1,5 @@
-import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
@@ -22,8 +23,11 @@ interface Props {
 export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const numColumns = Math.max(2, Math.ceil(Math.sqrt(slots.length)));
-  const screenWidth = Dimensions.get('window').width;
-  const slotSize = (screenWidth - Spacing.screenHorizontal * 2 - Spacing.xs * (numColumns - 1)) / numColumns;
+  // Start with a best-guess width; replaced on first layout with the real container width.
+  const [containerWidth, setContainerWidth] = useState(
+    Dimensions.get('window').width - Spacing.screenHorizontal * 2
+  );
+  const slotSize = (containerWidth - Spacing.xs * (numColumns - 1)) / numColumns;
 
   const sortedSlots = [...slots].sort((a, b) => a.grid_position - b.grid_position);
 
@@ -112,16 +116,18 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
   }
 
   return (
-    <FlatList
-      key={numColumns}
-      data={sortedSlots}
-      numColumns={numColumns}
-      keyExtractor={(item) => item.id}
-      scrollEnabled={false}
-      columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
-      renderItem={renderSlot}
-      contentContainerStyle={styles.grid}
-    />
+    <View onLayout={(e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width)}>
+      <FlatList
+        key={numColumns}
+        data={sortedSlots}
+        numColumns={numColumns}
+        keyExtractor={(item) => item.id}
+        scrollEnabled={false}
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
+        renderItem={renderSlot}
+        contentContainerStyle={styles.grid}
+      />
+    </View>
   );
 }
 

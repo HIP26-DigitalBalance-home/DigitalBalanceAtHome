@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   challengesApi,
   completionsApi,
+  groupsApi,
   photosApi,
   type ChallengeActivitySlot,
   type ChallengeWithProgress,
@@ -36,6 +37,8 @@ export default function ChallengeDetailScreen() {
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
   const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
+  const [groupName, setGroupName] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
 
   useEffect(() => {
@@ -51,7 +54,16 @@ export default function ChallengeDetailScreen() {
     if (!id) return;
     let cancelled = false;
     challengesApi.getById(id)
-      .then((r) => { if (!cancelled) setChallenge(r.data); })
+      .then((r) => {
+        if (!cancelled) {
+          setChallenge(r.data);
+          if (r.data.group_id) {
+            groupsApi.getGroup(r.data.group_id)
+              .then((g) => { if (!cancelled) setGroupName(g.data.name); })
+              .catch(() => {});
+          }
+        }
+      })
       .catch(() => { if (!cancelled) setError('Could not load challenge.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -93,6 +105,23 @@ export default function ChallengeDetailScreen() {
       .catch(() => {
         if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
       });
+  }
+
+  async function handleDeleteChallenge() {
+    if (!challenge) return;
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(`Delete "${challenge.title}"? This cannot be undone.`)
+      : true;
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await challengesApi.delete(challenge.id);
+      router.back();
+    } catch {
+      if (Platform.OS === 'web') window.alert('Failed to delete challenge. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function handlePhotoPress(_slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
@@ -188,6 +217,31 @@ export default function ChallengeDetailScreen() {
               </View>
             </View>
           )}
+
+          {/* Group link */}
+          {challenge.group_id && (
+            <Pressable
+              style={[styles.groupLink, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              onPress={() => router.push({ pathname: '/group/[id]', params: { id: challenge.group_id! } } as any)}
+            >
+              <ThemedText style={[styles.groupLinkLabel, { color: colors.muted }]}>GROUP</ThemedText>
+              <ThemedText style={[styles.groupLinkName, { color: colors.primary }]}>
+                {groupName ?? 'View group →'}
+              </ThemedText>
+              {groupName && <ThemedText style={{ color: colors.muted, fontSize: 13 }}>→</ThemedText>}
+            </Pressable>
+          )}
+
+          {/* Delete challenge */}
+          <Pressable
+            style={[styles.deleteButton, { borderColor: colors.destructive }]}
+            onPress={handleDeleteChallenge}
+            disabled={deleting}
+          >
+            {deleting
+              ? <ActivityIndicator color={colors.destructive} />
+              : <ThemedText style={[styles.deleteText, { color: colors.destructive }]}>Delete challenge</ThemedText>}
+          </Pressable>
         </ScrollView>
       ) : null}
 
@@ -235,4 +289,23 @@ const styles = StyleSheet.create({
   activityProgressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   activityProgressTitle: { flex: 1, fontSize: 13 },
   activityProgressCount: { fontSize: 13, fontWeight: '600' },
+  groupLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  groupLinkLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  groupLinkName: { flex: 1, fontSize: 15, fontWeight: '600' },
+  deleteButton: {
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  deleteText: { fontSize: 15, fontWeight: '600' },
 });

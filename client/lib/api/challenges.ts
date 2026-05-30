@@ -61,4 +61,7 @@ export const challengesApi = {
 
   getById: (id: string) =>
     apiClient.get<ChallengeWithProgress>(`/challenges/${id}`),
+
+  delete: (id: string) =>
+    apiClient.delete(`/challenges/${id}`),
 };
