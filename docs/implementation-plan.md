@@ -276,67 +276,67 @@
 
 ---
 
-### Milestone 6: Challenges and Collage View
+### Milestone 6: Challenges and Collage View ✅
 
 **Goal:** A parent can create a challenge (group or personal), see their own collage on the Home screen, and see the group's aggregate completion count.
 
 **Depends on:** Milestone 4 (groups), Milestone 5 (activity pool)
 
 #### Backend tasks
-1. Create `app/models/challenge.py` (`Challenge`, `ChallengeActivity`); Alembic migration
-2. Create repositories and schemas
-3. Implement `POST /challenges`: create Challenge with associated ChallengeActivity rows (assign `grid_position` sequentially); `group_id` nullable for personal challenges; require group membership if group is specified; 201
-4. Implement `GET /challenges/active`: return the user's currently active challenge (start_date ≤ today ≤ end_date) with its ChallengeActivity list and the user's Completions for each slot (empty array if none); challenge state derived at query time
-5. Implement `GET /challenges/me`: return all challenges the user participates in, grouped by state (upcoming / active / completed)
-6. Implement `GET /challenges/{id}`: full challenge detail including ChallengeActivity list, user's completions, and group aggregate (count of group members who have completed each activity)
+1. Create `app/models/challenge.py` (`Challenge`, `ChallengeActivity`) and `app/models/completion.py` (`Completion`, table only — endpoints in M7); Alembic migration
+2. Create repositories and schemas; regenerate `generated.py` from OpenAPI spec
+3. Implement `POST /challenges`: create Challenge with associated ChallengeActivity rows; `group_id` nullable; require group membership if specified; 201
+4. Implement `GET /challenges/active`: return **all** currently active challenges (start_date ≤ today ≤ end_date) as `list[ChallengeWithProgress]`; includes family completions and per-slot group counts
+5. Implement `GET /challenges/me`: return all challenges the family participates in; filterable by `status=upcoming|active|completed`
+6. Implement `GET /challenges/{id}`: full detail with completions and group aggregate
+7. Implement `DELETE /challenges/{id}`: only the creating family can delete; cascades to ChallengeActivity rows
 
 #### Frontend tasks
-1. Build `CreateChallengeFlow` (multi-step): title → select activities (multi-select from pool, order of selection sets `grid_position`) → set dates → assign to group (optional) → `POST /challenges`
-2. Build `CollageGridComponent`: renders a photo grid based on `grid_position`; filled slots (`status = "ready"`) show the compressed photo via pre-signed URL; self-reported slots show a checkmark; empty slots show a neutral placeholder; tap on empty slot opens activity detail with "Mark complete" CTA; tap on filled slot shows photo full-screen
-3. Replace Home stub with the real `HomeScreen`: fetch active challenge via `GET /challenges/active`; render `CollageGridComponent`; show "Today's suggestion" card below; show empty state if no active challenge
-4. Build `ChallengeListScreen` reachable from a header button on Home: upcoming / active / completed sections
-5. Add `GroupProgressView` inside `GroupDetailScreen`: for each ChallengeActivity, show fraction completed by group members (e.g., "4 / 7"); no per-member breakdown
+1. Build `CreateChallengeFlow` (4-step modal): title → activity multi-select (selection order = grid_position) → date range (web native date picker via `type="date"`) → group assignment → `POST /challenges`
+2. Build `CollageGrid` component: slot sizing derived from container `onLayout` (not hardcoded window width); slots show empty placeholder, ✓ for self-reported, spinner for processing, photo for ready; tapping empty slot opens `CompleteActivityModal`, tapping a photo opens `PhotoViewerModal`
+3. Replace Home stub: all active challenges rendered as scrollable collage cards; today's suggestion picked from unfulfilled slots of active challenges (falls back to `GET /activities/suggestions` only when all slots complete)
+4. Build `ChallengeListScreen` reachable from Home header: upcoming / active / completed with status chips
+5. Build `ChallengeDetailScreen`: collage grid + group progress table + group link (navigates to `GroupDetailScreen`) + delete button
+6. Add `GroupProgressView` section inside `GroupDetailScreen`: active group challenges listed with link to detail
 
 **Verify:**
 - Creating a challenge with 6 activities shows a 6-slot collage grid on Home
-- Empty slots are visually distinct but not negative
-- Group progress view shows correct aggregate counts from the DB
-- A personal challenge (null group_id) appears only for its creator
+- Multiple active challenges each render their own card, stacked and scrollable
+- Group progress view shows correct aggregate counts
+- Delete challenge navigates back; slot goes empty immediately
 
 ---
 
-### Milestone 7: Activity Completion and Photo Upload
+### Milestone 7: Activity Completion and Photo Upload ✅
 
 **Goal:** A parent marks an activity complete with a photo; the collage slot transitions from empty → loading → photo without blocking the UI.
 
 **Depends on:** Milestone 6
 
 #### Backend tasks
-1. Create `app/models/completion.py` (`Completion`); Alembic migration; unique constraint on `(family_id, challenge_activity_id)`; `completed_by_user_id` FK → User
-2. Configure `boto3` S3 client in `app/core/storage.py` pointing at Hetzner Object Storage
-3. Implement `POST /photos`: validate MIME type (JPEG/PNG) and file size (≤ 10 MB); upload original to `raw/{family_id}/{uuid}.jpg` in Hetzner; create Completion record (`family_id` from authenticated user's family, `completed_by_user_id` = authenticated user) with `status = "processing"`; enqueue background compression via FastAPI `BackgroundTasks`; return `202 {completion_id}`
-4. Background compression job: fetch raw image; resize to max 1200 px; compress to JPEG 85%; upload to `photos/{family_id}/{uuid}.jpg`; delete raw original; update Completion to `status = "ready"`
-5. Implement `POST /completions` (self-reported path): create Completion with `status = "self_reported"`, `family_id` from authenticated user's family, `completed_by_user_id` = authenticated user; 201
-6. Implement `GET /completions/{id}`: return completion with current status; used for polling
-7. Implement `GET /photos/{completion_id}/url`: validate that the requesting user's family is a member of the group that owns the challenge; generate pre-signed GET URL (15-min TTL); return URL
+1. `Completion` model and table already created in M6; no new migration
+2. Configure `boto3` S3 client in `app/core/storage.py` pointing at Hetzner Object Storage (endpoint URL must include `https://` scheme)
+3. Implement `POST /photos`: validate MIME type (JPEG/PNG) and file size (≤ 10 MB); upload raw to `raw/{family_id}/{uuid}.jpg`; create Completion with `status="processing"`; enqueue `compress_photo` via FastAPI `BackgroundTasks`; return `202 {completion_id}`
+4. Background compression: `asyncio.run()` in thread (avoids psycopg2 dependency) → Pillow resize to 1200 px, JPEG 85% → upload to `photos/{family_id}/{uuid}.jpg` → delete raw → update Completion to `status="ready"`
+5. Pre-signed URLs (15-min TTL) are generated inline in `_completion_dict` whenever `status="ready"` — embedded in challenge and completion responses, no separate client round-trip needed
+6. Implement `POST /completions`: self-reported completion; 201
+7. Implement `GET /completions/{id}`: status polling; includes `photo_url` when ready
+8. Implement `DELETE /completions/{id}`: removes DB row and S3 photo; family-scoped
 
 #### Frontend tasks
-1. Build `CompleteActivitySheet` (bottom sheet triggered from empty collage slot): "Take photo", "Choose from library", "Mark without photo" options
-2. Photo capture: `expo-camera` + `expo-image-picker`; validate JPEG/PNG, max 10 MB before upload
-3. Build `PhotoUploadService` in `lib/api/photos.ts`: `POST /photos` with `multipart/form-data`; on 202 response, store `completion_id` and immediately show loading placeholder in the collage slot
-4. Build `useCompletionStatus` hook: polls `GET /completions/{id}` every 3 s; on `status = "ready"`, fetches pre-signed URL via `GET /photos/{id}/url` and updates the collage slot; stops after success or 60 s timeout
-5. Build `CaptionInputScreen`: optional text input after photo selection; "Skip" button; caption included in completion payload
-6. Self-reported path: "Mark without photo" → `POST /completions` with `status = "self_reported"` → collage slot shows checkmark immediately
-7. Update `CollageGridComponent` to fetch pre-signed URLs for filled slots on mount; re-fetch on 403 (expired URL)
-
-**Note:** This milestone requires a development build — `expo-camera` does not work in Expo Go. Run `npx expo prebuild --platform ios && npx expo run:ios`.
+1. `expo-image-picker` (no `expo-camera`); no development build required for web target
+2. On web, FormData photo append: `fetch(blobUri)` → `Blob` → `form.append('image', blob, 'photo.jpg')` (React Native's `{uri,type,name}` shorthand is native-only and silently breaks on web)
+3. `CompleteActivityModal`: RN `Modal` overlay with "Choose photo" and "Mark without photo"; tapping outside closes
+4. `useCompletionStatus` hook: polls `GET /completions/{id}` every 3 s; reads `photo_url` directly from the response; stops after 60 s
+5. `localCompletions` state in parent screens: optimistic updates; `status='deleted'` sentinel restores slot to empty without re-fetch
+6. `PhotoViewerModal`: contained card (not full-screen) on `rgba(0,0,0,0.5)` backdrop; 4:3 photo area; ✕ overlaid; Download (fetch blob → anchor click) and Delete (`DELETE /completions/{id}`) buttons; outlined style
+7. No caption input screen for prototype (caption field nullable, omitted from UI)
 
 **Verify:**
-- Taking a photo transitions the slot to a loading state immediately (202 received)
-- After background compression, the slot shows the real photo
-- Marking without a photo shows a checkmark immediately
-- A slot cannot be completed twice (button disabled on filled slots)
-- Pre-signed URLs expire after 15 minutes; the app re-fetches transparently on 403
+- Tapping empty slot opens modal; "Mark without photo" shows ✓ immediately
+- Photo upload shows spinner immediately (202); after background compression slot shows the photo
+- Tapping a filled photo slot opens `PhotoViewerModal`; download works; delete restores slot to empty
+- Server returns 503 (not 500) when S3 credentials are not configured
 
 ---
 
@@ -532,12 +532,32 @@ Changes from the original plan that were made during implementation. Future mile
 - **Profile tab**: implemented ahead of M10 with a minimal "My Family" section and "Invite to family" button (full profile management remains M10).
 - **Group detail admin detection**: `is_admin` flag from server is supplemented client-side by checking if the current user appears as `is_group_admin` in any family's parents list. Own family is identified by `parents[].user_id === currentUser.id`; remove button is hidden for own family.
 
+### M6 — Challenges and Collage View
+- **`GET /challenges/active` returns a list**: original spec returned a single `ChallengeWithProgress` (404 when none). Changed to `list[ChallengeWithProgress]` (empty list when none) to support multiple simultaneous active challenges.
+- **Multiple collages on Home**: all active challenges rendered as stacked, scrollable cards — not just one.
+- **Suggestion derived from collage**: Today's suggestion card picks a random unfulfilled slot activity from active challenges; falls back to `GET /activities/suggestions` only when all slots are complete or no active challenges exist.
+- **`CollageGrid` container-responsive sizing**: slot width computed from `onLayout` (actual container width) rather than `Dimensions.get('window').width` minus a hardcoded offset — fixes layout on narrow screens when the grid is inside a padded card.
+- **`DELETE /challenges/{id}` added** (not in original plan): only the creating family can delete; cascades to ChallengeActivity rows.
+- **Challenge detail extras** (not in original plan): group link (navigates to GroupDetailScreen) and delete button below group progress section.
+- **`Completion` model created in M6**: table built alongside Challenge so join queries work immediately; completion endpoints remain 501 until M7.
+
+### M7 — Activity Completion and Photo Upload
+- **No `expo-camera`, no development build**: web target uses `expo-image-picker` only. Browser handles camera access via the file input `capture` attribute.
+- **Web FormData fix**: on web, `expo-image-picker` returns a `blob:` URI. The React Native `{uri, type, name}` shorthand is native-only; on web it appends `"[object Object]"` as text. Fixed by `fetch(blobUri)` → `Blob` → standard `form.append(blob, filename)`.
+- **Pre-signed URLs embedded in responses**: `_completion_dict` generates a pre-signed URL inline whenever `status="ready"` (pure HMAC, no I/O). URLs appear in `GET /challenges/active`, `GET /challenges/{id}`, and `GET /completions/{id}` — no separate `GET /photos/{id}/url` call needed by the client.
+- **Background compression uses `asyncio.run()`**: avoids adding `psycopg2` to requirements; each BackgroundTask thread gets its own event loop.
+- **`CompleteActivityModal` is an overlay modal**, not a bottom sheet — `@gorhom/bottom-sheet` is native-only.
+- **No caption screen**: caption is nullable in the schema; UI omitted for prototype simplicity.
+- **`PhotoViewerModal` added** (not in original plan): tapping a filled photo slot opens a contained card modal with full-size photo, Download (fetch blob → anchor click on web), and Delete (`DELETE /completions/{id}`) buttons. Outlined button style (border colour, transparent fill).
+- **`DELETE /completions/{id}` added** (not in original plan): removes DB row and S3 photo; slot reverts to empty immediately via `localCompletions` `'deleted'` sentinel.
+- **S3 guard**: server returns 503 with a descriptive message when `S3_ENDPOINT_URL` or `S3_BUCKET_NAME` is empty (previously crashed with ValueError 500). Endpoint URL must include `https://` scheme.
+
 ---
 
 ## Open Questions
 
 - **Weather API provider** (compliance D4 still TBD): `SuggestionService` on the backend should abstract the weather call behind a thin interface so the provider can be swapped. In Milestone 5, implement with a hardcoded season fallback first; add the real weather API call once the provider is confirmed.
 - **Deep link domain**: use custom URL scheme (`digitalbalance://`) for the prototype; migrate to universal links for MVP (requires a verified domain with a `.well-known` file).
-- **Development build**: required from Milestone 7 for `expo-camera` and `react-native-confetti-cannon`. Set this up before starting M7.
+- **Development build**: required from Milestone 8 for `react-native-confetti-cannon`. Set this up before starting M8. M7 photo upload works without a dev build on web.
 - **Compliance TODOs D2–D5, D7**: non-code tasks for the foundation. They do not block implementation but must be resolved before any real user data is collected.
 - **Server deployment**: prototype runs locally via Docker Compose during development. Before the first real user test, the server needs to be deployed to a EU-hosted VM with Caddy for TLS. This is not a milestone in this plan but should be tracked separately.

@@ -156,12 +156,14 @@ Light **social features** allow group members to see each other's progress and r
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-030 | The system shall support the creation of a challenge containing a set of activities drawn from the activity pool. | P1 |
-| FR-031 | A challenge shall have: title, description, start date, end date, and an associated group. | P1 |
+| FR-031 | A challenge shall have: title, optional description, start date, end date, and an optionally associated group (`group_id` nullable for personal/family challenges). | P1 |
 | FR-032 | A challenge shall support two display modes: **collage mode** (photo grid artifact) and **board game mode** (positional board with sequential activities). | P2 |
 | FR-033 | For the prototype, the system shall implement collage mode. Board game mode may be deferred. | P1 |
-| FR-034 | A challenge shall be manageable by an admin role: the creating user, a designated group admin, or an authorized institution (KITA, foundation). | P1 |
+| FR-034 | The creating family may delete a challenge they own. Deletion cascades to all associated activity slots. | P1 |
 | FR-035 | The system shall support a challenge template system so that a managing entity can distribute the same challenge to multiple groups. | P2 |
-| FR-036 | A challenge shall display overall group completion progress as an aggregate (e.g., "8 of 12 activities completed by the group") without ranking individual families. | P1 |
+| FR-036 | A challenge shall display overall group completion progress per slot as an aggregate count of families completed (e.g., "3 / 5 families") without ranking individual families. | P1 |
+| FR-037 | A parent may have multiple simultaneously active challenges; all shall be visible on the home screen as independent collage cards. | P1 |
+| FR-038 | The home screen activity suggestion shall be drawn from unfulfilled slots of the user's active challenges; it shall fall back to the general suggestion engine only when all active slots are complete or no active challenges exist. | P1 |
 
 ### 5.5 Activity Completion and Photo Documentation
 
@@ -169,19 +171,22 @@ Light **social features** allow group members to see each other's progress and r
 |----|-------------|----------|
 | FR-040 | A parent shall be able to mark an activity as completed by uploading a photo. | P1 |
 | FR-041 | The system shall store the photo, associate it with the activity and challenge, and record the timestamp. | P1 |
-| FR-042 | Photo upload shall support JPEG and PNG formats, with server-side compression and resizing to limit storage. | P1 |
+| FR-042 | Photo upload shall support JPEG and PNG formats, with server-side compression and resizing (max 1200 px, JPEG 85%) to limit storage. Compression shall be asynchronous; the API shall return 202 immediately and update the completion status to `ready` when done. | P1 |
 | FR-043 | A parent shall be able to add an optional short caption to a completed activity photo. | P2 |
 | FR-044 | The system shall allow a parent to mark an activity as completed **without** uploading a photo (self-reported completion). | P2 |
 | FR-045 | A completed activity shall be permanently tied to the parent's account history, even after a challenge ends. | P1 |
+| FR-046 | A parent shall be able to delete a completion (and its associated photo) that their family submitted. Deletion shall remove both the database record and the stored photo. | P1 |
+| FR-047 | Uploaded photos shall be viewable full-size within the app by tapping a filled collage slot. The viewer shall provide a download option and a delete option. | P1 |
 
 ### 5.6 Collage Mechanic
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-050 | The system shall generate a collage view for each challenge, displaying completed activity photos in a defined grid layout. | P1 |
+| FR-050 | The system shall generate a collage view for each challenge, displaying completed activity photos in a grid layout derived from the order in which activities were selected at challenge creation. | P1 |
 | FR-051 | Empty collage slots (incomplete activities) shall be visually distinct but not highlighted negatively. | P1 |
 | FR-052 | A completed collage shall be exportable as a static image (PNG) for the parent to save or share externally. | P2 |
 | FR-053 | The collage shall be viewable by all members of the associated group. | P1 |
+| FR-054 | Photos in the collage shall be served via pre-signed URLs with a 15-minute TTL. Pre-signed URLs shall be embedded in challenge and completion API responses to avoid additional round-trips. | P1 |
 
 ### 5.7 Groups
 
@@ -260,7 +265,7 @@ Light **social features** allow group members to see each other's progress and r
 |----|-------------|----------|
 | NFR-010 | All API communication shall use HTTPS (TLS 1.2 or higher). | P1 |
 | NFR-011 | Passwords shall be hashed using bcrypt with a minimum cost factor of 12. | P1 |
-| NFR-012 | JWT tokens shall be short-lived (access: 30 min, refresh: 14 days) and refresh tokens shall be rotated on use. | P1 |
+| NFR-012 | JWT tokens shall be short-lived (access: 15 min, refresh: 7 days) and refresh tokens shall be rotated on use. | P1 |
 | NFR-013 | The system shall validate and sanitize all user-supplied inputs to prevent injection attacks. | P1 |
 | NFR-014 | Photo uploads shall be scanned for malicious content before storage (at minimum: MIME type validation and file size limits). | P1 |
 | NFR-015 | User-uploaded photos shall be stored in a private storage bucket; URLs shall be pre-signed with expiry. | P1 |
