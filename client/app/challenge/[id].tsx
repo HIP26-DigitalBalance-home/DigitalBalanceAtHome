@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
+import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -34,6 +35,7 @@ export default function ChallengeDetailScreen() {
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function ChallengeDetailScreen() {
         const res = await completionsApi.getById(completionId);
         if (res.data.status === 'ready') {
           stopPolling();
-          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null } }));
+          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } }));
         }
       } catch {
         // keep polling
@@ -91,6 +93,20 @@ export default function ChallengeDetailScreen() {
       .catch(() => {
         if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
       });
+  }
+
+  function handlePhotoPress(_slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
+    setViewerPhoto({ url: photoUrl, completionId, title: _slot.activity.title });
+  }
+
+  function handlePhotoDeleted(completionId: string) {
+    setLocalCompletions((prev) => {
+      const next = { ...prev };
+      for (const [slotId, lc] of Object.entries(next)) {
+        if (lc.completionId === completionId) { next[slotId] = { status: 'deleted' }; break; }
+      }
+      return next;
+    });
   }
 
   function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string) {
@@ -149,6 +165,7 @@ export default function ChallengeDetailScreen() {
             groupFamiliesCount={challenge.group_families_count}
             localCompletions={localCompletions}
             onSlotPress={challenge.status === 'active' ? setActiveSlot : undefined}
+            onPhotoPress={handlePhotoPress}
           />
 
           {challenge.group_families_count != null && (
@@ -180,6 +197,15 @@ export default function ChallengeDetailScreen() {
         onClose={() => setActiveSlot(null)}
         onSelfReported={handleSelfReported}
         onPhotoSelected={handlePhotoSelected}
+      />
+
+      <PhotoViewerModal
+        visible={viewerPhoto !== null}
+        photoUrl={viewerPhoto?.url ?? null}
+        completionId={viewerPhoto?.completionId ?? null}
+        activityTitle={viewerPhoto?.title ?? ''}
+        onClose={() => setViewerPhoto(null)}
+        onDeleted={handlePhotoDeleted}
       />
     </SafeAreaView>
   );

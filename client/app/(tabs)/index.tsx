@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
+import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -39,9 +40,9 @@ export default function HomeScreen() {
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
 
-  // Optimistic completion state: challenge_activity_id → LocalCompletion
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
 
   // Polling: slotId → { completionId, intervalId, timeoutId }
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
@@ -116,7 +117,7 @@ export default function HomeScreen() {
         const { status } = res.data;
         if (status === 'ready') {
           stopPolling();
-          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null } }));
+          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } }));
         }
       } catch {
         // keep polling
@@ -131,6 +132,21 @@ export default function HomeScreen() {
 
   function handleSlotPress(slot: ChallengeActivitySlot) {
     setActiveSlot(slot);
+  }
+
+  function handlePhotoPress(_slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
+    setViewerPhoto({ url: photoUrl, completionId, title: _slot.activity.title });
+  }
+
+  function handlePhotoDeleted(completionId: string) {
+    setLocalCompletions((prev) => {
+      const next = { ...prev };
+      // find the slotId whose completionId matches and mark as deleted
+      for (const [slotId, lc] of Object.entries(next)) {
+        if (lc.completionId === completionId) { next[slotId] = { status: 'deleted' }; break; }
+      }
+      return next;
+    });
   }
 
   function handleSelfReported(slotId: string) {
@@ -197,6 +213,7 @@ export default function HomeScreen() {
                 groupFamiliesCount={challenge.group_families_count}
                 localCompletions={localCompletions}
                 onSlotPress={handleSlotPress}
+                onPhotoPress={handlePhotoPress}
               />
             </View>
           ))
@@ -248,6 +265,15 @@ export default function HomeScreen() {
         onClose={() => setActiveSlot(null)}
         onSelfReported={handleSelfReported}
         onPhotoSelected={handlePhotoSelected}
+      />
+
+      <PhotoViewerModal
+        visible={viewerPhoto !== null}
+        photoUrl={viewerPhoto?.url ?? null}
+        completionId={viewerPhoto?.completionId ?? null}
+        activityTitle={viewerPhoto?.title ?? ''}
+        onClose={() => setViewerPhoto(null)}
+        onDeleted={handlePhotoDeleted}
       />
     </SafeAreaView>
   );

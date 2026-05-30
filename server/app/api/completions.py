@@ -29,6 +29,15 @@ async def create_completion(
     )
 
 
+@router.delete("/{completion_id}", status_code=204)
+async def delete_completion(
+    completion_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> None:
+    await completion_service.delete_completion(session, current_user.id, completion_id)
+
+
 @router.get("/me")
 async def get_my_completions():
     raise _501

@@ -8,6 +8,7 @@ import type { ChallengeActivitySlot } from '@/lib/api';
 export interface LocalCompletion {
   status: string;
   photoUrl?: string | null;
+  completionId?: string;
 }
 
 interface Props {
@@ -15,9 +16,10 @@ interface Props {
   groupFamiliesCount?: number | null;
   localCompletions?: Record<string, LocalCompletion>;
   onSlotPress?: (slot: ChallengeActivitySlot) => void;
+  onPhotoPress?: (slot: ChallengeActivitySlot, photoUrl: string, completionId: string) => void;
 }
 
-export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress }: Props) {
+export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const numColumns = Math.max(2, Math.ceil(Math.sqrt(slots.length)));
   const screenWidth = Dimensions.get('window').width;
@@ -27,17 +29,25 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
 
   function renderSlot({ item }: { item: ChallengeActivitySlot }) {
     const local = localCompletions?.[item.id];
-    const effectiveStatus = local?.status ?? item.completion?.status ?? null;
+    const effectiveStatus = local?.status === 'deleted' ? null : (local?.status ?? item.completion?.status ?? null);
     const effectivePhotoUrl = local?.photoUrl ?? item.completion?.photo_url ?? null;
+    const effectiveCompletionId = local?.completionId ?? item.completion?.id ?? null;
 
     const isEmpty = effectiveStatus === null;
     const isProcessing = effectiveStatus === 'processing';
     const isSelfReported = effectiveStatus === 'self_reported';
     const isReady = effectiveStatus === 'ready';
 
+    function handlePress() {
+      if (isEmpty) { onSlotPress?.(item); return; }
+      if (isReady && effectivePhotoUrl && effectiveCompletionId) {
+        onPhotoPress?.(item, effectivePhotoUrl, effectiveCompletionId);
+      }
+    }
+
     return (
       <Pressable
-        onPress={() => isEmpty && onSlotPress?.(item)}
+        onPress={handlePress}
         style={[
           styles.slot,
           {

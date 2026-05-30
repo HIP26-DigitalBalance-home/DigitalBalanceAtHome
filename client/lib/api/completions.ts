@@ -16,6 +16,9 @@ export const completionsApi = {
 
   getById: (id: string) =>
     apiClient.get<Completion>(`/completions/${id}`),
+
+  delete: (id: string) =>
+    apiClient.delete(`/completions/${id}`),
 };
 
 export const photosApi = {
