@@ -1607,11 +1607,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/Challenge"
         - type: object
-          required: [group_families_count]
           properties:
             group_families_count:
               type: integer
               nullable: true
+              default: null
               description: Total families in the group (for computing aggregate percentages); null for personal challenges
 
     CreateChallengeRequest:

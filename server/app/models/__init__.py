@@ -5,3 +5,5 @@ from app.models.family import Family, FamilyMembership, FamilyInvite  # noqa: F4
 from app.models.child_profile import ChildProfile  # noqa: F401
 from app.models.group import Group, GroupMembership, GroupAdmin, GroupInvite  # noqa: F401
 from app.models.activity import Activity  # noqa: F401
+from app.models.challenge import Challenge, ChallengeActivity  # noqa: F401
+from app.models.completion import Completion  # noqa: F401

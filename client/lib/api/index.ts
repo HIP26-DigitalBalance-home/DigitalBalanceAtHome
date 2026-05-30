@@ -4,3 +4,5 @@ export type { ConsentPayload, FamilyPayload, ChildPayload } from './onboarding';
 export { groupsApi } from './groups';
 export { activitiesApi } from './activities';
 export type { ActivityItem, ActivityFilters } from './activities';
+export { challengesApi } from './challenges';
+export type { ChallengeSummary, ChallengeWithProgress, ChallengeActivitySlot, Completion, CreateChallengePayload } from './challenges';

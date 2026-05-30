@@ -96,3 +96,23 @@ class GroupInviteExpired(DomainError):
 class GroupInviteAlreadyUsed(DomainError):
     status_code = 400
     code = "group_invite_already_used"
+
+
+class ChallengeNotFound(DomainError):
+    status_code = 404
+    code = "challenge_not_found"
+
+
+class ActivityNotFound(DomainError):
+    status_code = 404
+    code = "activity_not_found"
+
+
+class InvalidDateRange(DomainError):
+    status_code = 400
+    code = "invalid_date_range"
+
+
+class AlreadyCompleted(DomainError):
+    status_code = 409
+    code = "already_completed"
