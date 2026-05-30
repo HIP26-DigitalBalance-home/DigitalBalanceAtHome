@@ -9,6 +9,7 @@ Creates:
   - A "3B Class Parents" group with your account as admin
   - 4 mock families (with display names) added to the group
   - Your family is the creator/admin family
+  - 3 mock challenges: one active group, one upcoming personal, one completed group
 
 Your email is detected from the SEED_ADMIN_EMAIL env var (default: ignacio.garcian15@gmail.com).
 """
@@ -16,13 +17,14 @@ Your email is detected from the SEED_ADMIN_EMAIL env var (default: ignacio.garci
 import asyncio
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import settings
-from app.models.base import Base
+from app.models.activity import Activity
+from app.models.challenge import Challenge, ChallengeActivity
 from app.models.child_profile import ChildProfile
 from app.models.consent import ConsentRecord
 from app.models.family import Family, FamilyMembership
@@ -166,14 +168,19 @@ async def seed():
             await session.flush()
 
             for parent_data in mock["parents"]:
-                mock_user = User(
-                    google_sub=f"mock_{uuid.uuid4().hex}",
-                    email=parent_data["email"],
-                    display_name=parent_data["display_name"],
-                    points_balance=0,
+                existing_user = await session.execute(
+                    select(User).where(User.email == parent_data["email"])
                 )
-                session.add(mock_user)
-                await session.flush()
+                mock_user = existing_user.scalar_one_or_none()
+                if mock_user is None:
+                    mock_user = User(
+                        google_sub=f"mock_{uuid.uuid4().hex}",
+                        email=parent_data["email"],
+                        display_name=parent_data["display_name"],
+                        points_balance=0,
+                    )
+                    session.add(mock_user)
+                    await session.flush()
 
                 fm = FamilyMembership(
                     family_id=family.id,
@@ -190,6 +197,95 @@ async def seed():
             )
             session.add(gm)
             print(f"  + Added mock family: {mock['family_name']}")
+
+        # ── Fetch activities to use in challenges ────────────────────────────
+        activity_result = await session.execute(
+            select(Activity).where(Activity.cost_indicator != "paid").limit(18)
+        )
+        all_activities = list(activity_result.scalars().all())
+        if len(all_activities) < 6:
+            print("⚠  Not enough activities to seed challenges — skipping")
+        else:
+            today = date.today()
+
+            # Clean up previously seeded challenges
+            for challenge_title in [
+                "Spring Outdoor Adventures",
+                "Summer Family Challenge",
+                "Winter Warmth Challenge",
+            ]:
+                result = await session.execute(
+                    select(Challenge).where(Challenge.title == challenge_title)
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    await session.execute(
+                        delete(ChallengeActivity).where(ChallengeActivity.challenge_id == existing.id)
+                    )
+                    await session.delete(existing)
+            await session.flush()
+
+            def _make_challenge(title, description, group_id, family_id, start_offset, end_offset, activities):
+                return Challenge(
+                    title=title,
+                    description=description,
+                    group_id=group_id,
+                    created_by_family_id=family_id,
+                    start_date=today + timedelta(days=start_offset),
+                    end_date=today + timedelta(days=end_offset),
+                    display_mode="collage",
+                )
+
+            async def _add_challenge(challenge, activities):
+                session.add(challenge)
+                await session.flush()
+                for pos, activity in enumerate(activities):
+                    session.add(ChallengeActivity(
+                        challenge_id=challenge.id,
+                        activity_id=activity.id,
+                        grid_position=pos,
+                    ))
+                await session.flush()
+                return challenge
+
+            # 1. Active group challenge (started 7 days ago, ends in 14 days)
+            c1 = _make_challenge(
+                title="Spring Outdoor Adventures",
+                description="Explore nature and spend quality time together this spring!",
+                group_id=group.id,
+                family_id=admin_family.id,
+                start_offset=-7,
+                end_offset=14,
+                activities=all_activities[:6],
+            )
+            c1 = await _add_challenge(c1, all_activities[:6])
+            print(f"✓  Created active group challenge: 'Spring Outdoor Adventures' (6 activities)")
+
+            # 2. Upcoming personal challenge (starts in 3 days, runs 3 weeks)
+            c2 = _make_challenge(
+                title="Summer Family Challenge",
+                description="Get ready for summer with these fun activities!",
+                group_id=None,
+                family_id=admin_family.id,
+                start_offset=3,
+                end_offset=24,
+                activities=all_activities[6:12],
+            )
+            c2 = await _add_challenge(c2, all_activities[6:12])
+            print(f"✓  Created upcoming personal challenge: 'Summer Family Challenge' (6 activities)")
+
+            # 3. Completed group challenge (ended 10 days ago)
+            c3 = _make_challenge(
+                title="Winter Warmth Challenge",
+                description="Cozy indoor activities to brighten the cold months.",
+                group_id=group.id,
+                family_id=admin_family.id,
+                start_offset=-40,
+                end_offset=-10,
+                activities=all_activities[12:18],
+            )
+            c3 = await _add_challenge(c3, all_activities[12:18])
+            print(f"✓  Created completed group challenge: 'Winter Warmth Challenge' (6 activities)")
 
         await session.commit()
         print("\n✅  Seed complete!")
