@@ -26,12 +26,12 @@ async def create_challenge(
     return await challenge_service.create_challenge(session, current_user.id, payload)
 
 
-@router.get("/active", response_model=ChallengeWithProgress)
-async def get_active_challenge(
+@router.get("/active", response_model=list[ChallengeWithProgress])
+async def get_active_challenges(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-) -> dict:
-    return await challenge_service.get_active_challenge(session, current_user.id)
+) -> list[dict]:
+    return await challenge_service.get_active_challenges(session, current_user.id)
 
 
 @router.get("/me", response_model=list[ChallengeSummary])

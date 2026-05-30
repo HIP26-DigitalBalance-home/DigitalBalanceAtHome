@@ -54,7 +54,7 @@ export const challengesApi = {
     apiClient.post<ChallengeWithProgress>('/challenges', payload),
 
   getActive: () =>
-    apiClient.get<ChallengeWithProgress>('/challenges/active'),
+    apiClient.get<ChallengeWithProgress[]>('/challenges/active'),
 
   getMy: (status?: 'upcoming' | 'active' | 'completed') =>
     apiClient.get<ChallengeSummary[]>('/challenges/me', { params: status ? { status } : undefined }),

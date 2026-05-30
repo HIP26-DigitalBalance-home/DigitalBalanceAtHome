@@ -752,20 +752,20 @@ paths:
 
   /challenges/active:
     get:
-      operationId: getActiveChallenge
+      operationId: getActiveChallenges
       tags: [Challenges]
-      summary: Get the family's currently active challenge with their completion state
+      summary: Get all of the family's currently active challenges with completion state
       responses:
         "200":
-          description: Active challenge with family completions
+          description: Active challenges with family completions (empty list if none)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChallengeWithProgress"
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeWithProgress"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
 
   /challenges/me:
     get:

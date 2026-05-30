@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,56 +12,72 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CITY_KEY = '@dba_city_preference';
 
+function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): ActivityItem | null {
+  const unfulfilled = challenges.flatMap((c) =>
+    c.activities.filter((slot) => slot.completion == null).map((slot) => slot.activity)
+  );
+  if (unfulfilled.length === 0) return null;
+  return unfulfilled[Math.floor(Math.random() * unfulfilled.length)];
+}
+
 export default function HomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
-  const [suggestion, setSuggestion] = useState<ActivityItem | null>(null);
-  const [loadingSuggestion, setLoadingSuggestion] = useState(true);
-  const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
-  const [loadingChallenge, setLoadingChallenge] = useState(true);
-  const [noChallenge, setNoChallenge] = useState(false);
+  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
+  const [loadingChallenges, setLoadingChallenges] = useState(true);
+  const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadSuggestion() {
+    async function loadChallenges() {
+      try {
+        const res = await challengesApi.getActive();
+        if (!cancelled) setChallenges(res.data);
+      } catch {
+        // empty list on error
+      } finally {
+        if (!cancelled) setLoadingChallenges(false);
+      }
+    }
+
+    loadChallenges();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load fallback suggestion only when challenges are loaded and all slots are filled
+  useEffect(() => {
+    if (loadingChallenges) return;
+    const challengeSuggestion = pickSuggestionFromChallenges(challenges);
+    if (challengeSuggestion) return; // have one from challenges; no need to fetch
+
+    let cancelled = false;
+    async function loadFallbackSuggestion() {
       try {
         const childrenRes = await onboardingApi.getChildren();
         const firstChild = childrenRes.data[0];
         const city = await AsyncStorage.getItem(CITY_KEY);
         const res = await activitiesApi.suggestion(firstChild?.id, city);
-        if (!cancelled) setSuggestion(res.data);
+        if (!cancelled) setFallbackSuggestion(res.data);
       } catch {
-        // suggestion is best-effort; silent failure is fine
-      } finally {
-        if (!cancelled) setLoadingSuggestion(false);
+        // best-effort; silent failure is fine
       }
     }
-
-    async function loadChallenge() {
-      try {
-        const res = await challengesApi.getActive();
-        if (!cancelled) setChallenge(res.data);
-      } catch (e: any) {
-        if (!cancelled) {
-          if (e?.response?.status === 404) setNoChallenge(true);
-        }
-      } finally {
-        if (!cancelled) setLoadingChallenge(false);
-      }
-    }
-
-    loadSuggestion();
-    loadChallenge();
+    loadFallbackSuggestion();
     return () => { cancelled = true; };
-  }, []);
+  }, [loadingChallenges, challenges]);
 
-  function openSuggestion() {
-    if (!suggestion) return;
-    router.push({ pathname: '/activity/[id]', params: { id: suggestion.id, data: JSON.stringify(suggestion) } } as any);
+  // Derive suggestion: prefer an uncompleted slot from active challenges
+  const suggestion = useMemo(
+    () => pickSuggestionFromChallenges(challenges) ?? fallbackSuggestion,
+    [challenges, fallbackSuggestion]
+  );
+
+  function openActivity(activity: ActivityItem) {
+    router.push({ pathname: '/activity/[id]', params: { id: activity.id, data: JSON.stringify(activity) } } as any);
   }
 
   function openSlot(slot: any) {
-    router.push({ pathname: '/activity/[id]', params: { id: slot.activity.id, data: JSON.stringify(slot.activity) } } as any);
+    openActivity(slot.activity);
   }
 
   return (
@@ -74,21 +90,21 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Active challenge collage */}
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGE</ThemedText>
-            {challenge && (
-              <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
-                <ThemedText style={{ color: colors.primary, fontSize: 13 }}>View details</ThemedText>
-              </Pressable>
-            )}
-          </View>
-
-          {loadingChallenge ? (
+        {/* Active challenge collages */}
+        {loadingChallenges ? (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
             <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
-          ) : challenge ? (
-            <>
+          </View>
+        ) : challenges.length > 0 ? (
+          challenges.map((challenge) => (
+            <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.sectionHeader}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVE CHALLENGE</ThemedText>
+                <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
+                  <ThemedText style={{ color: colors.primary, fontSize: 13 }}>View details</ThemedText>
+                </Pressable>
+              </View>
               <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
               <ThemedText style={[styles.challengeDates, { color: colors.muted }]}>
                 {challenge.start_date} → {challenge.end_date}
@@ -98,33 +114,27 @@ export default function HomeScreen() {
                 groupFamiliesCount={challenge.group_families_count}
                 onSlotPress={openSlot}
               />
-            </>
-          ) : noChallenge ? (
+            </View>
+          ))
+        ) : (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
             <View style={styles.emptyChallenge}>
-              <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
-                No active challenge yet.
-              </ThemedText>
+              <ThemedText style={[styles.emptyText, { color: colors.muted }]}>No active challenge yet.</ThemedText>
               <Pressable
                 style={[styles.createButton, { backgroundColor: colors.primary }]}
                 onPress={() => router.push('/create-challenge' as any)}
               >
-                <ThemedText style={[styles.createButtonText, { color: colors.buttonText }]}>
-                  Create one →
-                </ThemedText>
+                <ThemedText style={[styles.createButtonText, { color: colors.buttonText }]}>Create one →</ThemedText>
               </Pressable>
             </View>
-          ) : (
-            <ThemedText style={{ color: colors.muted, fontSize: 14 }}>
-              Could not load challenge.
-            </ThemedText>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Suggestion card */}
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>TODAY'S SUGGESTION</ThemedText>
-
-          {loadingSuggestion ? (
+          {loadingChallenges ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
           ) : suggestion ? (
             <>
@@ -135,7 +145,8 @@ export default function HomeScreen() {
               </ThemedText>
               <Pressable
                 style={[styles.ctaButton, { backgroundColor: colors.primary }]}
-                onPress={openSuggestion}>
+                onPress={() => openActivity(suggestion)}
+              >
                 <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>Let's do it →</ThemedText>
               </Pressable>
             </>

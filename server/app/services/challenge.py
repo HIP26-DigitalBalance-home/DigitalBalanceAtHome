@@ -148,17 +148,14 @@ async def create_challenge(
     return await _build_challenge_with_progress(repo, challenge, fm.family_id)
 
 
-async def get_active_challenge(session: AsyncSession, user_id: uuid.UUID) -> dict:
+async def get_active_challenges(session: AsyncSession, user_id: uuid.UUID) -> list[dict]:
     fm = await get_user_family(session, user_id)
     if not fm:
-        raise ChallengeNotFound("No active challenge")
+        return []
 
     repo = ChallengeRepository(session)
-    challenge = await repo.get_active_for_family(fm.family_id)
-    if not challenge:
-        raise ChallengeNotFound("No active challenge found")
-
-    return await _build_challenge_with_progress(repo, challenge, fm.family_id)
+    challenges = await repo.get_all_for_family(fm.family_id, "active")
+    return [await _build_challenge_with_progress(repo, c, fm.family_id) for c in challenges]
 
 
 async def get_my_challenges(
