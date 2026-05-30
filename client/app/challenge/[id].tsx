@@ -1,13 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CollageGrid } from '@/components/collage-grid';
+import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
+import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { challengesApi, type ChallengeActivitySlot, type ChallengeWithProgress } from '@/lib/api';
+import {
+  challengesApi,
+  completionsApi,
+  photosApi,
+  type ChallengeActivitySlot,
+  type ChallengeWithProgress,
+} from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#4CAF82',
@@ -15,12 +22,28 @@ const STATUS_COLORS: Record<string, string> = {
   completed: '#78716C',
 };
 
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 60000;
+
 export default function ChallengeDetailScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const { id } = useLocalSearchParams<{ id: string }>();
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
+  const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
+  const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(pollingRef.current).forEach(({ interval, timeout }) => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -32,8 +55,59 @@ export default function ChallengeDetailScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
-  function openSlot(slot: ChallengeActivitySlot) {
-    router.push({ pathname: '/activity/[id]', params: { id: slot.activity.id, data: JSON.stringify(slot.activity) } } as any);
+  function startPolling(slotId: string, completionId: string) {
+    const stopPolling = () => {
+      const entry = pollingRef.current[slotId];
+      if (entry) {
+        clearInterval(entry.interval);
+        clearTimeout(entry.timeout);
+        delete pollingRef.current[slotId];
+      }
+    };
+
+    async function poll() {
+      try {
+        const res = await completionsApi.getById(completionId);
+        if (res.data.status === 'ready') {
+          stopPolling();
+          try {
+            const urlRes = await photosApi.getUrl(completionId);
+            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: urlRes.data.url } }));
+          } catch {
+            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: null } }));
+          }
+        }
+      } catch {
+        // keep polling
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    const timeout = setTimeout(stopPolling, POLL_TIMEOUT_MS);
+    pollingRef.current[slotId] = { interval, timeout };
+  }
+
+  function handleSelfReported(slotId: string) {
+    setActiveSlot(null);
+    completionsApi
+      .createSelfReported({ challenge_activity_id: slotId })
+      .then(() => setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'self_reported' } })))
+      .catch(() => {
+        if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
+      });
+  }
+
+  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string) {
+    setActiveSlot(null);
+    setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
+    photosApi
+      .upload(slotId, imageUri, mimeType)
+      .then((r) => startPolling(slotId, r.data.completion_id))
+      .catch(() => {
+        setLocalCompletions((prev) => { const next = { ...prev }; delete next[slotId]; return next; });
+        if (Platform.OS === 'web') window.alert('Photo upload failed. Please try again.');
+      });
   }
 
   return (
@@ -57,7 +131,6 @@ export default function ChallengeDetailScreen() {
         </View>
       ) : challenge ? (
         <ScrollView contentContainerStyle={styles.content}>
-          {/* Title + status */}
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
             <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[challenge.status] ?? colors.muted) + '22' }]}>
@@ -75,21 +148,19 @@ export default function ChallengeDetailScreen() {
             <ThemedText style={[styles.description, { color: colors.onSurface }]}>{challenge.description}</ThemedText>
           ) : null}
 
-          {/* Collage grid */}
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGE</ThemedText>
           <CollageGrid
             slots={challenge.activities}
             groupFamiliesCount={challenge.group_families_count}
-            onSlotPress={openSlot}
+            localCompletions={localCompletions}
+            onSlotPress={challenge.status === 'active' ? setActiveSlot : undefined}
           />
 
-          {/* Group progress summary */}
           {challenge.group_families_count != null && (
             <View style={[styles.progressBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>GROUP PROGRESS</ThemedText>
               <ThemedText style={{ color: colors.muted, fontSize: 13 }}>
                 {challenge.group_families_count} {challenge.group_families_count === 1 ? 'family' : 'families'} in this group.
-                Completion counts shown on each slot.
               </ThemedText>
               <View style={styles.activityList}>
                 {challenge.activities.map((slot) => (
@@ -107,6 +178,14 @@ export default function ChallengeDetailScreen() {
           )}
         </ScrollView>
       ) : null}
+
+      <CompleteActivityModal
+        visible={activeSlot !== null}
+        slot={activeSlot}
+        onClose={() => setActiveSlot(null)}
+        onSelfReported={handleSelfReported}
+        onPhotoSelected={handlePhotoSelected}
+      />
     </SafeAreaView>
   );
 }

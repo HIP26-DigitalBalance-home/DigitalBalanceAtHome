@@ -6,3 +6,5 @@ export { activitiesApi } from './activities';
 export type { ActivityItem, ActivityFilters } from './activities';
 export { challengesApi } from './challenges';
 export type { ChallengeSummary, ChallengeWithProgress, ChallengeActivitySlot, Completion, CreateChallengePayload } from './challenges';
+export { completionsApi, photosApi } from './completions';
+export type { PhotoUrlResponse } from './completions';

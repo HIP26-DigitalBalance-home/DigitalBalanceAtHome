@@ -1,16 +1,28 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CollageGrid } from '@/components/collage-grid';
+import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
+import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { activitiesApi, challengesApi, onboardingApi, type ActivityItem, type ChallengeWithProgress } from '@/lib/api';
+import {
+  activitiesApi,
+  challengesApi,
+  completionsApi,
+  onboardingApi,
+  photosApi,
+  type ActivityItem,
+  type ChallengeActivitySlot,
+  type ChallengeWithProgress,
+} from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CITY_KEY = '@dba_city_preference';
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 60000;
 
 function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): ActivityItem | null {
   const unfulfilled = challenges.flatMap((c) =>
@@ -22,9 +34,27 @@ function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): Acti
 
 export default function HomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
+
+  // Optimistic completion state: challenge_activity_id → LocalCompletion
+  const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
+  const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
+
+  // Polling: slotId → { completionId, intervalId, timeoutId }
+  const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
+
+  useEffect(() => {
+    return () => {
+      // Clean up all polling on unmount
+      Object.values(pollingRef.current).forEach(({ interval, timeout }) => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,14 +74,13 @@ export default function HomeScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  // Load fallback suggestion only when challenges are loaded and all slots are filled
+  // Fallback suggestion when all challenge slots are completed
   useEffect(() => {
     if (loadingChallenges) return;
-    const challengeSuggestion = pickSuggestionFromChallenges(challenges);
-    if (challengeSuggestion) return; // have one from challenges; no need to fetch
+    if (pickSuggestionFromChallenges(challenges)) return;
 
     let cancelled = false;
-    async function loadFallbackSuggestion() {
+    async function loadFallback() {
       try {
         const childrenRes = await onboardingApi.getChildren();
         const firstChild = childrenRes.data[0];
@@ -59,25 +88,84 @@ export default function HomeScreen() {
         const res = await activitiesApi.suggestion(firstChild?.id, city);
         if (!cancelled) setFallbackSuggestion(res.data);
       } catch {
-        // best-effort; silent failure is fine
+        // best-effort
       }
     }
-    loadFallbackSuggestion();
+    loadFallback();
     return () => { cancelled = true; };
   }, [loadingChallenges, challenges]);
 
-  // Derive suggestion: prefer an uncompleted slot from active challenges
   const suggestion = useMemo(
     () => pickSuggestionFromChallenges(challenges) ?? fallbackSuggestion,
     [challenges, fallbackSuggestion]
   );
 
-  function openActivity(activity: ActivityItem) {
-    router.push({ pathname: '/activity/[id]', params: { id: activity.id, data: JSON.stringify(activity) } } as any);
+  function startPolling(slotId: string, completionId: string) {
+    const stopPolling = () => {
+      const entry = pollingRef.current[slotId];
+      if (entry) {
+        clearInterval(entry.interval);
+        clearTimeout(entry.timeout);
+        delete pollingRef.current[slotId];
+      }
+    };
+
+    async function poll() {
+      try {
+        const res = await completionsApi.getById(completionId);
+        const { status } = res.data;
+        if (status === 'ready') {
+          stopPolling();
+          try {
+            const urlRes = await photosApi.getUrl(completionId);
+            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: urlRes.data.url } }));
+          } catch {
+            setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: null } }));
+          }
+        }
+      } catch {
+        // keep polling
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    const timeout = setTimeout(stopPolling, POLL_TIMEOUT_MS);
+    pollingRef.current[slotId] = { interval, timeout };
   }
 
-  function openSlot(slot: any) {
-    openActivity(slot.activity);
+  function handleSlotPress(slot: ChallengeActivitySlot) {
+    setActiveSlot(slot);
+  }
+
+  function handleSelfReported(slotId: string) {
+    setActiveSlot(null);
+    completionsApi
+      .createSelfReported({ challenge_activity_id: slotId })
+      .then(() => setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'self_reported' } })))
+      .catch(() => {
+        if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
+      });
+  }
+
+  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string) {
+    setActiveSlot(null);
+    setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
+    photosApi
+      .upload(slotId, imageUri, mimeType)
+      .then((r) => startPolling(slotId, r.data.completion_id))
+      .catch(() => {
+        setLocalCompletions((prev) => {
+          const next = { ...prev };
+          delete next[slotId];
+          return next;
+        });
+        if (Platform.OS === 'web') window.alert('Photo upload failed. Please try again.');
+      });
+  }
+
+  function openActivity(activity: ActivityItem) {
+    router.push({ pathname: '/activity/[id]', params: { id: activity.id, data: JSON.stringify(activity) } } as any);
   }
 
   return (
@@ -112,7 +200,8 @@ export default function HomeScreen() {
               <CollageGrid
                 slots={challenge.activities}
                 groupFamiliesCount={challenge.group_families_count}
-                onSlotPress={openSlot}
+                localCompletions={localCompletions}
+                onSlotPress={handleSlotPress}
               />
             </View>
           ))
@@ -157,6 +246,14 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      <CompleteActivityModal
+        visible={activeSlot !== null}
+        slot={activeSlot}
+        onClose={() => setActiveSlot(null)}
+        onSelfReported={handleSelfReported}
+        onPhotoSelected={handlePhotoSelected}
+      />
     </SafeAreaView>
   );
 }

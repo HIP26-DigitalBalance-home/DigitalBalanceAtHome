@@ -1,17 +1,23 @@
-import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ChallengeActivitySlot } from '@/lib/api';
 
+export interface LocalCompletion {
+  status: string;
+  photoUrl?: string | null;
+}
+
 interface Props {
   slots: ChallengeActivitySlot[];
   groupFamiliesCount?: number | null;
+  localCompletions?: Record<string, LocalCompletion>;
   onSlotPress?: (slot: ChallengeActivitySlot) => void;
 }
 
-export function CollageGrid({ slots, groupFamiliesCount, onSlotPress }: Props) {
+export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const numColumns = Math.max(2, Math.ceil(Math.sqrt(slots.length)));
   const screenWidth = Dimensions.get('window').width;
@@ -20,45 +26,66 @@ export function CollageGrid({ slots, groupFamiliesCount, onSlotPress }: Props) {
   const sortedSlots = [...slots].sort((a, b) => a.grid_position - b.grid_position);
 
   function renderSlot({ item }: { item: ChallengeActivitySlot }) {
-    const completion = item.completion;
-    const isCompleted = completion != null;
-    const isProcessing = completion?.status === 'processing';
-    const isSelfReported = completion?.status === 'self_reported';
-    const isReady = completion?.status === 'ready';
+    const local = localCompletions?.[item.id];
+    const effectiveStatus = local?.status ?? item.completion?.status ?? null;
+    const effectivePhotoUrl = local?.photoUrl ?? item.completion?.photo_url ?? null;
+
+    const isEmpty = effectiveStatus === null;
+    const isProcessing = effectiveStatus === 'processing';
+    const isSelfReported = effectiveStatus === 'self_reported';
+    const isReady = effectiveStatus === 'ready';
 
     return (
       <Pressable
-        onPress={() => !isCompleted && onSlotPress?.(item)}
+        onPress={() => isEmpty && onSlotPress?.(item)}
         style={[
           styles.slot,
           {
             width: slotSize,
             height: slotSize,
-            backgroundColor: isCompleted ? colors.accent + '22' : colors.surface,
-            borderColor: isCompleted ? colors.accent : colors.border,
+            backgroundColor: isEmpty ? colors.surface : colors.accent + '22',
+            borderColor: isEmpty ? colors.border : colors.accent,
+            overflow: 'hidden',
           },
         ]}
       >
-        {isProcessing && (
-          <ActivityIndicator color={colors.primary} />
-        )}
-
-        {isSelfReported && (
-          <ThemedText style={[styles.checkmark, { color: colors.accent }]}>✓</ThemedText>
-        )}
-
-        {isReady && (
-          <ThemedText style={[styles.checkmark, { color: colors.accent }]}>📷</ThemedText>
-        )}
-
-        {!isCompleted && (
+        {isReady && effectivePhotoUrl ? (
+          <>
+            <Image
+              source={{ uri: effectivePhotoUrl }}
+              style={{ width: slotSize, height: slotSize, position: 'absolute', top: 0, left: 0 }}
+              resizeMode="cover"
+            />
+            <View style={styles.photoOverlay}>
+              <ThemedText style={styles.photoTitle} numberOfLines={2}>
+                {item.activity.title}
+              </ThemedText>
+            </View>
+          </>
+        ) : isProcessing ? (
+          <>
+            <ActivityIndicator color={colors.primary} />
+            <ThemedText style={[styles.slotTitleSmall, { color: colors.muted }]} numberOfLines={2}>
+              {item.activity.title}
+            </ThemedText>
+          </>
+        ) : isSelfReported ? (
+          <>
+            <ThemedText style={[styles.checkmark, { color: colors.accent }]}>✓</ThemedText>
+            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+              {item.activity.title}
+            </ThemedText>
+          </>
+        ) : isReady ? (
+          // ready but no URL yet (still fetching)
+          <>
+            <ActivityIndicator color={colors.accent} />
+            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+              {item.activity.title}
+            </ThemedText>
+          </>
+        ) : (
           <ThemedText style={[styles.slotTitle, { color: colors.muted }]} numberOfLines={3}>
-            {item.activity.title}
-          </ThemedText>
-        )}
-
-        {isCompleted && !isProcessing && (
-          <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
             {item.activity.title}
           </ThemedText>
         )}
@@ -103,6 +130,15 @@ const styles = StyleSheet.create({
   slotTitle: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
   slotTitleSmall: { fontSize: 10, textAlign: 'center', lineHeight: 13 },
   checkmark: { fontSize: 22, fontWeight: '700' },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    padding: 4,
+  },
+  photoTitle: { fontSize: 9, color: '#fff', textAlign: 'center', lineHeight: 13 },
   progressBadge: {
     position: 'absolute',
     bottom: 4,
