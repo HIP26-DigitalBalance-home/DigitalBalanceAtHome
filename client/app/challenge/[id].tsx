@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
@@ -17,6 +18,10 @@ import {
   type ChallengeActivitySlot,
   type ChallengeWithProgress,
 } from '@/lib/api';
+import { isChallengeComplete } from '@/lib/challenge-utils';
+import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
+
+const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#4CAF82',
@@ -39,7 +44,13 @@ export default function ChallengeDetailScreen() {
   const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
+
+  const challengeRef = useRef<ChallengeWithProgress | null>(null);
+  challengeRef.current = challenge;
+  const localCompletionsRef = useRef<Record<string, LocalCompletion>>({});
+  localCompletionsRef.current = localCompletions;
 
   useEffect(() => {
     return () => {
@@ -69,6 +80,20 @@ export default function ChallengeDetailScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
+  function checkCelebration(updatedLocal: Record<string, LocalCompletion>) {
+    const c = challengeRef.current;
+    if (c && isChallengeComplete(c.activities, updatedLocal)) {
+      AsyncStorage.getItem(CELEBRATED_KEY).then((raw) => {
+        const celebrated: string[] = raw ? JSON.parse(raw) : [];
+        if (!celebrated.includes(c.id)) {
+          celebrated.push(c.id);
+          AsyncStorage.setItem(CELEBRATED_KEY, JSON.stringify(celebrated));
+          router.replace({ pathname: '/celebration', params: { challengeId: c.id } } as any);
+        }
+      });
+    }
+  }
+
   function startPolling(slotId: string, completionId: string) {
     const stopPolling = () => {
       const entry = pollingRef.current[slotId];
@@ -84,7 +109,9 @@ export default function ChallengeDetailScreen() {
         const res = await completionsApi.getById(completionId);
         if (res.data.status === 'ready') {
           stopPolling();
-          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } }));
+          const updated: Record<string, LocalCompletion> = { ...localCompletionsRef.current, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } };
+          setLocalCompletions(updated);
+          checkCelebration(updated);
         }
       } catch {
         // keep polling
@@ -101,7 +128,11 @@ export default function ChallengeDetailScreen() {
     setActiveSlot(null);
     completionsApi
       .createSelfReported({ challenge_activity_id: slotId })
-      .then(() => setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'self_reported' } })))
+      .then(() => {
+        const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
+        setLocalCompletions(updated);
+        checkCelebration(updated);
+      })
       .catch(() => {
         if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
       });
@@ -197,6 +228,37 @@ export default function ChallengeDetailScreen() {
             onPhotoPress={handlePhotoPress}
           />
 
+          {Platform.OS === 'web' && (
+            <View style={styles.exportRow}>
+              <Pressable
+                style={[styles.exportButton, { borderColor: colors.primary }]}
+                onPress={async () => {
+                  setExportingPng(true);
+                  try { await saveCollagePng(challenge.title, challenge.activities); }
+                  catch { window.alert('Could not export the collage.'); }
+                  finally { setExportingPng(false); }
+                }}
+                disabled={exportingPng}
+              >
+                {exportingPng
+                  ? <ActivityIndicator color={colors.primary} />
+                  : <ThemedText style={[styles.exportText, { color: colors.primary }]}>Save as PNG</ThemedText>}
+              </Pressable>
+              <Pressable
+                style={[styles.exportButton, { borderColor: colors.accent }]}
+                onPress={async () => {
+                  setExportingPng(true);
+                  try { await shareCollagePng(challenge.title, challenge.activities); }
+                  catch { /* cancelled */ }
+                  finally { setExportingPng(false); }
+                }}
+                disabled={exportingPng}
+              >
+                <ThemedText style={[styles.exportText, { color: colors.accent }]}>Share</ThemedText>
+              </Pressable>
+            </View>
+          )}
+
           {challenge.group_families_count != null && (
             <View style={[styles.progressBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>GROUP PROGRESS</ThemedText>
@@ -284,6 +346,16 @@ const styles = StyleSheet.create({
   dates: { fontSize: 13, marginTop: -Spacing.sm },
   description: { fontSize: 15, lineHeight: 22 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  exportRow: { flexDirection: 'row', gap: Spacing.sm },
+  exportButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportText: { fontSize: 14, fontWeight: '600' },
   progressBox: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   activityList: { gap: Spacing.xs },
   activityProgressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },

@@ -24,6 +24,10 @@ interface GroupSummary {
   name: string;
 }
 
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export default function CreateChallengeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
 
@@ -40,9 +44,13 @@ export default function CreateChallengeScreen() {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Step 3: Dates
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Step 3: Dates — default to today → today + 14 days
+  const [startDate, setStartDate] = useState(() => toISODate(new Date()));
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return toISODate(d);
+  });
 
   // Step 4: Group
   const [groups, setGroups] = useState<GroupSummary[]>([]);
@@ -72,6 +80,8 @@ export default function CreateChallengeScreen() {
     const e = new Date(endDate);
     if (isNaN(s.getTime()) || isNaN(e.getTime())) return 'Invalid date format.';
     if (e < s) return 'End date must be on or after start date.';
+    const today = toISODate(new Date());
+    if (endDate < today) return 'End date cannot be in the past.';
     return null;
   }
 
@@ -94,7 +104,7 @@ export default function CreateChallengeScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      await challengesApi.create({
+      const res = await challengesApi.create({
         title: title.trim(),
         description: description.trim() || null,
         group_id: selectedGroupId,
@@ -102,7 +112,7 @@ export default function CreateChallengeScreen() {
         start_date: startDate,
         end_date: endDate,
       });
-      router.replace('/(tabs)');
+      router.replace({ pathname: '/challenge/[id]', params: { id: res.data.id } } as any);
     } catch (e: any) {
       const detail = e?.response?.data?.detail ?? 'Failed to create challenge. Please try again.';
       setError(detail);
@@ -211,7 +221,7 @@ export default function CreateChallengeScreen() {
             onChangeText={setStartDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.muted}
-            {...(Platform.OS === 'web' ? ({ type: 'date' } as any) : {})}
+            {...(Platform.OS === 'web' ? ({ type: 'date', min: toISODate(new Date()) } as any) : {})}
           />
           <ThemedText style={[styles.label, { color: colors.muted }]}>END DATE *</ThemedText>
           <TextInput
@@ -220,7 +230,7 @@ export default function CreateChallengeScreen() {
             onChangeText={setEndDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.muted}
-            {...(Platform.OS === 'web' ? ({ type: 'date' } as any) : {})}
+            {...(Platform.OS === 'web' ? ({ type: 'date', min: startDate || toISODate(new Date()) } as any) : {})}
           />
           <Pressable style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={nextStep}>
             <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>Next →</ThemedText>

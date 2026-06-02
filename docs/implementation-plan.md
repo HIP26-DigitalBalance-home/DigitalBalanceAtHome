@@ -340,7 +340,7 @@
 
 ---
 
-### Milestone 8: End-of-Challenge Celebration and Export
+### Milestone 8: End-of-Challenge Celebration and Export ✅
 
 **Goal:** When a parent fills their last collage slot, they see a full-screen celebration with confetti and can export the collage as a PNG.
 
@@ -551,6 +551,14 @@ Changes from the original plan that were made during implementation. Future mile
 - **`PhotoViewerModal` added** (not in original plan): tapping a filled photo slot opens a contained card modal with full-size photo, Download (fetch blob → anchor click on web), and Delete (`DELETE /completions/{id}`) buttons. Outlined button style (border colour, transparent fill).
 - **`DELETE /completions/{id}` added** (not in original plan): removes DB row and S3 photo; slot reverts to empty immediately via `localCompletions` `'deleted'` sentinel.
 - **S3 guard**: server returns 503 with a descriptive message when `S3_ENDPOINT_URL` or `S3_BUCKET_NAME` is empty (previously crashed with ValueError 500). Endpoint URL must include `https://` scheme.
+
+### M8 — End-of-Challenge Celebration and Export
+- **Web-compatible confetti**: `react-native-confetti-cannon` requires a development build. Replaced with `canvas-confetti` (web-only, dynamically imported). Falls back to emoji-only celebration on native.
+- **Web-compatible PNG export**: `react-native-view-shot` requires a development build. Replaced with `html2canvas` (web-only, dynamically imported) for capturing the collage as PNG. Download via anchor click; share via Web Share API (`navigator.share`) with `File` fallback to download.
+- **No `expo-media-library`**: "Save to camera roll" replaced with browser PNG download since the target is web.
+- **Completion detection**: `isChallengeComplete` utility checks both server-side completions and local optimistic state. Triggered after every self-reported completion and after photo processing completes (polling finds `status="ready"`).
+- **Background completion check**: on Home mount, if an active challenge has all slots filled and `end_date` has passed, the celebration screen opens automatically.
+- **`CollageGrid` read-only in celebration**: passed without `onSlotPress` so slots are non-interactive.
 
 ---
 

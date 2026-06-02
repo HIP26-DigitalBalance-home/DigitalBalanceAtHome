@@ -54,4 +54,11 @@ export const photosApi = {
 
   getUrl: (completionId: string) =>
     apiClient.get<PhotoUrlResponse>(`/photos/${completionId}/url`),
+
+  getImageBlob: async (completionId: string): Promise<Blob> => {
+    const res = await apiClient.get<Blob>(`/photos/${completionId}/image`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
 };

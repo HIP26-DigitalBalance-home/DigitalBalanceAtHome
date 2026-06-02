@@ -31,10 +31,9 @@ def _accessible_predicate(family_id: uuid.UUID):
 
 
 def _status_from_dates(c: Challenge, today: date) -> str:
+    """Date-based status only: upcoming or active. Completion is determined by slot fills."""
     if c.start_date > today:
         return "upcoming"
-    if c.end_date < today:
-        return "completed"
     return "active"
 
 
@@ -123,10 +122,10 @@ class ChallengeRepository:
 
         if status_filter == "upcoming":
             q = q.where(Challenge.start_date > today)
-        elif status_filter == "active":
-            q = q.where(Challenge.start_date <= today, Challenge.end_date >= today)
-        elif status_filter == "completed":
-            q = q.where(Challenge.end_date < today)
+        elif status_filter == "active" or status_filter == "completed":
+            # Both active and completed challenges have start_date <= today.
+            # We filter by completion state in the service layer.
+            q = q.where(Challenge.start_date <= today)
 
         q = q.order_by(Challenge.created_at.desc())
         result = await self.session.execute(q)
@@ -177,3 +176,29 @@ class ChallengeRepository:
             )
         )
         return result.scalar_one_or_none() is not None
+
+    async def is_fully_completed_by_family(
+        self, challenge_id: uuid.UUID, family_id: uuid.UUID
+    ) -> bool:
+        """True when every ChallengeActivity slot has a Completion for this family."""
+        total_result = await self.session.execute(
+            select(func.count()).where(
+                ChallengeActivity.challenge_id == challenge_id
+            )
+        )
+        total_slots = total_result.scalar_one()
+        if total_slots == 0:
+            return False
+
+        completed_result = await self.session.execute(
+            select(func.count()).where(
+                Completion.family_id == family_id,
+                Completion.challenge_activity_id.in_(
+                    select(ChallengeActivity.id).where(
+                        ChallengeActivity.challenge_id == challenge_id
+                    )
+                ),
+            )
+        )
+        completed_count = completed_result.scalar_one()
+        return completed_count >= total_slots

@@ -55,7 +55,13 @@ def _completion_dict(c: Completion) -> dict:
     }
 
 
-def _challenge_summary_dict(c: Challenge, today: date) -> dict:
+def _challenge_summary_dict(c: Challenge, today: date, all_slots_filled: bool = False) -> dict:
+    if all_slots_filled:
+        status = "completed"
+    elif c.start_date > today:
+        status = "upcoming"
+    else:
+        status = "active"
     return {
         "id": c.id,
         "title": c.title,
@@ -64,7 +70,7 @@ def _challenge_summary_dict(c: Challenge, today: date) -> dict:
         "start_date": c.start_date.isoformat(),
         "end_date": c.end_date.isoformat(),
         "display_mode": c.display_mode,
-        "status": _status_from_dates(c, today),
+        "status": status,
         "created_at": c.created_at,
     }
 
@@ -105,8 +111,12 @@ async def _build_challenge_with_progress(
         }
         slots.append(slot)
 
+    all_slots_filled = len(ca_list) > 0 and all(
+        ca.id in completion_map for ca in ca_list
+    )
+
     return {
-        **_challenge_summary_dict(challenge, today),
+        **_challenge_summary_dict(challenge, today, all_slots_filled=all_slots_filled),
         "activities": slots,
         "group_families_count": group_families_count,
     }
@@ -175,7 +185,14 @@ async def get_my_challenges(
     repo = ChallengeRepository(session)
     challenges = await repo.get_all_for_family(fm.family_id, status_filter)
     today = date.today()
-    return [_challenge_summary_dict(c, today) for c in challenges]
+    result = []
+    for c in challenges:
+        all_filled = await repo.is_fully_completed_by_family(c.id, fm.family_id)
+        summary = _challenge_summary_dict(c, today, all_slots_filled=all_filled)
+        if status_filter in ("active", "completed") and summary["status"] != status_filter:
+            continue
+        result.append(summary)
+    return result
 
 
 async def delete_challenge(

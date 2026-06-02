@@ -132,6 +132,25 @@ async def get_photo_url(
     return {"url": url, "expires_at": expires_at}
 
 
+async def get_photo_key(
+    session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
+) -> str:
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        raise NoFamilyError("You must be in a family")
+
+    repo = CompletionRepository(session)
+    completion = await repo.get_by_id(completion_id)
+    if not completion or completion.family_id != fm.family_id:
+        raise ChallengeNotFound("Completion not found")
+
+    if completion.status != "ready" or not completion.photo_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Photo not ready yet")
+
+    return completion.photo_key
+
+
 async def delete_completion(
     session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
 ) -> None:

@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
@@ -19,11 +20,13 @@ import {
   type ChallengeActivitySlot,
   type ChallengeWithProgress,
 } from '@/lib/api';
+import { isChallengeComplete } from '@/lib/challenge-utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CITY_KEY = '@dba_city_preference';
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
+const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
 function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): ActivityItem | null {
   const unfulfilled = challenges.flatMap((c) =>
@@ -44,6 +47,12 @@ export default function HomeScreen() {
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
   const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
 
+  // Refs to avoid stale closures in polling/async callbacks
+  const challengesRef = useRef<ChallengeWithProgress[]>([]);
+  challengesRef.current = challenges;
+  const localCompletionsRef = useRef<Record<string, LocalCompletion>>({});
+  localCompletionsRef.current = localCompletions;
+
   // Polling: slotId → { completionId, intervalId, timeoutId }
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
 
@@ -57,8 +66,10 @@ export default function HomeScreen() {
     };
   }, []);
 
-  useEffect(() => {
+  // Reload challenges every time the Home tab gains focus; reset local state
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
+    setLocalCompletions({});
 
     async function loadChallenges() {
       try {
@@ -73,7 +84,7 @@ export default function HomeScreen() {
 
     loadChallenges();
     return () => { cancelled = true; };
-  }, []);
+  }, []));
 
   // Fallback suggestion when all challenge slots are completed
   useEffect(() => {
@@ -101,6 +112,20 @@ export default function HomeScreen() {
     [challenges, fallbackSuggestion]
   );
 
+  function checkCelebration(slotId: string, updatedLocal: Record<string, LocalCompletion>) {
+    const challenge = challengesRef.current.find((c) => c.activities.some((s) => s.id === slotId));
+    if (challenge && isChallengeComplete(challenge.activities, updatedLocal)) {
+      AsyncStorage.getItem(CELEBRATED_KEY).then((raw) => {
+        const celebrated: string[] = raw ? JSON.parse(raw) : [];
+        if (!celebrated.includes(challenge.id)) {
+          celebrated.push(challenge.id);
+          AsyncStorage.setItem(CELEBRATED_KEY, JSON.stringify(celebrated));
+          router.push({ pathname: '/celebration', params: { challengeId: challenge.id } } as any);
+        }
+      });
+    }
+  }
+
   function startPolling(slotId: string, completionId: string) {
     const stopPolling = () => {
       const entry = pollingRef.current[slotId];
@@ -117,7 +142,9 @@ export default function HomeScreen() {
         const { status } = res.data;
         if (status === 'ready') {
           stopPolling();
-          setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } }));
+          const updated: Record<string, LocalCompletion> = { ...localCompletionsRef.current, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } };
+          setLocalCompletions(updated);
+          checkCelebration(slotId, updated);
         }
       } catch {
         // keep polling
@@ -153,7 +180,11 @@ export default function HomeScreen() {
     setActiveSlot(null);
     completionsApi
       .createSelfReported({ challenge_activity_id: slotId })
-      .then(() => setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'self_reported' } })))
+      .then(() => {
+        const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
+        setLocalCompletions(updated);
+        checkCelebration(slotId, updated);
+      })
       .catch(() => {
         if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
       });
@@ -199,7 +230,9 @@ export default function HomeScreen() {
           challenges.map((challenge) => (
             <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVE CHALLENGE</ThemedText>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+                  {challenge.status === 'completed' ? 'COMPLETED CHALLENGE' : 'ACTIVE CHALLENGE'}
+                </ThemedText>
                 <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
                   <ThemedText style={{ color: colors.primary, fontSize: 13 }}>View details</ThemedText>
                 </Pressable>
@@ -212,7 +245,7 @@ export default function HomeScreen() {
                 slots={challenge.activities}
                 groupFamiliesCount={challenge.group_families_count}
                 localCompletions={localCompletions}
-                onSlotPress={handleSlotPress}
+                onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
                 onPhotoPress={handlePhotoPress}
               />
             </View>
