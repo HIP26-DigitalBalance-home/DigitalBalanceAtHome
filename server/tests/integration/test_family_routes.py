@@ -2,6 +2,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
+from app.services.exceptions import (
+    AlreadyFamilyMember,
+    InviteExpired,
+    InviteNotFound,
+    NotFamilyMember,
+)
+
 
 def _fake_family_dict(family) -> dict:
     """Minimal dict that satisfies the Family response schema."""
@@ -11,15 +18,6 @@ def _fake_family_dict(family) -> dict:
         "members": [],
         "created_at": family.created_at.isoformat(),
     }
-
-import pytest
-
-from app.services.exceptions import (
-    AlreadyFamilyMember,
-    InviteExpired,
-    InviteNotFound,
-    NotFamilyMember,
-)
 
 
 def _fake_family() -> MagicMock:
@@ -137,6 +135,7 @@ class TestLeaveFamily:
     async def test_success(self, auth_client, mocker):
         from app.dependencies.auth import get_current_user
         from app.main import app
+
         current_user = app.dependency_overrides[get_current_user]()
         mocker.patch("app.api.families.family_service.leave_family", return_value=None)
         fid = str(uuid.uuid4())
@@ -152,6 +151,7 @@ class TestLeaveFamily:
     async def test_not_member_returns_403(self, auth_client, mocker):
         from app.dependencies.auth import get_current_user
         from app.main import app
+
         current_user = app.dependency_overrides[get_current_user]()
         mocker.patch("app.api.families.family_service.leave_family", side_effect=NotFamilyMember("not member"))
         fid = str(uuid.uuid4())

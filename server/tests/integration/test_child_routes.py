@@ -2,8 +2,6 @@ import uuid
 from datetime import date, datetime, timezone
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.services.exceptions import ChildNotFound, NoFamilyError, NotFamilyMember
 
 
@@ -24,11 +22,14 @@ class TestCreateChild:
         child = _fake_child()
         mocker.patch("app.api.children.child_service.create_child", return_value=child)
 
-        response = await auth_client.post("/children", json={
-            "nickname": "Lena",
-            "date_of_birth": "2019-03-15",
-            "interests": ["drawing"],
-        })
+        response = await auth_client.post(
+            "/children",
+            json={
+                "nickname": "Lena",
+                "date_of_birth": "2019-03-15",
+                "interests": ["drawing"],
+            },
+        )
 
         assert response.status_code == 201
         data = response.json()
@@ -40,10 +41,13 @@ class TestCreateChild:
             "app.api.children.child_service.create_child",
             side_effect=NoFamilyError("No family"),
         )
-        response = await auth_client.post("/children", json={
-            "nickname": "Lena",
-            "date_of_birth": "2019-03-15",
-        })
+        response = await auth_client.post(
+            "/children",
+            json={
+                "nickname": "Lena",
+                "date_of_birth": "2019-03-15",
+            },
+        )
         assert response.status_code == 400
         assert response.json()["code"] == "no_family"
 
@@ -52,10 +56,13 @@ class TestCreateChild:
         assert response.status_code == 422
 
     async def test_requires_authentication(self, client):
-        response = await client.post("/children", json={
-            "nickname": "Lena",
-            "date_of_birth": "2019-03-15",
-        })
+        response = await client.post(
+            "/children",
+            json={
+                "nickname": "Lena",
+                "date_of_birth": "2019-03-15",
+            },
+        )
         assert response.status_code in (401, 403)
 
 

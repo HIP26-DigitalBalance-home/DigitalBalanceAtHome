@@ -114,7 +114,7 @@ jobs:
           host: ${{ vars.DEPLOY_HOST }}
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "server/docker-compose.yml,server/docker-compose.prod.yml"
+          source: "server/docker-compose.prod.yml"
           target: /opt/app
           strip_components: 1
 
@@ -149,5 +149,5 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             printf '%s\n' "$DOT_ENV" > /opt/app/.env
             cd /opt/app
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --remove-orphans
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
