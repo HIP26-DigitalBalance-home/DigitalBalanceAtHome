@@ -63,12 +63,14 @@ async def _build_group_response(
             }
             for fm in fm_by_family.get(m.family_id, [])
         ]
-        members.append({
-            "family_id": m.family_id,
-            "family_name": family_name_map.get(m.family_id),
-            "joined_at": m.joined_at,
-            "parents": parents,
-        })
+        members.append(
+            {
+                "family_id": m.family_id,
+                "family_name": family_name_map.get(m.family_id),
+                "joined_at": m.joined_at,
+                "parents": parents,
+            }
+        )
 
     return {
         "id": group.id,
@@ -132,9 +134,7 @@ async def get_group(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    group, memberships, admins = await group_service.get_group(
-        session, group_id, current_user.id
-    )
+    group, memberships, admins = await group_service.get_group(session, group_id, current_user.id)
     repo = GroupRepository(session)
     admin = await repo.get_admin(group_id, current_user.id)
     return await _build_group_response(session, group, memberships, admins, is_admin=admin is not None)
@@ -190,6 +190,4 @@ async def get_group_feed(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> list[dict]:
-    return await completion_service.get_group_feed(
-        session, current_user.id, group_id, limit, offset
-    )
+    return await completion_service.get_group_feed(session, current_user.id, group_id, limit, offset)

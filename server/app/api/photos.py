@@ -71,6 +71,7 @@ async def get_photo_image(
 ):
     """Proxy the photo bytes from S3 so the client can use them in a canvas (no CORS issues)."""
     from fastapi.responses import Response
+
     from app.core import storage
 
     photo_key = await completion_service.get_photo_key(session, current_user.id, completion_id)

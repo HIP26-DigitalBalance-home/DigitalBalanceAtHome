@@ -1,12 +1,13 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import storage
 from app.models.activity import Activity
-from app.models.challenge import Challenge, ChallengeActivity
+from app.models.challenge import Challenge
 from app.models.completion import Completion
-from app.repositories.challenge import ChallengeRepository, _status_from_dates
+from app.repositories.challenge import ChallengeRepository
 from app.schemas.generated import CreateChallengeRequest
 from app.services.exceptions import (
     ActivityNotFound,
@@ -15,7 +16,6 @@ from app.services.exceptions import (
     NoFamilyError,
     NotGroupMember,
 )
-from app.core import storage
 from app.services.family import get_user_family
 
 
@@ -111,9 +111,7 @@ async def _build_challenge_with_progress(
         }
         slots.append(slot)
 
-    all_slots_filled = len(ca_list) > 0 and all(
-        ca.id in completion_map for ca in ca_list
-    )
+    all_slots_filled = len(ca_list) > 0 and all(ca.id in completion_map for ca in ca_list)
 
     return {
         **_challenge_summary_dict(challenge, today, all_slots_filled=all_slots_filled),
@@ -122,9 +120,7 @@ async def _build_challenge_with_progress(
     }
 
 
-async def create_challenge(
-    session: AsyncSession, user_id: uuid.UUID, req: CreateChallengeRequest
-) -> dict:
+async def create_challenge(session: AsyncSession, user_id: uuid.UUID, req: CreateChallengeRequest) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must create or join a family before creating a challenge")
@@ -136,6 +132,7 @@ async def create_challenge(
 
     if req.group_id:
         from app.repositories.group import GroupRepository
+
         group_repo = GroupRepository(session)
         gm = await group_repo.get_membership(req.group_id, fm.family_id)
         if not gm:
@@ -175,9 +172,7 @@ async def get_active_challenges(session: AsyncSession, user_id: uuid.UUID) -> li
     return [await _build_challenge_with_progress(repo, c, fm.family_id) for c in challenges]
 
 
-async def get_my_challenges(
-    session: AsyncSession, user_id: uuid.UUID, status_filter: str | None
-) -> list[dict]:
+async def get_my_challenges(session: AsyncSession, user_id: uuid.UUID, status_filter: str | None) -> list[dict]:
     fm = await get_user_family(session, user_id)
     if not fm:
         return []
@@ -195,9 +190,7 @@ async def get_my_challenges(
     return result
 
 
-async def delete_challenge(
-    session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID
-) -> None:
+async def delete_challenge(session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID) -> None:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise ChallengeNotFound("Challenge not found")
@@ -215,9 +208,7 @@ async def delete_challenge(
     await session.commit()
 
 
-async def get_challenge(
-    session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID
-) -> dict:
+async def get_challenge(session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise ChallengeNotFound("Challenge not found")

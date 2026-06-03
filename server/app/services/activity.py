@@ -22,9 +22,7 @@ def _current_season() -> str:
 
 def _child_age(date_of_birth: date) -> int:
     today = date.today()
-    return today.year - date_of_birth.year - (
-        (today.month, today.day) < (date_of_birth.month, date_of_birth.day)
-    )
+    return today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
 
 
 async def list_activities(
@@ -71,8 +69,7 @@ async def get_suggestion(
     # Boost activities that match any child interest keyword
     if interests and candidates:
         boosted = [
-            a for a in candidates
-            if any(kw in a.title.lower() or kw in a.description.lower() for kw in interests)
+            a for a in candidates if any(kw in a.title.lower() or kw in a.description.lower() for kw in interests)
         ]
         if boosted:
             return random.choice(boosted)

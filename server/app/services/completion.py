@@ -126,21 +126,21 @@ async def get_group_feed(
                 photo_url = storage.generate_presigned_url(completion.photo_key, expires=900)
             except Exception:
                 pass
-        entries.append({
-            "id": completion.id,
-            "family_id": completion.family_id,
-            "family_name": family_name,
-            "activity_title": activity_title,
-            "photo_url": photo_url,
-            "caption": completion.caption,
-            "completed_at": completion.completed_at,
-        })
+        entries.append(
+            {
+                "id": completion.id,
+                "family_id": completion.family_id,
+                "family_name": family_name,
+                "activity_title": activity_title,
+                "photo_url": photo_url,
+                "caption": completion.caption,
+                "completed_at": completion.completed_at,
+            }
+        )
     return entries
 
 
-async def get_completion(
-    session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
-) -> dict:
+async def get_completion(session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family")
@@ -149,14 +149,13 @@ async def get_completion(
     completion = await repo.get_by_id(completion_id)
     if not completion or completion.family_id != fm.family_id:
         from app.services.exceptions import ChallengeNotFound
+
         raise ChallengeNotFound("Completion not found")
 
     return _completion_dict(completion)
 
 
-async def get_photo_url(
-    session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
-) -> dict:
+async def get_photo_url(session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family")
@@ -165,10 +164,12 @@ async def get_photo_url(
     completion = await repo.get_by_id(completion_id)
     if not completion or completion.family_id != fm.family_id:
         from app.services.exceptions import ChallengeNotFound
+
         raise ChallengeNotFound("Completion not found")
 
     if completion.status != "ready" or not completion.photo_key:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Photo not ready yet")
 
     url = storage.generate_presigned_url(completion.photo_key, expires=900)
@@ -176,9 +177,7 @@ async def get_photo_url(
     return {"url": url, "expires_at": expires_at}
 
 
-async def get_photo_key(
-    session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
-) -> str:
+async def get_photo_key(session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID) -> str:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family")
@@ -190,14 +189,13 @@ async def get_photo_key(
 
     if completion.status != "ready" or not completion.photo_key:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Photo not ready yet")
 
     return completion.photo_key
 
 
-async def delete_completion(
-    session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID
-) -> None:
+async def delete_completion(session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID) -> None:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family")
@@ -262,25 +260,22 @@ async def start_photo_completion(
     return completion, raw_key, final_key
 
 
-def compress_photo(
-    completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str
-) -> None:
+def compress_photo(completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
     """Background task (sync thread): compress photo and update completion status.
     Uses asyncio.run() so we can reuse the async engine + asyncpg driver."""
     import asyncio
+
     asyncio.run(_compress_async(completion_id, raw_key, final_key, db_url))
 
 
-async def _compress_async(
-    completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str
-) -> None:
+async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
     try:
         from PIL import Image
         from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
         raw_data = storage.download_bytes(raw_key)
         img = Image.open(io.BytesIO(raw_data))
-        img.thumbnail((1200, 1200), Image.LANCZOS)
+        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
 
         buf = io.BytesIO()
         img.convert("RGB").save(buf, format="JPEG", quality=85)
@@ -293,9 +288,8 @@ async def _compress_async(
         async_session = async_sessionmaker(engine, expire_on_commit=False)
         async with async_session() as session:
             from sqlalchemy import select as sa_select
-            result = await session.execute(
-                sa_select(Completion).where(Completion.id == completion_id)
-            )
+
+            result = await session.execute(sa_select(Completion).where(Completion.id == completion_id))
             completion = result.scalar_one_or_none()
             if completion:
                 completion.status = "ready"

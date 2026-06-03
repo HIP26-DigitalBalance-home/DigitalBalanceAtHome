@@ -13,29 +13,29 @@ from pydantic import AnyUrl, AwareDatetime, BaseModel, EmailStr, Field
 
 
 class Season(StrEnum):
-    spring = 'spring'
-    summer = 'summer'
-    autumn = 'autumn'
-    winter = 'winter'
+    spring = "spring"
+    summer = "summer"
+    autumn = "autumn"
+    winter = "winter"
 
 
 class Weather(StrEnum):
-    sunny = 'sunny'
-    cloudy = 'cloudy'
-    rainy = 'rainy'
-    any = 'any'
+    sunny = "sunny"
+    cloudy = "cloudy"
+    rainy = "rainy"
+    any = "any"
 
 
 class CostIndicator(StrEnum):
-    free = 'free'
-    low_cost = 'low_cost'
-    paid = 'paid'
+    free = "free"
+    low_cost = "low_cost"
+    paid = "paid"
 
 
 class CompletionStatus(StrEnum):
-    processing = 'processing'
-    ready = 'ready'
-    self_reported = 'self_reported'
+    processing = "processing"
+    ready = "ready"
+    self_reported = "self_reported"
 
 
 class ErrorResponse(BaseModel):
@@ -44,7 +44,7 @@ class ErrorResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: Annotated[str, Field(examples=['ok'])]
+    status: Annotated[str, Field(examples=["ok"])]
 
 
 class InviteResponse(BaseModel):
@@ -57,21 +57,13 @@ class JoinByTokenRequest(BaseModel):
 
 
 class GoogleCallbackRequest(BaseModel):
-    id_token: Annotated[str | None, Field(description='Google ID token (web flow)')] = (
-        None
-    )
-    code: Annotated[
-        str | None, Field(description='Authorization code (native flow)')
-    ] = None
+    id_token: Annotated[str | None, Field(description="Google ID token (web flow)")] = None
+    code: Annotated[str | None, Field(description="Authorization code (native flow)")] = None
     redirect_uri: Annotated[
         str | None,
-        Field(
-            description='Redirect URI used in the authorization request (native flow)'
-        ),
+        Field(description="Redirect URI used in the authorization request (native flow)"),
     ] = None
-    code_verifier: Annotated[
-        str | None, Field(description='PKCE code verifier (native flow, optional)')
-    ] = None
+    code_verifier: Annotated[str | None, Field(description="PKCE code verifier (native flow, optional)")] = None
 
 
 class RefreshRequest(BaseModel):
@@ -104,14 +96,12 @@ class GroupMembership(BaseModel):
 
 
 class CreateConsentRequest(BaseModel):
-    policy_version: Annotated[str, Field(examples=['1.0'])]
-    data_storage_consent: Annotated[bool, Field(description='Required to use the app')]
-    photo_processing_consent: Annotated[
-        bool, Field(description='Required for photo-based completions')
-    ]
+    policy_version: Annotated[str, Field(examples=["1.0"])]
+    data_storage_consent: Annotated[bool, Field(description="Required to use the app")]
+    photo_processing_consent: Annotated[bool, Field(description="Required for photo-based completions")]
     location_consent: Annotated[
         bool | None,
-        Field(description='Optional; enables weather-based activity suggestions'),
+        Field(description="Optional; enables weather-based activity suggestions"),
     ] = False
 
 
@@ -154,13 +144,9 @@ class ChildProfile(BaseModel):
     nickname: str
     date_of_birth: Annotated[
         date,
-        Field(
-            description='Age is derived from this at query time; never stored as a computed field'
-        ),
+        Field(description="Age is derived from this at query time; never stored as a computed field"),
     ]
-    interests: Annotated[
-        list[str], Field(description='Free-text tags; do not enter medical conditions')
-    ]
+    interests: Annotated[list[str], Field(description="Free-text tags; do not enter medical conditions")]
     created_at: AwareDatetime
     updated_at: AwareDatetime
 
@@ -189,7 +175,7 @@ class GroupMemberFamily(BaseModel):
     joined_at: AwareDatetime
     parents: Annotated[
         list[FamilyParentInGroup],
-        Field(description='Parents in this family and their group admin status'),
+        Field(description="Parents in this family and their group admin status"),
     ]
 
 
@@ -199,9 +185,7 @@ class GroupSummary(BaseModel):
     description: str | None = None
     is_admin: Annotated[
         bool,
-        Field(
-            description='Whether the authenticated user holds admin rights in this group'
-        ),
+        Field(description="Whether the authenticated user holds admin rights in this group"),
     ]
     created_at: AwareDatetime
 
@@ -232,7 +216,7 @@ class FeedEntry(BaseModel):
     activity_title: str
     photo_url: Annotated[
         AnyUrl | None,
-        Field(description='Pre-signed URL; only present when status is ready'),
+        Field(description="Pre-signed URL; only present when status is ready"),
     ] = None
     caption: str | None = None
     completed_at: AwareDatetime
@@ -246,21 +230,19 @@ class Activity(BaseModel):
     age_min: Annotated[int, Field(ge=0)]
     age_max: Annotated[int, Field(ge=0)]
     cost_indicator: CostIndicator
-    season_relevance: Annotated[
-        list[Season] | None, Field(description='Null means year-round')
-    ] = None
+    season_relevance: Annotated[list[Season] | None, Field(description="Null means year-round")] = None
     weather_suitability: list[Weather] | None = None
     is_partner_content: bool
 
 
 class DisplayMode(StrEnum):
-    collage = 'collage'
+    collage = "collage"
 
 
 class Status(StrEnum):
-    upcoming = 'upcoming'
-    active = 'active'
-    completed = 'completed'
+    upcoming = "upcoming"
+    active = "active"
+    completed = "completed"
 
 
 class ChallengeSummary(BaseModel):
@@ -278,13 +260,11 @@ class ChallengeSummary(BaseModel):
 class CreateChallengeRequest(BaseModel):
     title: Annotated[str, Field(min_length=1)]
     description: str | None = None
-    group_id: Annotated[
-        UUID | None, Field(description='Null creates a personal/family challenge')
-    ] = None
+    group_id: Annotated[UUID | None, Field(description="Null creates a personal/family challenge")] = None
     activity_ids: Annotated[
         list[UUID],
         Field(
-            description='Activities in order — grid_position is assigned by their position in this list',
+            description="Activities in order — grid_position is assigned by their position in this list",
             min_length=1,
         ),
     ]
@@ -294,7 +274,7 @@ class CreateChallengeRequest(BaseModel):
 
 class PhotoUploadRequest(BaseModel):
     challenge_activity_id: UUID
-    image: Annotated[bytes, Field(description='JPEG or PNG; maximum 10 MB')]
+    image: Annotated[bytes, Field(description="JPEG or PNG; maximum 10 MB")]
     caption: str | None = None
     shared_to_feed: bool | None = False
 
@@ -314,12 +294,12 @@ class Completion(BaseModel):
     family_id: UUID
     completed_by_user_id: Annotated[
         UUID,
-        Field(description='The parent who uploaded the photo or marked it complete'),
+        Field(description="The parent who uploaded the photo or marked it complete"),
     ]
     status: CompletionStatus
     photo_url: Annotated[
         AnyUrl | None,
-        Field(description='Pre-signed S3 URL; only present when status is ready'),
+        Field(description="Pre-signed S3 URL; only present when status is ready"),
     ] = None
     caption: str | None = None
     shared_to_feed: bool
@@ -346,7 +326,7 @@ class CompletionHistoryItem(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: Annotated[str, Field(examples=['bearer'])]
+    token_type: Annotated[str, Field(examples=["bearer"])]
     user: User
 
 
@@ -365,7 +345,7 @@ class ChallengeActivitySlot(BaseModel):
     grid_position: Annotated[
         int,
         Field(
-            description='Visual position in the collage grid; not a completion order',
+            description="Visual position in the collage grid; not a completion order",
             ge=0,
         ),
     ]
@@ -375,9 +355,7 @@ class ChallengeActivitySlot(BaseModel):
     ] = None
     families_completed_count: Annotated[
         int | None,
-        Field(
-            description='How many families in the group have completed this slot (group view only)'
-        ),
+        Field(description="How many families in the group have completed this slot (group view only)"),
     ] = None
 
 
@@ -389,6 +367,6 @@ class ChallengeWithProgress(Challenge):
     group_families_count: Annotated[
         int | None,
         Field(
-            description='Total families in the group (for computing aggregate percentages); null for personal challenges'
+            description="Total families in the group (for computing aggregate percentages); null for personal challenges"
         ),
     ] = None

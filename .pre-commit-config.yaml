@@ -1,20 +1,28 @@
 repos:
-  # Server — ruff lint (with autofix) + format
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
-    hooks:
-      - id: ruff
-        args: [--fix]
-        files: ^server/(app|tests)/
-      - id: ruff-format
-        files: ^server/(app|tests)/
-
-  # Server — mypy static type check (uses the project's installed env)
   - repo: local
     hooks:
+      # Server — ruff lint (with autofix)
+      - id: ruff
+        name: ruff (server)
+        entry: bash -c 'cd server && python3 -m ruff check --fix app/ tests/'
+        language: system
+        types: [python]
+        files: ^server/(app|tests)/
+        pass_filenames: false
+
+      # Server — ruff format
+      - id: ruff-format
+        name: ruff-format (server)
+        entry: bash -c 'cd server && python3 -m ruff format app/ tests/'
+        language: system
+        types: [python]
+        files: ^server/(app|tests)/
+        pass_filenames: false
+
+      # Server — mypy static type check
       - id: mypy
         name: mypy (server)
-        entry: bash -c 'cd server && mypy app/'
+        entry: bash -c 'cd server && python3 -m mypy app/'
         language: system
         types: [python]
         files: ^server/app/

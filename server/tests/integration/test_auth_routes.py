@@ -29,24 +29,31 @@ def _fake_user() -> MagicMock:
 
 # ── /auth/google/callback ───────────────────────────────────────────────────
 
+
 class TestGoogleCallback:
     async def test_success_returns_tokens_and_user(self, client, mocker):
         user = _fake_user()
         mocker.patch("app.api.auth.auth_service.exchange_google_code", return_value={"id_token": "fake.id.token"})
-        mocker.patch("app.api.auth.auth_service.extract_google_claims", return_value={
-            "sub": "google_sub_123",
-            "email": user.email,
-            "name": user.display_name,
-        })
+        mocker.patch(
+            "app.api.auth.auth_service.extract_google_claims",
+            return_value={
+                "sub": "google_sub_123",
+                "email": user.email,
+                "name": user.display_name,
+            },
+        )
         mock_repo = AsyncMock()
         mock_repo.upsert_by_google_sub.return_value = user
         mocker.patch("app.api.auth.UserRepository", return_value=mock_repo)
 
-        response = await client.post("/auth/google/callback", json={
-            "code": "auth_code_abc",
-            "redirect_uri": "https://auth.expo.io/callback",
-            "code_verifier": "pkce_verifier",
-        })
+        response = await client.post(
+            "/auth/google/callback",
+            json={
+                "code": "auth_code_abc",
+                "redirect_uri": "https://auth.expo.io/callback",
+                "code_verifier": "pkce_verifier",
+            },
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -62,20 +69,26 @@ class TestGoogleCallback:
             side_effect=ValueError("Google token exchange failed"),
         )
 
-        response = await client.post("/auth/google/callback", json={
-            "code": "bad_code",
-            "redirect_uri": "https://auth.expo.io/callback",
-        })
+        response = await client.post(
+            "/auth/google/callback",
+            json={
+                "code": "bad_code",
+                "redirect_uri": "https://auth.expo.io/callback",
+            },
+        )
 
         assert response.status_code == 401
 
     async def test_missing_id_token_in_google_response_returns_401(self, client, mocker):
         mocker.patch("app.api.auth.auth_service.exchange_google_code", return_value={})
 
-        response = await client.post("/auth/google/callback", json={
-            "code": "auth_code",
-            "redirect_uri": "https://auth.expo.io/callback",
-        })
+        response = await client.post(
+            "/auth/google/callback",
+            json={
+                "code": "auth_code",
+                "redirect_uri": "https://auth.expo.io/callback",
+            },
+        )
 
         assert response.status_code == 401
 
@@ -86,10 +99,13 @@ class TestGoogleCallback:
             side_effect=ValueError("audience mismatch"),
         )
 
-        response = await client.post("/auth/google/callback", json={
-            "code": "auth_code",
-            "redirect_uri": "https://auth.expo.io/callback",
-        })
+        response = await client.post(
+            "/auth/google/callback",
+            json={
+                "code": "auth_code",
+                "redirect_uri": "https://auth.expo.io/callback",
+            },
+        )
 
         assert response.status_code == 401
 
@@ -113,6 +129,7 @@ class TestGoogleCallback:
 
 
 # ── /auth/refresh ───────────────────────────────────────────────────────────
+
 
 class TestRefresh:
     async def test_valid_refresh_token_returns_new_tokens(self, client, mocker):
@@ -139,6 +156,7 @@ class TestRefresh:
     async def test_access_token_used_as_refresh_returns_401(self, client, mocker):
         user = _fake_user()
         from app.services.auth import create_access_token
+
         access_token = create_access_token(user.id)
 
         response = await client.post("/auth/refresh", json={"refresh_token": access_token})
@@ -156,6 +174,7 @@ class TestRefresh:
 
 # ── /auth/logout ─────────────────────────────────────────────────────────────
 
+
 class TestLogout:
     async def test_logout_returns_204(self, client):
         response = await client.delete("/auth/logout")
@@ -164,6 +183,7 @@ class TestLogout:
 
 
 # ── /healthz ─────────────────────────────────────────────────────────────────
+
 
 class TestHealth:
     async def test_healthz_with_db(self, client):

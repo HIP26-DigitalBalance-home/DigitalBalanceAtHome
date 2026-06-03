@@ -57,7 +57,7 @@ async def google_callback(
         else:
             # Native flow: exchange authorization code on the server
             token_data = await auth_service.exchange_google_code(
-                code=body.code,
+                code=body.code or "",
                 redirect_uri=body.redirect_uri or "",
                 code_verifier=body.code_verifier,
             )

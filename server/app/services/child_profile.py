@@ -9,9 +9,7 @@ from app.services.exceptions import ChildNotFound, NoFamilyError, NotFamilyMembe
 from app.services.family import get_user_family
 
 
-async def create_child(
-    session: AsyncSession, user_id: uuid.UUID, req: CreateChildRequest
-) -> ChildProfile:
+async def create_child(session: AsyncSession, user_id: uuid.UUID, req: CreateChildRequest) -> ChildProfile:
     membership = await get_user_family(session, user_id)
     if not membership:
         raise NoFamilyError("You must create or join a family before adding children")
@@ -20,9 +18,7 @@ async def create_child(
     return await repo.create(membership.family_id, req)
 
 
-async def get_children(
-    session: AsyncSession, user_id: uuid.UUID
-) -> list[ChildProfile]:
+async def get_children(session: AsyncSession, user_id: uuid.UUID) -> list[ChildProfile]:
     membership = await get_user_family(session, user_id)
     if not membership:
         return []
@@ -51,9 +47,7 @@ async def update_child(
     return await repo.update(child, req)
 
 
-async def delete_child(
-    session: AsyncSession, child_id: uuid.UUID, user_id: uuid.UUID
-) -> None:
+async def delete_child(session: AsyncSession, child_id: uuid.UUID, user_id: uuid.UUID) -> None:
     membership = await get_user_family(session, user_id)
     if not membership:
         raise NoFamilyError("You must be in a family to manage children")

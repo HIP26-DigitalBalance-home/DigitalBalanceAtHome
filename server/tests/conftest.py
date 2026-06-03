@@ -25,6 +25,7 @@ def _make_user(user_id: uuid.UUID | None = None) -> MagicMock:
 @pytest.fixture
 async def client():
     """Test client with the database dependency replaced by a mock session."""
+
     async def mock_get_db():
         yield AsyncMock()
 
