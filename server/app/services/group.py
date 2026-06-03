@@ -117,6 +117,7 @@ async def join_group(session: AsyncSession, token: uuid.UUID, user_id: uuid.UUID
     await repo.mark_invite_used(invite, user_id)
 
     group = await repo.get_by_id(invite.group_id)
+    assert group is not None
     await session.commit()
     await session.refresh(group)
     await session.refresh(gm)

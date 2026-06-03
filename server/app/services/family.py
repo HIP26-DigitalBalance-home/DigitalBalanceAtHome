@@ -88,6 +88,7 @@ async def join_family(session: AsyncSession, token: uuid.UUID, user_id: uuid.UUI
     await repo.mark_invite_used(invite, user_id)
 
     family = await repo.get_by_id(invite.family_id)
+    assert family is not None
     await session.commit()
     await session.refresh(family)
     await session.refresh(membership)

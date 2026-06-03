@@ -275,7 +275,7 @@ async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str
 
         raw_data = storage.download_bytes(raw_key)
         img = Image.open(io.BytesIO(raw_data))
-        img.thumbnail((1200, 1200), Image.LANCZOS)
+        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
 
         buf = io.BytesIO()
         img.convert("RGB").save(buf, format="JPEG", quality=85)

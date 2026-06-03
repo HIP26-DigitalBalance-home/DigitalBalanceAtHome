@@ -67,4 +67,4 @@ class CompletionRepository:
             .offset(offset)
         )
         result = await self.session.execute(stmt)
-        return list(result.all())
+        return list(result.tuples().all())

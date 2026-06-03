@@ -142,12 +142,12 @@ class ChallengeRepository:
         result = await self.session.execute(
             select(
                 Completion.challenge_activity_id,
-                func.count(Completion.family_id.distinct()).label("count"),
+                func.count(Completion.family_id.distinct()).label("family_count"),
             )
             .where(Completion.challenge_activity_id.in_(challenge_activity_ids))
             .group_by(Completion.challenge_activity_id)
         )
-        return {row.challenge_activity_id: row.count for row in result}
+        return {row.challenge_activity_id: row.family_count for row in result}
 
     async def get_group_family_count(self, group_id: uuid.UUID) -> int:
         result = await self.session.execute(select(func.count()).where(GroupMembership.group_id == group_id))
