@@ -176,10 +176,10 @@ export default function HomeScreen() {
     });
   }
 
-  function handleSelfReported(slotId: string) {
+  function handleSelfReported(slotId: string, sharedToFeed: boolean) {
     setActiveSlot(null);
     completionsApi
-      .createSelfReported({ challenge_activity_id: slotId })
+      .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed })
       .then(() => {
         const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
         setLocalCompletions(updated);
@@ -190,11 +190,11 @@ export default function HomeScreen() {
       });
   }
 
-  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string) {
+  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
     photosApi
-      .upload(slotId, imageUri, mimeType)
+      .upload(slotId, imageUri, mimeType, undefined, sharedToFeed)
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch(() => {
         setLocalCompletions((prev) => {
@@ -295,6 +295,7 @@ export default function HomeScreen() {
       <CompleteActivityModal
         visible={activeSlot !== null}
         slot={activeSlot}
+        isGroupChallenge={activeSlot != null && challenges.some((c) => c.group_id != null && c.activities.some((s) => s.id === activeSlot.id))}
         onClose={() => setActiveSlot(null)}
         onSelfReported={handleSelfReported}
         onPhotoSelected={handlePhotoSelected}

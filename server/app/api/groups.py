@@ -1,7 +1,7 @@
 from collections import defaultdict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -11,6 +11,7 @@ from app.models.user import User
 from app.repositories.group import GroupRepository
 from app.schemas.generated import (
     CreateGroupRequest,
+    FeedEntry,
     GrantAdminRequest,
     Group,
     GroupAdminEntry,
@@ -18,6 +19,7 @@ from app.schemas.generated import (
     InviteResponse,
     JoinByTokenRequest,
 )
+from app.services import completion as completion_service
 from app.services import group as group_service
 
 router = APIRouter()
@@ -180,6 +182,14 @@ async def revoke_group_admin(
     await group_service.revoke_admin(session, group_id, user_id, current_user.id)
 
 
-@router.get("/{group_id}/feed")
-async def get_group_feed(group_id: UUID) -> None:
-    raise HTTPException(status_code=501, detail="Not implemented")
+@router.get("/{group_id}/feed", response_model=list[FeedEntry])
+async def get_group_feed(
+    group_id: UUID,
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    return await completion_service.get_group_feed(
+        session, current_user.id, group_id, limit, offset
+    )

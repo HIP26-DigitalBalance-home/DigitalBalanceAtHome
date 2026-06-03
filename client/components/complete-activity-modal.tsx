@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useState } from 'react';
+import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
@@ -10,14 +10,20 @@ import type { ChallengeActivitySlot } from '@/lib/api';
 interface Props {
   visible: boolean;
   slot: ChallengeActivitySlot | null;
+  isGroupChallenge?: boolean;
   onClose: () => void;
-  onSelfReported: (slotId: string) => void;
-  onPhotoSelected: (slotId: string, imageUri: string, mimeType: string) => void;
+  onSelfReported: (slotId: string, sharedToFeed: boolean) => void;
+  onPhotoSelected: (slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) => void;
 }
 
-export function CompleteActivityModal({ visible, slot, onClose, onSelfReported, onPhotoSelected }: Props) {
+export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose, onSelfReported, onPhotoSelected }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const [picking, setPicking] = useState(false);
+  const [sharedToFeed, setSharedToFeed] = useState(false);
+
+  useEffect(() => {
+    if (visible) setSharedToFeed(false);
+  }, [visible]);
 
   async function pickImage() {
     setPicking(true);
@@ -30,7 +36,7 @@ export function CompleteActivityModal({ visible, slot, onClose, onSelfReported, 
       if (!result.canceled && result.assets[0] && slot) {
         const asset = result.assets[0];
         const mimeType = asset.mimeType ?? 'image/jpeg';
-        onPhotoSelected(slot.id, asset.uri, mimeType);
+        onPhotoSelected(slot.id, asset.uri, mimeType, sharedToFeed);
       }
     } finally {
       setPicking(false);
@@ -58,6 +64,17 @@ export function CompleteActivityModal({ visible, slot, onClose, onSelfReported, 
             ⏱ {slot.activity.estimated_duration_minutes} min · Mark as complete
           </ThemedText>
 
+          {isGroupChallenge && (
+            <View style={[styles.shareRow, { borderColor: colors.border }]}>
+              <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>Share to group feed</ThemedText>
+              <Switch
+                value={sharedToFeed}
+                onValueChange={setSharedToFeed}
+                trackColor={{ false: colors.border, true: colors.primary }}
+              />
+            </View>
+          )}
+
           <View style={styles.buttons}>
             <Pressable
               style={[styles.button, { backgroundColor: colors.primary }]}
@@ -75,7 +92,7 @@ export function CompleteActivityModal({ visible, slot, onClose, onSelfReported, 
 
             <Pressable
               style={[styles.button, { backgroundColor: colors.accent }]}
-              onPress={() => slot && onSelfReported(slot.id)}
+              onPress={() => slot && onSelfReported(slot.id, sharedToFeed)}
             >
               <ThemedText style={styles.buttonText}>✓ Mark without photo</ThemedText>
             </Pressable>
@@ -112,6 +129,8 @@ const styles = StyleSheet.create({
   },
   activityTitle: { fontSize: 17, fontWeight: '700' },
   subtitle: { fontSize: 13, marginBottom: Spacing.sm },
+  shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: Spacing.sm, marginBottom: Spacing.xs },
+  shareLabel: { fontSize: 14, fontWeight: '500' },
   buttons: { gap: Spacing.sm },
   button: { height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },

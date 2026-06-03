@@ -560,6 +560,13 @@ Changes from the original plan that were made during implementation. Future mile
 - **Background completion check**: on Home mount, if an active challenge has all slots filled and `end_date` has passed, the celebration screen opens automatically.
 - **`CollageGrid` read-only in celebration**: passed without `onSlotPress` so slots are non-interactive.
 
+### M9 — Group Feed and Social Sharing
+- **No PATCH endpoint for `shared_to_feed`**: the M9 plan allowed either including `shared_to_feed` in the initial POST or adding a PATCH. Went with include-at-creation — `shared_to_feed` is already in `POST /completions` and `POST /photos` payloads from M7. No PATCH endpoint was needed.
+- **Feed screen route**: `GroupFeedScreen` lives at `/group-feed/[id]` (not nested under `/group/[id]/feed`) to avoid Expo Router conflict between the existing `app/group/[id].tsx` file and a `[id]/` directory.
+- **"Share to group" toggle**: added to `CompleteActivityModal` with an `isGroupChallenge` prop. Toggle is only visible when the challenge belongs to a group; default is off. Resets each time the modal opens.
+- **Feed pagination**: `GET /groups/{groupId}/feed` supports `limit`/`offset` query params (default 20/0). Client uses infinite scroll via `FlatList.onEndReached`.
+- **No reactions**: per plan (P3 in SRS), reactions are not included in the prototype.
+
 ---
 
 ## Open Questions

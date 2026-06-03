@@ -24,4 +24,17 @@ export const groupsApi = {
 
   revokeGroupAdmin: (groupId: string, userId: string) =>
     apiClient.delete(`/groups/${groupId}/admins/${userId}`),
+
+  getGroupFeed: (groupId: string, limit = 20, offset = 0) =>
+    apiClient.get<FeedEntry[]>(`/groups/${groupId}/feed`, { params: { limit, offset } }),
 };
+
+export interface FeedEntry {
+  id: string;
+  family_id: string;
+  family_name: string | null;
+  activity_title: string;
+  photo_url: string | null;
+  caption: string | null;
+  completed_at: string;
+}

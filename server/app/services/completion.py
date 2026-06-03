@@ -7,15 +7,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import storage
-from app.core.config import settings
 from app.models.challenge import ChallengeActivity
 from app.models.completion import Completion
-from app.repositories.challenge import ChallengeRepository, _accessible_predicate
+from app.repositories.challenge import _accessible_predicate
 from app.repositories.completion import CompletionRepository
 from app.services.exceptions import (
     AlreadyCompleted,
     ChallengeNotFound,
+    GroupNotFound,
     NoFamilyError,
+    NotGroupMember,
 )
 from app.services.family import get_user_family
 
@@ -45,7 +46,6 @@ async def _resolve_slot(
     session: AsyncSession, challenge_activity_id: uuid.UUID, family_id: uuid.UUID
 ) -> ChallengeActivity:
     """Return the ChallengeActivity if it belongs to a challenge accessible to the family."""
-    from sqlalchemy import and_
     from app.models.challenge import Challenge
 
     result = await session.execute(
@@ -92,6 +92,50 @@ async def create_self_reported(
         raise AlreadyCompleted("This activity has already been completed by your family")
 
     return _completion_dict(completion)
+
+
+async def get_group_feed(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    group_id: uuid.UUID,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[dict]:
+    from app.repositories.group import GroupRepository
+
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        raise NotGroupMember("You are not a member of any family")
+
+    group_repo = GroupRepository(session)
+    group = await group_repo.get_by_id(group_id)
+    if not group:
+        raise GroupNotFound(f"Group {group_id} not found")
+
+    gm = await group_repo.get_membership(group_id, fm.family_id)
+    if not gm:
+        raise NotGroupMember("Your family is not a member of this group")
+
+    repo = CompletionRepository(session)
+    rows = await repo.get_group_feed(group_id, limit, offset)
+    entries = []
+    for completion, activity_title, family_name in rows:
+        photo_url = None
+        if completion.status == "ready" and completion.photo_key:
+            try:
+                photo_url = storage.generate_presigned_url(completion.photo_key, expires=900)
+            except Exception:
+                pass
+        entries.append({
+            "id": completion.id,
+            "family_id": completion.family_id,
+            "family_name": family_name,
+            "activity_title": activity_title,
+            "photo_url": photo_url,
+            "caption": completion.caption,
+            "completed_at": completion.completed_at,
+        })
+    return entries
 
 
 async def get_completion(

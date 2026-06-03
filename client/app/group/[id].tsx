@@ -162,21 +162,33 @@ export default function GroupDetailScreen() {
         keyExtractor={(m) => m.family_id}
         contentContainerStyle={styles.list}
         ListFooterComponent={
-          groupChallenges.length > 0 ? (
-            <View style={[styles.challengesPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVE CHALLENGES</ThemedText>
-              {groupChallenges.map((c) => (
-                <Pressable
-                  key={c.id}
-                  onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: c.id } } as any)}
-                  style={[styles.challengeRow, { borderColor: colors.border }]}
-                >
-                  <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{c.title}</ThemedText>
-                  <ThemedText style={{ color: colors.muted, fontSize: 12 }}>{c.start_date} → {c.end_date}</ThemedText>
-                </Pressable>
-              ))}
-            </View>
-          ) : null
+          <>
+            {/* Feed link */}
+            <Pressable
+              style={[styles.feedButton, { borderColor: colors.primary, backgroundColor: colors.surface }]}
+              onPress={() => router.push({ pathname: '/group-feed/[id]', params: { id: id! } } as any)}
+            >
+              <ThemedText style={{ color: colors.primary, fontWeight: '600', fontSize: 15 }}>
+                View group feed
+              </ThemedText>
+            </Pressable>
+
+            {groupChallenges.length > 0 ? (
+              <View style={[styles.challengesPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVE CHALLENGES</ThemedText>
+                {groupChallenges.map((c) => (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: c.id } } as any)}
+                    style={[styles.challengeRow, { borderColor: colors.border }]}
+                  >
+                    <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{c.title}</ThemedText>
+                    <ThemedText style={{ color: colors.muted, fontSize: 12 }}>{c.start_date} → {c.end_date}</ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </>
         }
         ListHeaderComponent={
           isAdmin ? (
@@ -258,6 +270,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginBottom: Spacing.sm },
   adminPanel: { padding: Spacing.md, borderRadius: 12, borderWidth: 1, marginBottom: Spacing.sm },
   adminButton: { height: 44, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  feedButton: { height: 48, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
   challengesPanel: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm, marginTop: Spacing.sm },
   challengeRow: { borderRadius: 8, borderWidth: 1, padding: Spacing.sm, gap: 2 },
   familyCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
