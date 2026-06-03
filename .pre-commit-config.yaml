@@ -1,0 +1,37 @@
+repos:
+  # Server — ruff lint (with autofix) + format
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^server/(app|tests)/
+      - id: ruff-format
+        files: ^server/(app|tests)/
+
+  # Server — mypy static type check (uses the project's installed env)
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (server)
+        entry: bash -c 'cd server && mypy app/'
+        language: system
+        types: [python]
+        files: ^server/app/
+        pass_filenames: false
+
+      # Client — TypeScript
+      - id: tsc
+        name: tsc (client)
+        entry: bash -c 'cd client && npx tsc --noEmit'
+        language: system
+        files: ^client/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      # Client — ESLint via expo lint
+      - id: expo-lint
+        name: expo lint (client)
+        entry: bash -c 'cd client && npx expo lint'
+        language: system
+        files: ^client/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
