@@ -30,7 +30,5 @@ class ChallengeActivity(Base, TimestampMixin):
     challenge_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    activity_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("activities.id"), nullable=False
-    )
+    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id"), nullable=False)
     grid_position: Mapped[int] = mapped_column(Integer, nullable=False)

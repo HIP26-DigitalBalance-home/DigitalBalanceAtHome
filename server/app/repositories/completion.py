@@ -39,9 +39,7 @@ class CompletionRepository:
         return completion
 
     async def get_by_id(self, completion_id: uuid.UUID) -> Completion | None:
-        result = await self.session.execute(
-            select(Completion).where(Completion.id == completion_id)
-        )
+        result = await self.session.execute(select(Completion).where(Completion.id == completion_id))
         return result.scalar_one_or_none()
 
     async def update(self, completion: Completion, **kwargs) -> Completion:

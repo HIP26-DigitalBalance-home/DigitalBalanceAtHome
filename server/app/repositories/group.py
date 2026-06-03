@@ -13,9 +13,7 @@ class GroupRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create(
-        self, name: str, description: str | None, created_by_user_id: uuid.UUID
-    ) -> Group:
+    async def create(self, name: str, description: str | None, created_by_user_id: uuid.UUID) -> Group:
         group = Group(name=name, description=description, created_by_user_id=created_by_user_id)
         self.session.add(group)
         await self.session.flush()
@@ -26,20 +24,14 @@ class GroupRepository:
         return result.scalar_one_or_none()
 
     async def get_memberships_for_family(self, family_id: uuid.UUID) -> list[GroupMembership]:
-        result = await self.session.execute(
-            select(GroupMembership).where(GroupMembership.family_id == family_id)
-        )
+        result = await self.session.execute(select(GroupMembership).where(GroupMembership.family_id == family_id))
         return list(result.scalars().all())
 
     async def get_memberships_for_group(self, group_id: uuid.UUID) -> list[GroupMembership]:
-        result = await self.session.execute(
-            select(GroupMembership).where(GroupMembership.group_id == group_id)
-        )
+        result = await self.session.execute(select(GroupMembership).where(GroupMembership.group_id == group_id))
         return list(result.scalars().all())
 
-    async def get_membership(
-        self, group_id: uuid.UUID, family_id: uuid.UUID
-    ) -> GroupMembership | None:
+    async def get_membership(self, group_id: uuid.UUID, family_id: uuid.UUID) -> GroupMembership | None:
         result = await self.session.execute(
             select(GroupMembership).where(
                 GroupMembership.group_id == group_id,
@@ -48,9 +40,7 @@ class GroupRepository:
         )
         return result.scalar_one_or_none()
 
-    async def add_membership(
-        self, group_id: uuid.UUID, family_id: uuid.UUID
-    ) -> GroupMembership:
+    async def add_membership(self, group_id: uuid.UUID, family_id: uuid.UUID) -> GroupMembership:
         membership = GroupMembership(
             group_id=group_id,
             family_id=family_id,
@@ -65,14 +55,10 @@ class GroupRepository:
         await self.session.flush()
 
     async def get_admins_for_group(self, group_id: uuid.UUID) -> list[GroupAdmin]:
-        result = await self.session.execute(
-            select(GroupAdmin).where(GroupAdmin.group_id == group_id)
-        )
+        result = await self.session.execute(select(GroupAdmin).where(GroupAdmin.group_id == group_id))
         return list(result.scalars().all())
 
-    async def get_admin(
-        self, group_id: uuid.UUID, user_id: uuid.UUID
-    ) -> GroupAdmin | None:
+    async def get_admin(self, group_id: uuid.UUID, user_id: uuid.UUID) -> GroupAdmin | None:
         result = await self.session.execute(
             select(GroupAdmin).where(
                 GroupAdmin.group_id == group_id,
@@ -96,14 +82,10 @@ class GroupRepository:
         await self.session.flush()
 
     async def count_admins(self, group_id: uuid.UUID) -> int:
-        result = await self.session.execute(
-            select(func.count()).where(GroupAdmin.group_id == group_id)
-        )
+        result = await self.session.execute(select(func.count()).where(GroupAdmin.group_id == group_id))
         return result.scalar_one()
 
-    async def get_admins_for_family_members(
-        self, group_id: uuid.UUID, user_ids: list[uuid.UUID]
-    ) -> list[GroupAdmin]:
+    async def get_admins_for_family_members(self, group_id: uuid.UUID, user_ids: list[uuid.UUID]) -> list[GroupAdmin]:
         if not user_ids:
             return []
         result = await self.session.execute(
@@ -114,9 +96,7 @@ class GroupRepository:
         )
         return list(result.scalars().all())
 
-    async def create_invite(
-        self, group_id: uuid.UUID, created_by_user_id: uuid.UUID
-    ) -> GroupInvite:
+    async def create_invite(self, group_id: uuid.UUID, created_by_user_id: uuid.UUID) -> GroupInvite:
         invite = GroupInvite(
             group_id=group_id,
             token=uuid.uuid4(),
@@ -128,14 +108,10 @@ class GroupRepository:
         return invite
 
     async def get_invite_by_token(self, token: uuid.UUID) -> GroupInvite | None:
-        result = await self.session.execute(
-            select(GroupInvite).where(GroupInvite.token == token)
-        )
+        result = await self.session.execute(select(GroupInvite).where(GroupInvite.token == token))
         return result.scalar_one_or_none()
 
-    async def mark_invite_used(
-        self, invite: GroupInvite, user_id: uuid.UUID
-    ) -> GroupInvite:
+    async def mark_invite_used(self, invite: GroupInvite, user_id: uuid.UUID) -> GroupInvite:
         invite.used_by_user_id = user_id
         invite.used_at = datetime.now(timezone.utc)
         await self.session.flush()
@@ -149,14 +125,10 @@ class GroupRepository:
         result = await self.session.execute(select(Family).where(Family.id.in_(ids)))
         return list(result.scalars().all())
 
-    async def get_family_memberships_for_families(
-        self, family_ids: list[uuid.UUID]
-    ) -> list[FamilyMembership]:
+    async def get_family_memberships_for_families(self, family_ids: list[uuid.UUID]) -> list[FamilyMembership]:
         if not family_ids:
             return []
-        result = await self.session.execute(
-            select(FamilyMembership).where(FamilyMembership.family_id.in_(family_ids))
-        )
+        result = await self.session.execute(select(FamilyMembership).where(FamilyMembership.family_id.in_(family_ids)))
         return list(result.scalars().all())
 
     async def get_users_by_ids(self, ids: list[uuid.UUID]) -> list[User]:

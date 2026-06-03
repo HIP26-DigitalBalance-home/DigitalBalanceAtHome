@@ -18,9 +18,7 @@ class Completion(Base, TimestampMixin):
     family_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    completed_by_user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )
+    completed_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False)  # processing | ready | self_reported
     photo_key: Mapped[str | None] = mapped_column(String, nullable=True)
     caption: Mapped[str | None] = mapped_column(String, nullable=True)

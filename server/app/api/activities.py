@@ -36,9 +36,7 @@ async def list_activities(
     cost: Optional[str] = Query(None, pattern="^(free|low_cost)$"),
     session: AsyncSession = Depends(get_db),
 ) -> list[dict]:
-    activities = await activity_service.list_activities(
-        session, age=age, season=season, weather=weather, cost=cost
-    )
+    activities = await activity_service.list_activities(session, age=age, season=season, weather=weather, cost=cost)
     return [_activity_schema(a) for a in activities]
 
 
@@ -52,5 +50,6 @@ async def get_suggestion(
     activity = await activity_service.get_suggestion(session, child_id=child_id)
     if not activity:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="No suitable activity found")
     return _activity_schema(activity)

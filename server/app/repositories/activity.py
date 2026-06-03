@@ -29,6 +29,7 @@ class ActivityRepository:
         if season:
             # season_relevance is null (year-round) OR contains the requested season
             from sqlalchemy import or_, func
+
             q = q.where(
                 or_(
                     Activity.season_relevance.is_(None),
@@ -37,6 +38,7 @@ class ActivityRepository:
             )
         if weather:
             from sqlalchemy import or_
+
             q = q.where(
                 or_(
                     Activity.weather_suitability.is_(None),
@@ -48,7 +50,5 @@ class ActivityRepository:
         return list(result.scalars().all())
 
     async def get_by_id(self, activity_id: uuid.UUID) -> Activity | None:
-        result = await self.session.execute(
-            select(Activity).where(Activity.id == activity_id)
-        )
+        result = await self.session.execute(select(Activity).where(Activity.id == activity_id))
         return result.scalar_one_or_none()

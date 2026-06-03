@@ -28,9 +28,7 @@ async def create_family(
     return family, membership
 
 
-async def get_families_for_user(
-    session: AsyncSession, user_id: uuid.UUID
-) -> list[tuple[Family, FamilyMembership]]:
+async def get_families_for_user(session: AsyncSession, user_id: uuid.UUID) -> list[tuple[Family, FamilyMembership]]:
     repo = FamilyRepository(session)
     memberships = await repo.get_memberships_for_user(user_id)
     results = []
@@ -72,9 +70,7 @@ async def create_family_invite(
     return invite
 
 
-async def join_family(
-    session: AsyncSession, token: uuid.UUID, user_id: uuid.UUID
-) -> tuple[Family, FamilyMembership]:
+async def join_family(session: AsyncSession, token: uuid.UUID, user_id: uuid.UUID) -> tuple[Family, FamilyMembership]:
     repo = FamilyRepository(session)
     invite = await repo.get_invite_by_token(token)
     if not invite:
@@ -98,9 +94,7 @@ async def join_family(
     return family, membership
 
 
-async def leave_family(
-    session: AsyncSession, family_id: uuid.UUID, user_id: uuid.UUID
-) -> None:
+async def leave_family(session: AsyncSession, family_id: uuid.UUID, user_id: uuid.UUID) -> None:
     """Remove yourself from a family. Anyone can leave; no one can remove others."""
     repo = FamilyRepository(session)
     membership = await repo.get_membership(family_id, user_id)
@@ -110,9 +104,7 @@ async def leave_family(
     await session.commit()
 
 
-async def get_user_family(
-    session: AsyncSession, user_id: uuid.UUID
-) -> FamilyMembership | None:
+async def get_user_family(session: AsyncSession, user_id: uuid.UUID) -> FamilyMembership | None:
     """Return the user's first family membership, or None."""
     repo = FamilyRepository(session)
     memberships = await repo.get_memberships_for_user(user_id)

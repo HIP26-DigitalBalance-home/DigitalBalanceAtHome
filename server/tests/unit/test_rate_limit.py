@@ -37,6 +37,7 @@ async def test_expired_requests_not_counted():
 
     # Manually backdate all timestamps so they fall outside the window
     from collections import deque
+
     _windows["test_key"] = deque([0.0])  # epoch — far in the past
 
     assert await is_allowed("test_key", max_requests=10, window_seconds=60)

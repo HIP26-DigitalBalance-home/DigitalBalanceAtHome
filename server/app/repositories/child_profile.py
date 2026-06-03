@@ -24,15 +24,11 @@ class ChildProfileRepository:
         return child
 
     async def get_by_family(self, family_id: uuid.UUID) -> list[ChildProfile]:
-        result = await self.session.execute(
-            select(ChildProfile).where(ChildProfile.family_id == family_id)
-        )
+        result = await self.session.execute(select(ChildProfile).where(ChildProfile.family_id == family_id))
         return list(result.scalars().all())
 
     async def get_by_id(self, child_id: uuid.UUID) -> ChildProfile | None:
-        result = await self.session.execute(
-            select(ChildProfile).where(ChildProfile.id == child_id)
-        )
+        result = await self.session.execute(select(ChildProfile).where(ChildProfile.id == child_id))
         return result.scalar_one_or_none()
 
     async def update(self, child: ChildProfile, req: UpdateChildRequest) -> ChildProfile:

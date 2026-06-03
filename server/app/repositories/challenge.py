@@ -75,14 +75,10 @@ class ChallengeRepository:
         return challenge
 
     async def get_by_id(self, challenge_id: uuid.UUID) -> Challenge | None:
-        result = await self.session.execute(
-            select(Challenge).where(Challenge.id == challenge_id)
-        )
+        result = await self.session.execute(select(Challenge).where(Challenge.id == challenge_id))
         return result.scalar_one_or_none()
 
-    async def get_challenge_activities(
-        self, challenge_id: uuid.UUID
-    ) -> list[ChallengeActivity]:
+    async def get_challenge_activities(self, challenge_id: uuid.UUID) -> list[ChallengeActivity]:
         result = await self.session.execute(
             select(ChallengeActivity)
             .where(ChallengeActivity.challenge_id == challenge_id)
@@ -90,14 +86,10 @@ class ChallengeRepository:
         )
         return list(result.scalars().all())
 
-    async def get_activities_by_ids(
-        self, activity_ids: list[uuid.UUID]
-    ) -> list[Activity]:
+    async def get_activities_by_ids(self, activity_ids: list[uuid.UUID]) -> list[Activity]:
         if not activity_ids:
             return []
-        result = await self.session.execute(
-            select(Activity).where(Activity.id.in_(activity_ids))
-        )
+        result = await self.session.execute(select(Activity).where(Activity.id.in_(activity_ids)))
         return list(result.scalars().all())
 
     async def get_active_for_family(self, family_id: uuid.UUID) -> Challenge | None:
@@ -114,9 +106,7 @@ class ChallengeRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_all_for_family(
-        self, family_id: uuid.UUID, status_filter: str | None
-    ) -> list[Challenge]:
+    async def get_all_for_family(self, family_id: uuid.UUID, status_filter: str | None) -> list[Challenge]:
         today = date.today()
         q = select(Challenge).where(_accessible_predicate(family_id))
 
@@ -160,14 +150,10 @@ class ChallengeRepository:
         return {row.challenge_activity_id: row.count for row in result}
 
     async def get_group_family_count(self, group_id: uuid.UUID) -> int:
-        result = await self.session.execute(
-            select(func.count()).where(GroupMembership.group_id == group_id)
-        )
+        result = await self.session.execute(select(func.count()).where(GroupMembership.group_id == group_id))
         return result.scalar_one()
 
-    async def is_accessible(
-        self, challenge: Challenge, family_id: uuid.UUID
-    ) -> bool:
+    async def is_accessible(self, challenge: Challenge, family_id: uuid.UUID) -> bool:
         today = date.today()
         result = await self.session.execute(
             select(Challenge.id).where(
@@ -177,14 +163,10 @@ class ChallengeRepository:
         )
         return result.scalar_one_or_none() is not None
 
-    async def is_fully_completed_by_family(
-        self, challenge_id: uuid.UUID, family_id: uuid.UUID
-    ) -> bool:
+    async def is_fully_completed_by_family(self, challenge_id: uuid.UUID, family_id: uuid.UUID) -> bool:
         """True when every ChallengeActivity slot has a Completion for this family."""
         total_result = await self.session.execute(
-            select(func.count()).where(
-                ChallengeActivity.challenge_id == challenge_id
-            )
+            select(func.count()).where(ChallengeActivity.challenge_id == challenge_id)
         )
         total_slots = total_result.scalar_one()
         if total_slots == 0:
@@ -194,9 +176,7 @@ class ChallengeRepository:
             select(func.count()).where(
                 Completion.family_id == family_id,
                 Completion.challenge_activity_id.in_(
-                    select(ChallengeActivity.id).where(
-                        ChallengeActivity.challenge_id == challenge_id
-                    )
+                    select(ChallengeActivity.id).where(ChallengeActivity.challenge_id == challenge_id)
                 ),
             )
         )

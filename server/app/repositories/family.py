@@ -22,20 +22,14 @@ class FamilyRepository:
         return result.scalar_one_or_none()
 
     async def get_memberships_for_user(self, user_id: uuid.UUID) -> list[FamilyMembership]:
-        result = await self.session.execute(
-            select(FamilyMembership).where(FamilyMembership.user_id == user_id)
-        )
+        result = await self.session.execute(select(FamilyMembership).where(FamilyMembership.user_id == user_id))
         return list(result.scalars().all())
 
     async def get_memberships_for_family(self, family_id: uuid.UUID) -> list[FamilyMembership]:
-        result = await self.session.execute(
-            select(FamilyMembership).where(FamilyMembership.family_id == family_id)
-        )
+        result = await self.session.execute(select(FamilyMembership).where(FamilyMembership.family_id == family_id))
         return list(result.scalars().all())
 
-    async def get_membership(
-        self, family_id: uuid.UUID, user_id: uuid.UUID
-    ) -> FamilyMembership | None:
+    async def get_membership(self, family_id: uuid.UUID, user_id: uuid.UUID) -> FamilyMembership | None:
         result = await self.session.execute(
             select(FamilyMembership).where(
                 FamilyMembership.family_id == family_id,
@@ -44,9 +38,7 @@ class FamilyRepository:
         )
         return result.scalar_one_or_none()
 
-    async def add_membership(
-        self, family_id: uuid.UUID, user_id: uuid.UUID
-    ) -> FamilyMembership:
+    async def add_membership(self, family_id: uuid.UUID, user_id: uuid.UUID) -> FamilyMembership:
         membership = FamilyMembership(
             family_id=family_id,
             user_id=user_id,
@@ -60,9 +52,7 @@ class FamilyRepository:
         await self.session.delete(membership)
         await self.session.flush()
 
-    async def create_invite(
-        self, family_id: uuid.UUID, created_by_user_id: uuid.UUID
-    ) -> FamilyInvite:
+    async def create_invite(self, family_id: uuid.UUID, created_by_user_id: uuid.UUID) -> FamilyInvite:
         invite = FamilyInvite(
             family_id=family_id,
             token=uuid.uuid4(),
@@ -74,14 +64,10 @@ class FamilyRepository:
         return invite
 
     async def get_invite_by_token(self, token: uuid.UUID) -> FamilyInvite | None:
-        result = await self.session.execute(
-            select(FamilyInvite).where(FamilyInvite.token == token)
-        )
+        result = await self.session.execute(select(FamilyInvite).where(FamilyInvite.token == token))
         return result.scalar_one_or_none()
 
-    async def mark_invite_used(
-        self, invite: FamilyInvite, user_id: uuid.UUID
-    ) -> FamilyInvite:
+    async def mark_invite_used(self, invite: FamilyInvite, user_id: uuid.UUID) -> FamilyInvite:
         invite.used_by_user_id = user_id
         invite.used_at = datetime.now(timezone.utc)
         await self.session.flush()
