@@ -73,7 +73,7 @@ export default function FamilyScreen() {
         ) : (
           <>
             <ThemedText style={{ color: colors.muted }}>
-              Give your family a name — or skip and we'll use the default.
+              Give your family a name — or skip and we&apos;ll use the default.
             </ThemedText>
             <TextInput
               style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}

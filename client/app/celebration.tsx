@@ -118,7 +118,7 @@ export default function CelebrationScreen() {
           Challenge complete!
         </ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-          You filled every slot in "{challenge.title}" — amazing work with your family!
+          You filled every slot in &quot;{challenge.title}&quot; — amazing work with your family!
         </ThemedText>
 
         <View collapsable={false} style={styles.collageWrapper}>

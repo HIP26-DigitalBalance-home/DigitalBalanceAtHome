@@ -267,7 +267,7 @@ export default function HomeScreen() {
 
         {/* Suggestion card */}
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>TODAY'S SUGGESTION</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>TODAY&apos;S SUGGESTION</ThemedText>
           {loadingChallenges ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
           ) : suggestion ? (
@@ -281,7 +281,7 @@ export default function HomeScreen() {
                 style={[styles.ctaButton, { backgroundColor: colors.primary }]}
                 onPress={() => openActivity(suggestion)}
               >
-                <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>Let's do it →</ThemedText>
+                <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>Let&apos;s do it →</ThemedText>
               </Pressable>
             </>
           ) : (

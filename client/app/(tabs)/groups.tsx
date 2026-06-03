@@ -67,7 +67,7 @@ export default function GroupsScreen() {
           <ThemedText style={styles.emptyIcon}>👨‍👩‍👧</ThemedText>
           <ThemedText type="title" style={styles.emptyTitle}>No groups yet</ThemedText>
           <ThemedText style={[styles.emptyBody, { color: colors.muted }]}>
-            Create a group with your child's class or join one with an invite link.
+            Create a group with your child&apos;s class or join one with an invite link.
           </ThemedText>
           <View style={styles.emptyActions}>
             <Pressable
