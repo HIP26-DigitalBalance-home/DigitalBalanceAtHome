@@ -50,8 +50,12 @@ class TestRefreshTokens:
         assert result == _USER_ID
 
     def test_each_token_has_unique_jti(self):
-        t1 = jwt.decode(create_refresh_token(_USER_ID), settings.JWT_SECRET, algorithms=[_ALGORITHM])
-        t2 = jwt.decode(create_refresh_token(_USER_ID), settings.JWT_SECRET, algorithms=[_ALGORITHM])
+        t1 = jwt.decode(
+            create_refresh_token(_USER_ID), settings.JWT_SECRET, algorithms=[_ALGORITHM]
+        )
+        t2 = jwt.decode(
+            create_refresh_token(_USER_ID), settings.JWT_SECRET, algorithms=[_ALGORITHM]
+        )
         assert t1["jti"] != t2["jti"]
 
     def test_wrong_type_raises(self):

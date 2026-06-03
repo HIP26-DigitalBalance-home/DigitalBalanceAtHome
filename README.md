@@ -57,6 +57,25 @@ Press `i` to open the iOS simulator or scan the QR code with Expo Go on a physic
 EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
 ```
 
+### 3 — Install pre-commit hooks (first time only)
+
+The repository includes pre-commit hooks that run the same lint and type checks as CI — catching issues before they reach a pull request.
+
+```bash
+pip install -e "server/.[dev]"   # installs pre-commit, ruff, and mypy
+pre-commit install               # registers the hook with git
+```
+
+After this, every `git commit` automatically runs:
+
+- **ruff** — lint and auto-fix Python in `server/`
+- **ruff-format** — format check for Python in `server/`
+- **mypy** — static type check for `server/app/`
+- **tsc** — TypeScript type check for `client/`
+- **expo lint** — ESLint for `client/`
+
+To update hook versions to latest: `pre-commit autoupdate`.
+
 ### Verifying the connection
 
 The Home screen shows **✓ Server connected** (green) when the client can reach the server, or **✗ Server unreachable** (red) when Docker Compose is not running.
@@ -72,7 +91,7 @@ The Home screen shows **✓ Server connected** (green) when the client can reach
 | Database | PostgreSQL 16, Alembic migrations |
 | Auth | Google OAuth 2.0 / OIDC |
 | Photo storage | Hetzner Object Storage (S3-compatible, EU-hosted) |
-| Deployment | Docker Compose, single EU server, Caddy (TLS) |
+| Deployment | Docker Compose, single EU server, Traefik (TLS) |
 
 ## Documentation
 
