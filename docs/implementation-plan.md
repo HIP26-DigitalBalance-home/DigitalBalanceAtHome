@@ -364,7 +364,7 @@ No new routes. The challenge completion state is already derivable from `GET /ch
 
 ---
 
-### Milestone 9: Group Feed and Social Sharing
+### Milestone 9: Group Feed and Social Sharing ✅
 
 **Goal:** A parent can optionally share a completion to the group feed; group members can browse shared completions.
 
@@ -573,6 +573,5 @@ Changes from the original plan that were made during implementation. Future mile
 
 - **Weather API provider** (compliance D4 still TBD): `SuggestionService` on the backend should abstract the weather call behind a thin interface so the provider can be swapped. In Milestone 5, implement with a hardcoded season fallback first; add the real weather API call once the provider is confirmed.
 - **Deep link domain**: use custom URL scheme (`digitalbalance://`) for the prototype; migrate to universal links for MVP (requires a verified domain with a `.well-known` file).
-- **Development build**: required from Milestone 8 for `react-native-confetti-cannon`. Set this up before starting M8. M7 photo upload works without a dev build on web.
 - **Compliance TODOs D2–D5, D7**: non-code tasks for the foundation. They do not block implementation but must be resolved before any real user data is collected.
 - **Server deployment**: prototype runs locally via Docker Compose during development. Before the first real user test, the server needs to be deployed to a EU-hosted VM with Caddy for TLS. This is not a milestone in this plan but should be tracked separately.
