@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -30,17 +30,21 @@ class TestCreateConsent:
     async def test_creates_consent_record(self, auth_client, mocker):
         from app.dependencies.auth import get_current_user
         from app.main import app
+
         user = app.dependency_overrides[get_current_user]()
 
         fake = _fake_consent(user.id)
         mocker.patch("app.api.consents.consent_service.create_consent", return_value=fake)
 
-        response = await auth_client.post("/consents", json={
-            "policy_version": "1.0",
-            "data_storage_consent": True,
-            "photo_processing_consent": True,
-            "location_consent": False,
-        })
+        response = await auth_client.post(
+            "/consents",
+            json={
+                "policy_version": "1.0",
+                "data_storage_consent": True,
+                "photo_processing_consent": True,
+                "location_consent": False,
+            },
+        )
 
         assert response.status_code == 201
         data = response.json()
@@ -48,18 +52,24 @@ class TestCreateConsent:
         assert data["data_storage_consent"] is True
 
     async def test_requires_authentication(self, client):
-        response = await client.post("/consents", json={
-            "policy_version": "1.0",
-            "data_storage_consent": True,
-            "photo_processing_consent": True,
-        })
+        response = await client.post(
+            "/consents",
+            json={
+                "policy_version": "1.0",
+                "data_storage_consent": True,
+                "photo_processing_consent": True,
+            },
+        )
         assert response.status_code in (401, 403)  # no Bearer token
 
     async def test_missing_required_field_returns_422(self, auth_client):
-        response = await auth_client.post("/consents", json={
-            "policy_version": "1.0",
-            # missing data_storage_consent
-        })
+        response = await auth_client.post(
+            "/consents",
+            json={
+                "policy_version": "1.0",
+                # missing data_storage_consent
+            },
+        )
         assert response.status_code == 422
 
 
@@ -67,6 +77,7 @@ class TestGetConsent:
     async def test_returns_latest_consent(self, auth_client, mocker):
         from app.dependencies.auth import get_current_user
         from app.main import app
+
         user = app.dependency_overrides[get_current_user]()
 
         fake = _fake_consent(user.id)

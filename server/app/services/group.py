@@ -42,9 +42,7 @@ async def create_group(
     return group, gm, ga
 
 
-async def get_groups_for_user(
-    session: AsyncSession, user_id: uuid.UUID
-) -> list[tuple[Group, GroupMembership, bool]]:
+async def get_groups_for_user(session: AsyncSession, user_id: uuid.UUID) -> list[tuple[Group, GroupMembership, bool]]:
     family_membership = await get_user_family(session, user_id)
     if not family_membership:
         return []
@@ -81,9 +79,7 @@ async def get_group(
     return group, memberships, admins
 
 
-async def create_group_invite(
-    session: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID
-) -> GroupInvite:
+async def create_group_invite(session: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID) -> GroupInvite:
     repo = GroupRepository(session)
     group = await repo.get_by_id(group_id)
     if not group:
@@ -99,9 +95,7 @@ async def create_group_invite(
     return invite
 
 
-async def join_group(
-    session: AsyncSession, token: uuid.UUID, user_id: uuid.UUID
-) -> tuple[Group, GroupMembership]:
+async def join_group(session: AsyncSession, token: uuid.UUID, user_id: uuid.UUID) -> tuple[Group, GroupMembership]:
     family_membership = await get_user_family(session, user_id)
     if not family_membership:
         raise NoFamilyError("You must create or join a family before joining a group")
@@ -151,6 +145,7 @@ async def remove_member(
     # Collect admin rows belonging to this family's members
     # We need family member user IDs — get them from family_memberships
     from app.repositories.family import FamilyRepository
+
     family_repo = FamilyRepository(session)
     family_members = await family_repo.get_memberships_for_family(family_id)
     family_user_ids = [m.user_id for m in family_members]
@@ -184,8 +179,6 @@ async def grant_admin(
         raise NotGroupAdmin("Only group admins can grant admin rights")
 
     # Verify target user is in a member family
-    from app.repositories.family import FamilyRepository
-    family_repo = FamilyRepository(session)
     target_family = await get_user_family(session, target_user_id)
     if not target_family:
         raise NotGroupMember("Target user does not belong to any family")
