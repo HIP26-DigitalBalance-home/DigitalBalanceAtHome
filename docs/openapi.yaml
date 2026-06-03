@@ -1,0 +1,1785 @@
+openapi: 3.1.0
+
+info:
+  title: DigitalBalance @home API
+  description: |
+    API for DigitalBalance @home — a family activity challenge app encouraging
+    offline parent-child time through photo-collage challenges.
+
+    **Spec-driven workflow:** This YAML is the authoritative contract.
+    Pydantic schemas in `server/app/schemas/generated.py` are generated from it
+    via `datamodel-codegen`. Never edit `generated.py` by hand.
+  version: 0.1.0
+  contact:
+    name: HIP26 — DigitalBalance @home
+    email: ignacio.garcian15@gmail.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local Docker Compose
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+  - name: Auth
+    description: Google OIDC authentication and JWT token management
+  - name: Users
+    description: Authenticated parent profile
+  - name: Consents
+    description: GDPR consent records (append-only)
+  - name: Families
+    description: Family units — the primary participation unit
+  - name: Children
+    description: Child profiles owned by a family
+  - name: Groups
+    description: Challenge groups that families join
+  - name: Activities
+    description: Curated offline activity pool
+  - name: Challenges
+    description: Activity challenges (collage mode)
+  - name: Photos
+    description: Photo upload and pre-signed URL retrieval
+  - name: Completions
+    description: Family completions of challenge activities
+
+# ─────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Health ──────────────────────────────────────────────────
+
+  /healthz:
+    get:
+      operationId: healthz
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  # ── Auth ────────────────────────────────────────────────────
+
+  /auth/google/callback:
+    post:
+      operationId: googleCallback
+      tags: [Auth]
+      summary: Exchange Google authorization code for JWT tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleCallbackRequest"
+      responses:
+        "200":
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/refresh:
+    post:
+      operationId: refreshTokens
+      tags: [Auth]
+      summary: Refresh JWT tokens using a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/logout:
+    delete:
+      operationId: logout
+      tags: [Auth]
+      summary: Invalidate the current session (client discards tokens)
+      responses:
+        "204":
+          description: Logged out
+
+  # ── Users ───────────────────────────────────────────────────
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [Users]
+      summary: Get the authenticated parent's profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: updateMe
+      tags: [Users]
+      summary: Update display name or profile photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      operationId: deleteMe
+      tags: [Users]
+      summary: Request account deletion (30-day window)
+      responses:
+        "202":
+          description: Deletion scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionPendingResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /users/me/cancel-deletion:
+    post:
+      operationId: cancelDeletion
+      tags: [Users]
+      summary: Cancel a pending account deletion
+      responses:
+        "200":
+          description: Deletion cancelled; account restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /users/me/export:
+    get:
+      operationId: exportData
+      tags: [Users]
+      summary: Download all personal data as JSON (GDPR portability)
+      responses:
+        "200":
+          description: Data export archive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Consents ─────────────────────────────────────────────────
+
+  /consents:
+    post:
+      operationId: createConsent
+      tags: [Consents]
+      summary: Record GDPR consent (called at onboarding and on policy update)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConsentRequest"
+      responses:
+        "201":
+          description: Consent recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      operationId: getConsents
+      tags: [Consents]
+      summary: Get the authenticated user's most recent consent record
+      responses:
+        "200":
+          description: Most recent consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Families ─────────────────────────────────────────────────
+
+  /families:
+    post:
+      operationId: createFamily
+      tags: [Families]
+      summary: Create a new family (creator becomes admin member)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFamilyRequest"
+      responses:
+        "201":
+          description: Family created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCreatedResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /families/me:
+    get:
+      operationId: getMyFamilies
+      tags: [Families]
+      summary: List all families the authenticated user belongs to
+      responses:
+        "200":
+          description: Families
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Family"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /families/join:
+    post:
+      operationId: joinFamily
+      tags: [Families]
+      summary: Join a family using an invite token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinByTokenRequest"
+      responses:
+        "200":
+          description: Joined family
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCreatedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /families/{familyId}:
+    get:
+      operationId: getFamily
+      tags: [Families]
+      summary: Get family details including all members
+      parameters:
+        - $ref: "#/components/parameters/FamilyId"
+      responses:
+        "200":
+          description: Family detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Family"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /families/{familyId}/invites:
+    post:
+      operationId: createFamilyInvite
+      tags: [Families]
+      summary: Generate a family invite link (admin only)
+      parameters:
+        - $ref: "#/components/parameters/FamilyId"
+      responses:
+        "201":
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /families/{familyId}/members/{userId}:
+    delete:
+      operationId: leaveFamilyMember
+      tags: [Families]
+      summary: Leave the family (userId must equal the authenticated user — no one can remove others)
+      parameters:
+        - $ref: "#/components/parameters/FamilyId"
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: Left the family
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Children ────────────────────────────────────────────────
+
+  /children:
+    post:
+      operationId: createChild
+      tags: [Children]
+      summary: Create a child profile under the authenticated user's family
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChildRequest"
+      responses:
+        "201":
+          description: Child profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      operationId: getChildren
+      tags: [Children]
+      summary: List all child profiles for the authenticated user's family
+      responses:
+        "200":
+          description: Child profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChildProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /children/{childId}:
+    patch:
+      operationId: updateChild
+      tags: [Children]
+      summary: Update a child profile
+      parameters:
+        - $ref: "#/components/parameters/ChildId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChildRequest"
+      responses:
+        "200":
+          description: Updated child profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteChild
+      tags: [Children]
+      summary: Delete a child profile
+      parameters:
+        - $ref: "#/components/parameters/ChildId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Groups ──────────────────────────────────────────────────
+
+  /groups:
+    post:
+      operationId: createGroup
+      tags: [Groups]
+      summary: Create a group (creator's family is the first member; creator becomes admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /groups/me:
+    get:
+      operationId: getMyGroups
+      tags: [Groups]
+      summary: List all groups the authenticated user's family belongs to
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /groups/join:
+    post:
+      operationId: joinGroup
+      tags: [Groups]
+      summary: Join a group using an invite token (adds the user's family)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinByTokenRequest"
+      responses:
+        "200":
+          description: Joined group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /groups/{groupId}:
+    get:
+      operationId: getGroup
+      tags: [Groups]
+      summary: Get group details including member families
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200":
+          description: Group detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/invites:
+    post:
+      operationId: createGroupInvite
+      tags: [Groups]
+      summary: Generate a group invite link (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "201":
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{groupId}/members/{familyId}:
+    delete:
+      operationId: removeGroupMember
+      tags: [Groups]
+      summary: Remove a family from the group (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/FamilyId"
+      responses:
+        "204":
+          description: Family removed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{groupId}/admins:
+    post:
+      operationId: grantGroupAdmin
+      tags: [Groups]
+      summary: Grant group admin rights to a parent (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrantAdminRequest"
+      responses:
+        "201":
+          description: Admin granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupAdminEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{groupId}/admins/{userId}:
+    delete:
+      operationId: revokeGroupAdmin
+      tags: [Groups]
+      summary: Revoke group admin rights from a parent (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: Admin revoked
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{groupId}/feed:
+    get:
+      operationId: getGroupFeed
+      tags: [Groups]
+      summary: Get shared completions for the group (opt-in only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Feed entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeedEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Activities ──────────────────────────────────────────────
+
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [Activities]
+      summary: Browse the activity pool
+      security: []
+      parameters:
+        - name: age
+          in: query
+          description: Child age in years (filters by age_min/age_max)
+          schema:
+            type: integer
+        - name: season
+          in: query
+          schema:
+            $ref: "#/components/schemas/Season"
+        - name: weather
+          in: query
+          schema:
+            $ref: "#/components/schemas/Weather"
+        - name: cost
+          in: query
+          schema:
+            $ref: "#/components/schemas/CostIndicator"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+  /activities/suggestions:
+    get:
+      operationId: getSuggestions
+      tags: [Activities]
+      summary: Get a single activity suggestion for the family
+      parameters:
+        - name: child_id
+          in: query
+          description: Derive age and interests from this child profile
+          schema:
+            type: string
+            format: uuid
+        - name: city
+          in: query
+          description: City name for weather-based filtering (requires location_consent)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suggested activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Challenges ──────────────────────────────────────────────
+
+  /challenges:
+    post:
+      operationId: createChallenge
+      tags: [Challenges]
+      summary: Create a challenge (group or personal)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChallengeRequest"
+      responses:
+        "201":
+          description: Challenge created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /challenges/active:
+    get:
+      operationId: getActiveChallenges
+      tags: [Challenges]
+      summary: Get all of the family's currently active challenges with completion state
+      responses:
+        "200":
+          description: Active challenges with family completions (empty list if none)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeWithProgress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /challenges/me:
+    get:
+      operationId: getMyChallenges
+      tags: [Challenges]
+      summary: List all challenges the family participates in
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, active, completed]
+      responses:
+        "200":
+          description: Challenges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /challenges/{challengeId}:
+    get:
+      operationId: getChallenge
+      tags: [Challenges]
+      summary: Get a challenge with group aggregate and family's own completions
+      parameters:
+        - $ref: "#/components/parameters/ChallengeId"
+      responses:
+        "200":
+          description: Challenge detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeWithProgress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteChallenge
+      tags: [Challenges]
+      summary: Delete a challenge (only the creating family may delete)
+      parameters:
+        - $ref: "#/components/parameters/ChallengeId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Photos ──────────────────────────────────────────────────
+
+  /photos:
+    post:
+      operationId: uploadPhoto
+      tags: [Photos]
+      summary: Upload a photo for an activity completion (returns 202; compression is async)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/PhotoUploadRequest"
+      responses:
+        "202":
+          description: Upload accepted; compression is processing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUploadResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /photos/{completionId}/url:
+    get:
+      operationId: getPhotoUrl
+      tags: [Photos]
+      summary: Get a pre-signed S3 URL for a completion photo (15-minute TTL)
+      parameters:
+        - $ref: "#/components/parameters/CompletionId"
+      responses:
+        "200":
+          description: Pre-signed URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUrlResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Completions ─────────────────────────────────────────────
+
+  /completions:
+    post:
+      operationId: createCompletion
+      tags: [Completions]
+      summary: Mark an activity as self-reported complete (no photo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompletionRequest"
+      responses:
+        "201":
+          description: Completion recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /completions/me:
+    get:
+      operationId: getMyCompletions
+      tags: [Completions]
+      summary: Get the family's completion history across all challenges
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Completions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompletionHistoryItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /completions/{completionId}:
+    get:
+      operationId: getCompletion
+      tags: [Completions]
+      summary: Get a single completion (used for polling photo compression status)
+      parameters:
+        - $ref: "#/components/parameters/CompletionId"
+      responses:
+        "200":
+          description: Completion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteCompletion
+      tags: [Completions]
+      summary: Delete a completion and its associated S3 photo (family-scoped)
+      parameters:
+        - $ref: "#/components/parameters/CompletionId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+# ─────────────────────────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ── Parameters ──────────────────────────────────────────────
+
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FamilyId:
+      name: familyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChildId:
+      name: childId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChallengeId:
+      name: challengeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CompletionId:
+      name: completionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  # ── Common Responses ────────────────────────────────────────
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Authenticated but not authorised for this resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Resource already exists or state conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Schemas ─────────────────────────────────────────────────
+
+  schemas:
+
+    # Primitives / enums
+
+    Season:
+      type: string
+      enum: [spring, summer, autumn, winter]
+
+    Weather:
+      type: string
+      enum: [sunny, cloudy, rainy, any]
+
+    CostIndicator:
+      type: string
+      enum: [free, low_cost, paid]
+
+    CompletionStatus:
+      type: string
+      enum: [processing, ready, self_reported]
+
+    # Shared
+
+    ErrorResponse:
+      type: object
+      required: [detail, code]
+      properties:
+        detail:
+          type: string
+        code:
+          type: string
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    InviteResponse:
+      type: object
+      required: [invite_url, expires_at]
+      properties:
+        invite_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+
+    JoinByTokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          format: uuid
+
+    # Auth
+
+    GoogleCallbackRequest:
+      type: object
+      description: |
+        Supports two flows — exactly one of `id_token` or `code` must be provided:
+        - **Web flow** (`Platform.OS === 'web'`): provide `id_token` obtained via `ResponseType.IdToken`
+        - **Native flow** (iOS/Android): provide `code` + `redirect_uri` + optional `code_verifier`
+      properties:
+        id_token:
+          type: string
+          nullable: true
+          description: Google ID token (web flow)
+        code:
+          type: string
+          nullable: true
+          description: Authorization code (native flow)
+        redirect_uri:
+          type: string
+          nullable: true
+          description: Redirect URI used in the authorization request (native flow)
+        code_verifier:
+          type: string
+          nullable: true
+          description: PKCE code verifier (native flow, optional)
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, token_type, user]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        user:
+          $ref: "#/components/schemas/User"
+
+    # Users
+
+    User:
+      type: object
+      required: [id, email, display_name, points_balance, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        profile_photo_url:
+          type: string
+          format: uri
+          nullable: true
+        points_balance:
+          type: integer
+          minimum: 0
+        deletion_pending_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+
+    DeletionPendingResponse:
+      type: object
+      required: [message, deletion_date]
+      properties:
+        message:
+          type: string
+        deletion_date:
+          type: string
+          format: date-time
+
+    DataExport:
+      type: object
+      description: All personal data for the authenticated user (GDPR portability)
+      required: [user, children, consents, group_memberships, completions]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChildProfile"
+        consents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentRecord"
+        group_memberships:
+          type: array
+          items:
+            type: object
+            properties:
+              group_id:
+                type: string
+                format: uuid
+              group_name:
+                type: string
+              joined_at:
+                type: string
+                format: date-time
+        completions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompletionHistoryItem"
+
+    # Consents
+
+    CreateConsentRequest:
+      type: object
+      required: [policy_version, data_storage_consent, photo_processing_consent]
+      properties:
+        policy_version:
+          type: string
+          example: "1.0"
+        data_storage_consent:
+          type: boolean
+          description: Required to use the app
+        photo_processing_consent:
+          type: boolean
+          description: Required for photo-based completions
+        location_consent:
+          type: boolean
+          default: false
+          description: Optional; enables weather-based activity suggestions
+
+    ConsentRecord:
+      type: object
+      required: [id, user_id, policy_version, consented_at, data_storage_consent, photo_processing_consent, location_consent]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        policy_version:
+          type: string
+        consented_at:
+          type: string
+          format: date-time
+        data_storage_consent:
+          type: boolean
+        photo_processing_consent:
+          type: boolean
+        location_consent:
+          type: boolean
+
+    # Families
+
+    FamilyMember:
+      type: object
+      required: [user_id, display_name, joined_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        profile_photo_url:
+          type: string
+          format: uri
+          nullable: true
+        joined_at:
+          type: string
+          format: date-time
+
+    Family:
+      type: object
+      required: [id, members, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/FamilyMember"
+        created_at:
+          type: string
+          format: date-time
+
+    CreateFamilyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+
+    FamilyCreatedResponse:
+      type: object
+      required: [family, membership]
+      properties:
+        family:
+          $ref: "#/components/schemas/Family"
+        membership:
+          $ref: "#/components/schemas/FamilyMember"
+
+    # Children
+
+    ChildProfile:
+      type: object
+      required: [id, family_id, nickname, date_of_birth, interests, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        family_id:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+          description: Age is derived from this at query time; never stored as a computed field
+        interests:
+          type: array
+          items:
+            type: string
+          description: Free-text tags; do not enter medical conditions
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateChildRequest:
+      type: object
+      required: [nickname, date_of_birth]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+        date_of_birth:
+          type: string
+          format: date
+        interests:
+          type: array
+          items:
+            type: string
+          default: []
+
+    UpdateChildRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+        date_of_birth:
+          type: string
+          format: date
+        interests:
+          type: array
+          items:
+            type: string
+
+    # Groups
+
+    FamilyParentInGroup:
+      type: object
+      required: [user_id, display_name, is_group_admin]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        is_group_admin:
+          type: boolean
+
+    GroupMemberFamily:
+      type: object
+      required: [family_id, joined_at, parents]
+      properties:
+        family_id:
+          type: string
+          format: uuid
+        family_name:
+          type: string
+          nullable: true
+        joined_at:
+          type: string
+          format: date-time
+        parents:
+          type: array
+          items:
+            $ref: "#/components/schemas/FamilyParentInGroup"
+          description: Parents in this family and their group admin status
+
+    GroupSummary:
+      type: object
+      required: [id, name, is_admin, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_admin:
+          type: boolean
+          description: Whether the authenticated user holds admin rights in this group
+        created_at:
+          type: string
+          format: date-time
+
+    Group:
+      allOf:
+        - $ref: "#/components/schemas/GroupSummary"
+        - type: object
+          required: [members]
+          properties:
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/GroupMemberFamily"
+
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+
+    GroupAdminEntry:
+      type: object
+      required: [group_id, user_id, granted_at]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        granted_at:
+          type: string
+          format: date-time
+
+    GrantAdminRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+
+    # Feed
+
+    FeedEntry:
+      type: object
+      required: [id, family_id, activity_title, completed_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        family_id:
+          type: string
+          format: uuid
+        family_name:
+          type: string
+          nullable: true
+        activity_title:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Pre-signed URL; only present when status is ready
+        caption:
+          type: string
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+
+    # Activities
+
+    Activity:
+      type: object
+      required: [id, title, description, estimated_duration_minutes, age_min, age_max, cost_indicator, is_partner_content]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        estimated_duration_minutes:
+          type: integer
+          minimum: 1
+        age_min:
+          type: integer
+          minimum: 0
+        age_max:
+          type: integer
+          minimum: 0
+        cost_indicator:
+          $ref: "#/components/schemas/CostIndicator"
+        season_relevance:
+          type: array
+          items:
+            $ref: "#/components/schemas/Season"
+          nullable: true
+          description: Null means year-round
+        weather_suitability:
+          type: array
+          items:
+            $ref: "#/components/schemas/Weather"
+          nullable: true
+        is_partner_content:
+          type: boolean
+
+    # Challenges
+
+    ChallengeActivitySlot:
+      type: object
+      required: [id, activity_id, activity, grid_position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        activity_id:
+          type: string
+          format: uuid
+        activity:
+          $ref: "#/components/schemas/Activity"
+        grid_position:
+          type: integer
+          minimum: 0
+          description: Visual position in the collage grid; not a completion order
+        completion:
+          $ref: "#/components/schemas/Completion"
+          nullable: true
+          description: The family's completion for this slot, if any
+        families_completed_count:
+          type: integer
+          nullable: true
+          description: How many families in the group have completed this slot (group view only)
+
+    ChallengeSummary:
+      type: object
+      required: [id, title, start_date, end_date, display_mode, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        display_mode:
+          type: string
+          enum: [collage]
+        status:
+          type: string
+          enum: [upcoming, active, completed]
+        created_at:
+          type: string
+          format: date-time
+
+    Challenge:
+      allOf:
+        - $ref: "#/components/schemas/ChallengeSummary"
+        - type: object
+          required: [activities]
+          properties:
+            activities:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChallengeActivitySlot"
+
+    ChallengeWithProgress:
+      allOf:
+        - $ref: "#/components/schemas/Challenge"
+        - type: object
+          properties:
+            group_families_count:
+              type: integer
+              nullable: true
+              default: null
+              description: Total families in the group (for computing aggregate percentages); null for personal challenges
+
+    CreateChallengeRequest:
+      type: object
+      required: [title, activity_ids, start_date, end_date]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null creates a personal/family challenge
+        activity_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: Activities in order — grid_position is assigned by their position in this list
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    # Photos
+
+    PhotoUploadRequest:
+      type: object
+      required: [challenge_activity_id, image]
+      properties:
+        challenge_activity_id:
+          type: string
+          format: uuid
+        image:
+          type: string
+          format: binary
+          description: JPEG or PNG; maximum 10 MB
+        caption:
+          type: string
+          nullable: true
+        shared_to_feed:
+          type: boolean
+          default: false
+
+    PhotoUploadResponse:
+      type: object
+      required: [completion_id]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+
+    PhotoUrlResponse:
+      type: object
+      required: [url, expires_at]
+      properties:
+        url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+
+    # Completions
+
+    Completion:
+      type: object
+      required: [id, challenge_activity_id, family_id, completed_by_user_id, status, shared_to_feed, completed_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        challenge_activity_id:
+          type: string
+          format: uuid
+        family_id:
+          type: string
+          format: uuid
+        completed_by_user_id:
+          type: string
+          format: uuid
+          description: The parent who uploaded the photo or marked it complete
+        status:
+          $ref: "#/components/schemas/CompletionStatus"
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Pre-signed S3 URL; only present when status is ready
+        caption:
+          type: string
+          nullable: true
+        shared_to_feed:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateCompletionRequest:
+      type: object
+      required: [challenge_activity_id]
+      properties:
+        challenge_activity_id:
+          type: string
+          format: uuid
+        caption:
+          type: string
+          nullable: true
+        shared_to_feed:
+          type: boolean
+          default: false
+
+    CompletionHistoryItem:
+      type: object
+      required: [id, activity_title, challenge_title, status, completed_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        activity_title:
+          type: string
+        challenge_title:
+          type: string
+        status:
+          $ref: "#/components/schemas/CompletionStatus"
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
