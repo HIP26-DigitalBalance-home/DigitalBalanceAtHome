@@ -5,8 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.services.exceptions import DomainError
-
 from app.api import (
     activities,
     auth,
@@ -20,6 +18,7 @@ from app.api import (
     photos,
     users,
 )
+from app.services.exceptions import DomainError
 
 logger = structlog.get_logger()
 

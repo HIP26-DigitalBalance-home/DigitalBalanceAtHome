@@ -154,7 +154,6 @@ class ChallengeRepository:
         return result.scalar_one()
 
     async def is_accessible(self, challenge: Challenge, family_id: uuid.UUID) -> bool:
-        today = date.today()
         result = await self.session.execute(
             select(Challenge.id).where(
                 Challenge.id == challenge.id,

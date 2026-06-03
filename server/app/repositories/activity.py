@@ -28,7 +28,7 @@ class ActivityRepository:
             q = q.where(Activity.age_min <= age, Activity.age_max >= age)
         if season:
             # season_relevance is null (year-round) OR contains the requested season
-            from sqlalchemy import or_, func
+            from sqlalchemy import or_
 
             q = q.where(
                 or_(

@@ -1,12 +1,13 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import storage
 from app.models.activity import Activity
-from app.models.challenge import Challenge, ChallengeActivity
+from app.models.challenge import Challenge
 from app.models.completion import Completion
-from app.repositories.challenge import ChallengeRepository, _status_from_dates
+from app.repositories.challenge import ChallengeRepository
 from app.schemas.generated import CreateChallengeRequest
 from app.services.exceptions import (
     ActivityNotFound,
@@ -15,7 +16,6 @@ from app.services.exceptions import (
     NoFamilyError,
     NotGroupMember,
 )
-from app.core import storage
 from app.services.family import get_user_family
 
 
