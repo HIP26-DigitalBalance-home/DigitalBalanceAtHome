@@ -1,4 +1,5 @@
 import pytest
+
 from app.core.rate_limit import _windows, is_allowed
 
 

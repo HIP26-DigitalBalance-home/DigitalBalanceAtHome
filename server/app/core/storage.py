@@ -9,7 +9,7 @@ def _check_configured() -> None:
     if not settings.S3_ENDPOINT_URL or not settings.S3_BUCKET_NAME:
         raise HTTPException(
             status_code=503,
-            detail="Photo storage is not configured. Set S3_ENDPOINT_URL, S3_BUCKET_NAME, S3_ACCESS_KEY, and S3_SECRET_KEY in the server .env file.",
+            detail="Photo storage is not configured. Set S3_ENDPOINT_URL, S3_BUCKET_NAME, S3_ACCESS_KEY, and S3_SECRET_KEY.",
         )
 
 

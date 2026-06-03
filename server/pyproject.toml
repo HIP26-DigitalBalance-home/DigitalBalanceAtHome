@@ -40,10 +40,11 @@ include = ["app*"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+per-file-ignores = {"app/schemas/generated.py" = ["E", "F", "I"]}
 
 [tool.mypy]
 python_version = "3.12"

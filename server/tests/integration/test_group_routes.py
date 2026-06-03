@@ -2,17 +2,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from app.services.exceptions import (
     AlreadyGroupMember,
-    GroupInviteAlreadyUsed,
     GroupInviteExpired,
     GroupInviteNotFound,
     LastGroupAdminError,
     NoFamilyError,
     NotGroupAdmin,
-    NotGroupMember,
 )
 
 
