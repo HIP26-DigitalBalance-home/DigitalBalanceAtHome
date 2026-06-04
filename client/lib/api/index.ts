@@ -2,7 +2,7 @@ export { apiClient, registerAuthHandlers } from './client';
 export { onboardingApi } from './onboarding';
 export type { ConsentPayload, FamilyPayload, ChildPayload } from './onboarding';
 export { groupsApi } from './groups';
-export type { FeedEntry } from './groups';
+export type { FeedEntry, GroupSummary } from './groups';
 export { activitiesApi } from './activities';
 export type { ActivityItem, ActivityFilters } from './activities';
 export { challengesApi } from './challenges';

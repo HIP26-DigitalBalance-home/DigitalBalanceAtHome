@@ -27,6 +27,23 @@ export const groupsApi = {
 
   getGroupFeed: (groupId: string, limit = 20, offset = 0) =>
     apiClient.get<FeedEntry[]>(`/groups/${groupId}/feed`, { params: { limit, offset } }),
+
+  getAggregatedFeed: async (groups: GroupSummary[], limit = 20): Promise<FeedEntry[]> => {
+    if (groups.length === 0) return [];
+    const results = await Promise.allSettled(
+      groups.map((g) =>
+        apiClient.get<FeedEntry[]>(`/groups/${g.id}/feed`, { params: { limit, offset: 0 } }).then((r) =>
+          r.data.map((e) => ({ ...e, group_id: g.id, group_name: g.name }))
+        )
+      )
+    );
+    const entries: FeedEntry[] = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled') entries.push(...r.value);
+    }
+    entries.sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+    return entries;
+  },
 };
 
 export interface FeedEntry {
@@ -37,4 +54,14 @@ export interface FeedEntry {
   photo_url: string | null;
   caption: string | null;
   completed_at: string;
+  // enriched client-side when fetching aggregated feed
+  group_id?: string;
+  group_name?: string;
+}
+
+export interface GroupSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  is_admin: boolean;
 }
