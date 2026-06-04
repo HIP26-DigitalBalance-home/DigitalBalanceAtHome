@@ -35,7 +35,12 @@ export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose
       });
       if (!result.canceled && result.assets[0] && slot) {
         const asset = result.assets[0];
-        const mimeType = asset.mimeType ?? 'image/jpeg';
+        // expo-image-picker transcodes to JPEG on iOS (even from HEIC sources) but
+        // asset.mimeType still reflects the original format — normalize it.
+        const rawMime = asset.mimeType ?? 'image/jpeg';
+        const mimeType = (['image/jpeg', 'image/jpg', 'image/png'] as string[]).includes(rawMime)
+          ? rawMime
+          : 'image/jpeg';
         onPhotoSelected(slot.id, asset.uri, mimeType, sharedToFeed);
       }
     } finally {
