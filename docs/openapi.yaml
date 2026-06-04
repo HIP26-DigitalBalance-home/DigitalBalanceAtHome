@@ -957,6 +957,33 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /dev/seed:
+    post:
+      operationId: seedDemo
+      tags: [Dev]
+      summary: Seed demo data for the current user (only available when SEED_ENABLED=true)
+      description: >
+        Creates a sample group, mock families, three challenges, and feed completions
+        scoped to the authenticated user. Idempotent — safe to call multiple times.
+        Returns 404 when the server flag SEED_ENABLED is not set.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Seed completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 # ─────────────────────────────────────────────────────────────
 # Components
 # ─────────────────────────────────────────────────────────────

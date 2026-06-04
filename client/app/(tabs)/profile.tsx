@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { onboardingApi } from '@/lib/api';
+import { onboardingApi, devApi } from '@/lib/api';
 import { apiClient } from '@/lib/api';
 
 const CITY_KEY = '@dba_city_preference';
@@ -34,6 +34,7 @@ export default function ProfileScreen() {
   const [leaving, setLeaving] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
   const [city, setCity] = useState('');
+  const [seeding, setSeeding] = useState(false);
 
   const fetchFamily = useCallback(async () => {
     try {
@@ -62,6 +63,30 @@ export default function ProfileScreen() {
     });
     return () => { cancelled = true; };
   }, []);
+
+  async function handleSeedDemo() {
+    Alert.alert(
+      'Load demo data',
+      'This will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Load',
+          onPress: async () => {
+            setSeeding(true);
+            try {
+              await devApi.seed();
+              Alert.alert('Done', 'Demo data loaded! Pull to refresh your Home and Groups tabs.');
+            } catch {
+              Alert.alert('Error', 'Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
+            } finally {
+              setSeeding(false);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleLeaveFamily() {
     if (!family || !currentUser) return;
@@ -193,6 +218,19 @@ export default function ProfileScreen() {
                 </View>
               </>
             )}
+
+            {/* Demo data */}
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>DEMO</ThemedText>
+            <Pressable
+              style={[styles.inviteButton, { borderColor: colors.accent, opacity: seeding ? 0.6 : 1 }]}
+              onPress={handleSeedDemo}
+              disabled={seeding}>
+              {seeding ? (
+                <ActivityIndicator color={colors.accent} size="small" />
+              ) : (
+                <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>Load demo data</ThemedText>
+              )}
+            </Pressable>
 
             {/* Sign out */}
             <Pressable
