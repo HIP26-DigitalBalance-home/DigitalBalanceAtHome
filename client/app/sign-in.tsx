@@ -1,5 +1,5 @@
 import * as Google from 'expo-auth-session/providers/google';
-import { ResponseType } from 'expo-auth-session';
+import { makeRedirectUri, ResponseType } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -19,14 +19,18 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  const isWeb = Platform.OS === 'web';
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
-    // On web the library defaults to Token flow (no id_token). Force Code flow
-    // so the library auto-exchanges with PKCE and exposes id_token — works with
-    // modern Google clients where the legacy implicit/IdToken flow is disabled.
-    // On native the library already defaults to Code, so no override needed.
-    responseType: Platform.OS === 'web' ? ResponseType.Code : undefined,
+    // Web: authorization code flow routed through the server (which holds client_secret).
+    // PKCE is skipped because the server exchanges with client_secret — no code_verifier needed.
+    // Auto-exchange is disabled so the raw code reaches the sign-in handler below.
+    // Native: default behaviour (PKCE code flow, client-side auto-exchange to id_token).
+    responseType: isWeb ? ResponseType.Code : undefined,
+    redirectUri: isWeb ? makeRedirectUri({ path: 'sign-in' }) : undefined,
+    usePKCE: isWeb ? false : undefined,
+    shouldAutoExchangeCode: isWeb ? false : undefined,
   });
 
   useEffect(() => {
