@@ -94,7 +94,7 @@ export default function ActivityDetailScreen() {
 
         <View style={[styles.ctaBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ThemedText style={[styles.ctaHint, { color: colors.muted }]}>
-            Challenges and activity completion are coming in a future update.
+            Include this activity when creating a challenge from the Home screen.
           </ThemedText>
         </View>
       </ScrollView>
