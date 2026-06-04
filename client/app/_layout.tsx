@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Redirect, Stack, useLocalSearchParams, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as WebBrowser from 'expo-web-browser';
 import 'react-native-reanimated';
 import '@/assets/styles/global.css';
 
@@ -12,6 +13,10 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
+
+// Must run before routing resolves so the popup callback is processed
+// even if the route guard would otherwise redirect away from sign-in.
+WebBrowser.maybeCompleteAuthSession();
 
 export const unstable_settings = {
   anchor: '(tabs)',

@@ -10,8 +10,6 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 
-WebBrowser.maybeCompleteAuthSession();
-
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
 
@@ -24,16 +22,27 @@ export default function SignInScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
-    // Web: use id_token flow (no server-side code exchange — web clients can't embed client_secret)
-    // Native: default code flow (server exchanges with client_secret)
-    responseType: Platform.OS === 'web' ? ResponseType.IdToken : undefined,
+    // On web the library defaults to Token flow (no id_token). Force Code flow
+    // so the library auto-exchanges with PKCE and exposes id_token — works with
+    // modern Google clients where the legacy implicit/IdToken flow is disabled.
+    // On native the library already defaults to Code, so no override needed.
+    responseType: Platform.OS === 'web' ? ResponseType.Code : undefined,
   });
 
   useEffect(() => {
-    if (response?.type !== 'success') return;
+    if (!response) return;
 
-    const idToken = response.params.id_token;  // web (ResponseType.IdToken)
-    const code = response.params.code;          // native (ResponseType.Code)
+    if (response.type === 'error') {
+      setError(response.error?.message ?? 'Google authentication failed. Please try again.');
+      return;
+    }
+
+    if (response.type !== 'success') return;
+
+    // After PKCE auto-exchange, id_token is populated for all platforms.
+    // The code fallback handles the rare case where auto-exchange hasn't resolved yet.
+    const idToken = response.params.id_token;
+    const code = response.params.code;
 
     setIsSigningIn(true);
 
