@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.models.activity import Activity
 from app.models.challenge import Challenge, ChallengeActivity
 from app.models.child_profile import ChildProfile
+from app.models.completion import Completion
 from app.models.consent import ConsentRecord
 from app.models.family import Family, FamilyMembership
 from app.models.group import Group, GroupAdmin, GroupMembership
@@ -162,11 +163,13 @@ async def seed():
         print(f"✓  Created group '3B Class Parents' with {admin_user.display_name} as admin")
 
         # ── Create mock families ─────────────────────────────────────────────
+        mock_family_records: list[tuple[Family, User]] = []  # (family, first_parent_user)
         for mock in MOCK_FAMILIES:
             family = Family(name=mock["family_name"])
             session.add(family)
             await session.flush()
 
+            first_user = None
             for parent_data in mock["parents"]:
                 existing_user = await session.execute(
                     select(User).where(User.email == parent_data["email"])
@@ -185,11 +188,13 @@ async def seed():
                 fm = FamilyMembership(
                     family_id=family.id,
                     user_id=mock_user.id,
-                    
                     joined_at=datetime.now(timezone.utc),
                 )
                 session.add(fm)
+                if first_user is None:
+                    first_user = mock_user
 
+            mock_family_records.append((family, first_user))
             gm = GroupMembership(
                 group_id=group.id,
                 family_id=family.id,
@@ -286,6 +291,73 @@ async def seed():
             )
             c3 = await _add_challenge(c3, all_activities[12:18])
             print(f"✓  Created completed group challenge: 'Winter Warmth Challenge' (6 activities)")
+
+            # ── Seed mock completions for the feed ───────────────────────────
+            # Fetch ChallengeActivity rows for c1 (active group) and c3 (completed group)
+            ca_result = await session.execute(
+                select(ChallengeActivity)
+                .where(ChallengeActivity.challenge_id == c1.id)
+                .order_by(ChallengeActivity.grid_position)
+            )
+            c1_slots = list(ca_result.scalars().all())
+
+            ca_result = await session.execute(
+                select(ChallengeActivity)
+                .where(ChallengeActivity.challenge_id == c3.id)
+                .order_by(ChallengeActivity.grid_position)
+            )
+            c3_slots = list(ca_result.scalars().all())
+
+            def _ts(days_ago: float) -> datetime:
+                return datetime.now(timezone.utc) - timedelta(days=days_ago)
+
+            # schema: (family, user, challenge_slot, days_ago, shared, caption)
+            schmidt, schmidt_user = mock_family_records[0]
+            mueller, mueller_user = mock_family_records[1]
+            bauer, bauer_user = mock_family_records[2]
+            koch, koch_user = mock_family_records[3]
+
+            mock_completions = [
+                # Schmidt — active challenge (slots 0,1,2)
+                (schmidt, schmidt_user, c1_slots[0], 6.1, True,  "Herrlicher Waldspaziergang heute! 🌳"),
+                (schmidt, schmidt_user, c1_slots[1], 4.3, True,  "Thomas hat Maxi beim Fahrradfahren geholfen — so stolz!"),
+                (schmidt, schmidt_user, c1_slots[2], 1.8, False, None),
+                # Müller — active challenge (slots 0,3)
+                (mueller, mueller_user, c1_slots[0], 5.2, False, None),
+                (mueller, mueller_user, c1_slots[3], 2.5, True,  "Backen macht die Kinder so glücklich ☀️"),
+                # Bauer — active challenge (slots 1,2,3,4)
+                (bauer, bauer_user,   c1_slots[1], 6.5, True,  "Endlich mal wieder raus in die Natur!"),
+                (bauer, bauer_user,   c1_slots[2], 4.9, True,  "Sabine und Klaus haben Picknick gemacht mit den Kids"),
+                (bauer, bauer_user,   c1_slots[3], 2.2, True,  "Wir haben Blumen gepflanzt 🌻"),
+                (bauer, bauer_user,   c1_slots[4], 0.9, False, None),
+                # Koch — active challenge (slot 0)
+                (koch,  koch_user,    c1_slots[0], 3.7, True,  "Tolle Aktivität, sehr empfehlenswert!"),
+                # Admin family — active challenge (slots 0,1)
+                (admin_family, admin_user, c1_slots[0], 3.1, True,  "Super Idee, die Kinder waren begeistert"),
+                (admin_family, admin_user, c1_slots[1], 0.5, False, None),
+                # Schmidt — completed challenge (slots 0,1)
+                (schmidt, schmidt_user, c3_slots[0], 35.0, True,  "Winterabend mit Brettspielen — wunderschön 🎲"),
+                (schmidt, schmidt_user, c3_slots[1], 29.0, False, None),
+                # Bauer — completed challenge (slots 0,2,3)
+                (bauer,  bauer_user,   c3_slots[0], 38.0, True,  "Gemeinsames Kochen in der Adventszeit"),
+                (bauer,  bauer_user,   c3_slots[2], 31.5, True,  "Basteln mit den Kindern hat so viel Spaß gemacht!"),
+                (bauer,  bauer_user,   c3_slots[3], 24.0, False, None),
+            ]
+
+            for family, user, slot, days_ago, shared, caption in mock_completions:
+                session.add(Completion(
+                    challenge_activity_id=slot.id,
+                    family_id=family.id,
+                    completed_by_user_id=user.id,
+                    status="self_reported",
+                    caption=caption,
+                    shared_to_feed=shared,
+                    completed_at=_ts(days_ago),
+                ))
+
+            await session.flush()
+            shared_count = sum(1 for *_, shared, _ in mock_completions if shared)
+            print(f"✓  Seeded {len(mock_completions)} completions ({shared_count} shared to feed)")
 
         await session.commit()
         print("\n✅  Seed complete!")

@@ -214,7 +214,7 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleRow}>
-          <ThemedText type="title">DigitalBalance @home</ThemedText>
+          <ThemedText type="title">Bond</ThemedText>
           <Pressable onPress={() => router.push('/challenges' as any)}>
             <ThemedText style={{ color: colors.primary, fontSize: 14 }}>All challenges</ThemedText>
           </Pressable>
