@@ -24,7 +24,14 @@ module.exports = {
     },
     web: {
       output: "static",
-      favicon: "./assets/images/favicon.png"
+      favicon: "./assets/images/favicon.png",
+      // PWA manifest — "standalone" removes Safari UI when launched from Home Screen
+      name: "Bond",
+      shortName: "Bond",
+      display: "standalone",
+      startUrl: "/",
+      themeColor: "#F4845F",
+      backgroundColor: "#FFFBF5",
     },
     plugins: [
       "expo-router",
