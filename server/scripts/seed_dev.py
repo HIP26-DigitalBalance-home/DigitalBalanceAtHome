@@ -83,7 +83,7 @@ async def seed():
         result = await session.execute(
             select(FamilyMembership).where(FamilyMembership.user_id == admin_user.id)
         )
-        admin_membership = result.scalar_one_or_none()
+        admin_membership = result.scalars().first()
 
         if admin_membership is None:
             # Create family + membership + consent + child profile for admin
