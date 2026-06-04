@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: "DigitalBalance @home",
+    name: "Bond",
     slug: "digital-balance-at-home",
     version: "1.0.0",
     orientation: "portrait",

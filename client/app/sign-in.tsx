@@ -60,7 +60,7 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <ThemedText type="title">DigitalBalance @home</ThemedText>
+        <ThemedText type="title">Bond</ThemedText>
         <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
           Encouraging families to spend{'\n'}intentional time together
         </ThemedText>
