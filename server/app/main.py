@@ -18,6 +18,7 @@ from app.api import (
     photos,
     users,
 )
+from app.core.config import settings
 from app.services.exceptions import DomainError
 
 logger = structlog.get_logger()
@@ -64,3 +65,8 @@ app.include_router(activities.router, prefix="/activities", tags=["activities"])
 app.include_router(challenges.router, prefix="/challenges", tags=["challenges"])
 app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])
+
+if settings.SEED_ENABLED:
+    from app.api import dev
+
+    app.include_router(dev.router, prefix="/dev", tags=["dev"])
