@@ -54,7 +54,7 @@ export default function ActivitiesScreen() {
         const today = new Date();
         let age = today.getFullYear() - dob.getFullYear();
         if (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate())) age--;
-        setChildAge(age);
+        setChildAge(Math.max(0, Math.min(age, 18)));
       }
     }).catch(() => {});
     return () => { cancelled = true; };

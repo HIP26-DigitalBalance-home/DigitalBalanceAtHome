@@ -30,7 +30,7 @@ def _activity_schema(a) -> dict:
 
 @router.get("", response_model=list[Activity])
 async def list_activities(
-    age: Optional[int] = Query(None, ge=0, le=18, description="Child age in years"),
+    age: Optional[int] = Query(None, ge=0, le=99, description="Child age in years"),
     season: Optional[str] = Query(None, pattern="^(spring|summer|autumn|winter)$"),
     weather: Optional[str] = Query(None, pattern="^(sunny|cloudy|rainy|any)$"),
     cost: Optional[str] = Query(None, pattern="^(free|low_cost)$"),
