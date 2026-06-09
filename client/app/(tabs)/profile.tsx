@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -65,27 +65,19 @@ export default function ProfileScreen() {
   }, []);
 
   async function handleSeedDemo() {
-    Alert.alert(
-      'Load demo data',
-      'This will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Load',
-          onPress: async () => {
-            setSeeding(true);
-            try {
-              await devApi.seed();
-              Alert.alert('Done', 'Demo data loaded! Pull to refresh your Home and Groups tabs.');
-            } catch {
-              Alert.alert('Error', 'Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
-            } finally {
-              setSeeding(false);
-            }
-          },
-        },
-      ],
+    const confirmed = window.confirm(
+      'Load demo data?\n\nThis will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
     );
+    if (!confirmed) return;
+    setSeeding(true);
+    try {
+      await devApi.seed();
+      window.alert('Demo data loaded! Pull to refresh your Home and Groups tabs.');
+    } catch {
+      window.alert('Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
+    } finally {
+      setSeeding(false);
+    }
   }
 
   async function handleLeaveFamily() {
@@ -114,10 +106,10 @@ export default function ProfileScreen() {
       if (canShare) {
         await Sharing.shareAsync(url, { dialogTitle: 'Invite to family' });
       } else {
-        Alert.alert('Link copied', 'Share this link to invite your partner:\n\n' + url);
+        window.alert('Share this link to invite your partner:\n\n' + url);
       }
     } catch {
-      Alert.alert('Error', 'Failed to generate invite link');
+      window.alert('Failed to generate invite link');
     } finally {
       setInviting(false);
     }
