@@ -1,6 +1,5 @@
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri, ResponseType } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -59,7 +58,7 @@ export default function SignInScreen() {
         setError(err?.message ?? 'Sign-in failed. Please try again.');
         setIsSigningIn(false);
       });
-  }, [response]);
+  }, [response, login, request?.codeVerifier, request?.redirectUri]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

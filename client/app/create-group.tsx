@@ -21,7 +21,7 @@ export default function CreateGroupScreen() {
     setIsSubmitting(true);
     setError(null);
     try {
-      const res = await groupsApi.postGroup({
+      await groupsApi.postGroup({
         name: name.trim(),
         description: description.trim() || null,
       });

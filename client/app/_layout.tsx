@@ -46,14 +46,12 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated && !onSignIn) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Redirect href={'/sign-in' as any} />;
   }
   if (isAuthenticated && onSignIn) {
     return <Redirect href="/(tabs)" />;
   }
   if (isAuthenticated && !onboardingComplete && !onOnboarding) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Redirect href={'/(onboarding)/welcome' as any} />;
   }
   if (isAuthenticated && onboardingComplete && onOnboarding) {
