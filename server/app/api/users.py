@@ -16,7 +16,7 @@ _ALLOWED_TYPES = {"image/jpeg", "image/png", "image/jpg"}
 
 @router.get("/me", response_model=UserSchema)
 async def get_me(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_allow_pending),
 ) -> dict:
     return user_service.get_me(current_user)
 
