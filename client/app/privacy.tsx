@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -88,30 +88,29 @@ export default function PrivacyScreen() {
     }
   }
 
-  function handleDeleteAccount() {
-    Alert.alert(
-      'Delete account',
-      'Your account will be scheduled for deletion in 30 days. You can cancel this at any time before then.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setDeleting(true);
-            setError(null);
-            try {
-              const res = await usersApi.deleteMe();
-              setDeletionPendingAt(res.data.deletion_date);
-            } catch {
-              setError('Failed to request deletion. Please try again.');
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+  async function handleDeleteAccount() {
+    const message = 'Your account will be scheduled for deletion in 30 days. You can cancel this at any time before then.';
+    if (Platform.OS === 'web') {
+      if (!window.confirm(`Delete account?\n\n${message}`)) return;
+    } else {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Alert.alert('Delete account', message, [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await usersApi.deleteMe();
+      setDeletionPendingAt(res.data.deletion_date);
+    } catch {
+      setError('Failed to request deletion. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleCancelDeletion() {
