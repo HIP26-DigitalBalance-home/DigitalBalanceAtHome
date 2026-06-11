@@ -10,3 +10,5 @@ export type { ChallengeSummary, ChallengeWithProgress, ChallengeActivitySlot, Co
 export { completionsApi, photosApi } from './completions';
 export type { PhotoUrlResponse } from './completions';
 export { devApi } from './dev';
+export { usersApi } from './users';
+export type { CompletionHistoryItem } from './completions';

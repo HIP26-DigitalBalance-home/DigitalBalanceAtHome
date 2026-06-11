@@ -217,6 +217,36 @@ async def delete_completion(session: AsyncSession, user_id: uuid.UUID, completio
             pass
 
 
+async def get_my_history(session: AsyncSession, user_id: uuid.UUID, limit: int = 20, offset: int = 0) -> list[dict]:
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        return []
+
+    repo = CompletionRepository(session)
+    rows = await repo.get_by_family(fm.family_id, limit, offset)
+
+    result = []
+    for completion, activity_title, challenge_title in rows:
+        photo_url = None
+        if completion.status == "ready" and completion.photo_key:
+            try:
+                photo_url = storage.generate_presigned_url(completion.photo_key, expires=900)
+            except Exception:
+                pass
+        result.append(
+            {
+                "id": completion.id,
+                "activity_title": activity_title,
+                "challenge_title": challenge_title,
+                "status": completion.status,
+                "photo_url": photo_url,
+                "caption": completion.caption,
+                "completed_at": completion.completed_at,
+            }
+        )
+    return result
+
+
 async def start_photo_completion(
     session: AsyncSession,
     user_id: uuid.UUID,

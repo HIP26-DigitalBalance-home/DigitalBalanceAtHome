@@ -1,17 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.models.user import User
-from app.schemas.generated import Completion, CreateCompletionRequest
+from app.schemas.generated import Completion, CompletionHistoryItem, CreateCompletionRequest
 from app.services import completion as completion_service
 
 router = APIRouter()
-
-_501 = HTTPException(status_code=501, detail="Not implemented")
 
 
 @router.post("", status_code=201, response_model=Completion)
@@ -38,9 +36,14 @@ async def delete_completion(
     await completion_service.delete_completion(session, current_user.id, completion_id)
 
 
-@router.get("/me")
-async def get_my_completions():
-    raise _501
+@router.get("/me", response_model=list[CompletionHistoryItem])
+async def get_my_completions(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    return await completion_service.get_my_history(session, current_user.id, limit, offset)
 
 
 @router.get("/{completion_id}", response_model=Completion)
