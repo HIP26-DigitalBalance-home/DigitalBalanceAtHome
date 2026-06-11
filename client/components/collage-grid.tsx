@@ -1,6 +1,7 @@
-import { ActivityIndicator, Dimensions, FlatList, Image, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 
+import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -52,6 +53,8 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     return (
       <Pressable
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
         style={[
           styles.slot,
           {
@@ -63,12 +66,14 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
           },
         ]}
       >
-        {isReady && effectivePhotoUrl ? (
+        {isReady && effectivePhotoUrl && effectiveCompletionId ? (
           <>
-            <Image
-              source={{ uri: effectivePhotoUrl }}
+            <ImageWithFallback
+              uri={effectivePhotoUrl}
+              completionId={effectiveCompletionId}
               style={{ width: slotSize, height: slotSize, position: 'absolute', top: 0, left: 0 }}
               resizeMode="cover"
+              accessibilityLabel={item.activity.title}
             />
             <View style={styles.photoOverlay}>
               <ThemedText style={styles.photoTitle} numberOfLines={2}>

@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
@@ -64,22 +65,25 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="sign-in" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="create-group" />
-      <Stack.Screen name="join-group" />
-      <Stack.Screen name="join-family" />
-      <Stack.Screen name="group/[id]" />
-      <Stack.Screen name="activity/[id]" />
-      <Stack.Screen name="create-challenge" />
-      <Stack.Screen name="challenges" />
-      <Stack.Screen name="challenge/[id]" />
-      <Stack.Screen name="celebration" />
-      <Stack.Screen name="group-feed/[id]" />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="create-group" />
+        <Stack.Screen name="join-group" />
+        <Stack.Screen name="join-family" />
+        <Stack.Screen name="group/[id]" />
+        <Stack.Screen name="activity/[id]" />
+        <Stack.Screen name="create-challenge" />
+        <Stack.Screen name="challenges" />
+        <Stack.Screen name="challenge/[id]" />
+        <Stack.Screen name="celebration" />
+        <Stack.Screen name="group-feed/[id]" />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
+      </Stack>
+      <OfflineBanner />
+    </>
   );
 }
 

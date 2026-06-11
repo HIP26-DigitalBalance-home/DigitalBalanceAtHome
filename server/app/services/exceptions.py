@@ -121,3 +121,8 @@ class AlreadyCompleted(DomainError):
 class NoDeletionPending(DomainError):
     status_code = 409
     code = "no_deletion_pending"
+
+
+class ConsentVersionMismatch(DomainError):
+    status_code = 403
+    code = "consent_version_mismatch"

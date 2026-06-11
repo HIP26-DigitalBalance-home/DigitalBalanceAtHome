@@ -16,15 +16,18 @@ export const apiClient = axios.create({
 let getAccessToken: (() => string | null) | null = null;
 let refreshTokens: (() => Promise<void>) | null = null;
 let onRefreshFailed: (() => void) | null = null;
+let onConsentMismatch: (() => void) | null = null;
 
 export function registerAuthHandlers(handlers: {
   getAccessToken: () => string | null;
   refreshTokens: () => Promise<void>;
   onRefreshFailed: () => void;
+  onConsentMismatch?: () => void;
 }) {
   getAccessToken = handlers.getAccessToken;
   refreshTokens = handlers.refreshTokens;
   onRefreshFailed = handlers.onRefreshFailed;
+  onConsentMismatch = handlers.onConsentMismatch ?? null;
 }
 
 // Attach Authorization header
@@ -64,6 +67,12 @@ apiClient.interceptors.response.use(
         onRefreshFailed?.();
       }
     }
+
+    const code = (error.response?.data as Record<string, unknown> | undefined)?.code;
+    if (code === 'consent_version_mismatch') {
+      onConsentMismatch?.();
+    }
+
     return Promise.reject(error);
   }
 );

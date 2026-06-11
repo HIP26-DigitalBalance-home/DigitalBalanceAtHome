@@ -12,13 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { groupsApi, type FeedEntry, type GroupSummary } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 export default function GroupsScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +48,8 @@ export default function GroupsScreen() {
       } else {
         setFeed([]);
       }
-    } catch {
-      setError('Failed to load groups');
+    } catch (e) {
+      setError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -87,8 +93,9 @@ export default function GroupsScreen() {
               </Pressable>
             ))}
             <Pressable
-              style={styles.joinButton}
-              onPress={() => router.push('/join-group' as any)}>
+              style={[styles.joinButton, { opacity: isOnline ? 1 : 0.4 }]}
+              onPress={() => router.push('/join-group' as any)}
+              disabled={!isOnline}>
               <ThemedText style={{ color: colors.primary, fontWeight: '500' }}>
                 Join with a code
               </ThemedText>
@@ -108,11 +115,11 @@ export default function GroupsScreen() {
       );
     }
     return (
-      <View style={styles.feedEmptyCenter}>
-        <ThemedText style={[styles.feedEmptyText, { color: colors.muted }]}>
-          No shared completions yet.{'\n'}Complete an activity and share it to a group feed!
-        </ThemedText>
-      </View>
+      <EmptyState
+        icon="📸"
+        title="Noch keine geteilten Fortschritte"
+        body="Schließe eine Aktivität ab und teile sie in der Gruppe."
+      />
     );
   }
 
@@ -120,7 +127,12 @@ export default function GroupsScreen() {
     return (
       <View style={[styles.feedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         {item.photo_url ? (
-          <Image source={{ uri: item.photo_url }} style={styles.feedPhoto} resizeMode="cover" />
+          <Image
+            source={{ uri: item.photo_url }}
+            style={styles.feedPhoto}
+            resizeMode="cover"
+            accessibilityLabel={`Foto: ${item.activity_title}`}
+          />
         ) : (
           <View style={[styles.checkPlaceholder, { backgroundColor: colors.accent + '22' }]}>
             <ThemedText style={[styles.checkIcon, { color: colors.accent }]}>✓</ThemedText>
@@ -159,22 +171,20 @@ export default function GroupsScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <ThemedText type="title" style={styles.title}>Groups</ThemedText>
         <Pressable
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/create-group' as any)}>
+          style={[styles.addButton, { backgroundColor: colors.primary, opacity: isOnline ? 1 : 0.4 }]}
+          onPress={() => router.push('/create-group' as any)}
+          disabled={!isOnline}>
           <ThemedText style={[styles.addButtonText, { color: colors.buttonText }]}>+</ThemedText>
         </Pressable>
       </View>
 
       {loading && !refreshing ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={styles.skeletonContainer}>
+          <SkeletonList count={3} rowHeight={80} />
         </View>
       ) : error ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>{error}</ThemedText>
-          <Pressable onPress={() => fetchAll()} style={styles.retryButton}>
-            <ThemedText style={{ color: colors.primary }}>Retry</ThemedText>
-          </Pressable>
+          <ErrorState message={error} onRetry={() => fetchAll()} />
         </View>
       ) : groups.length === 0 ? (
         <View style={styles.center}>
@@ -225,12 +235,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28 },
   addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  skeletonContainer: { flex: 1, padding: Spacing.md },
   addButtonText: { fontSize: 22, fontWeight: '400', lineHeight: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
   retryButton: { padding: Spacing.sm },

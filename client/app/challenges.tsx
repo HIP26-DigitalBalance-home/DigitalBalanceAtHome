@@ -1,13 +1,16 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { challengesApi, type ChallengeSummary } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 type StatusFilter = 'upcoming' | 'active' | 'completed' | undefined;
 
@@ -28,15 +31,17 @@ export default function ChallengesScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>(undefined);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await challengesApi.getMy(filter);
       setChallenges(res.data);
-    } catch {
-      setChallenges([]);
+    } catch (e) {
+      setError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -47,7 +52,7 @@ export default function ChallengesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
         </Pressable>
         <ThemedText style={styles.title}>Challenges</ThemedText>
@@ -75,7 +80,9 @@ export default function ChallengesScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+        <View style={styles.skeletonContainer}><SkeletonList count={4} rowHeight={80} /></View>
+      ) : error ? (
+        <View style={styles.center}><ErrorState message={error} onRetry={load} /></View>
       ) : (
         <FlatList
           data={challenges}
@@ -134,7 +141,9 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '600' },
   chipsRow: { flexDirection: 'row', gap: Spacing.xs, paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.sm },
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, minHeight: 44, justifyContent: 'center' },
+  backButton: { minHeight: 44, justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },
   chipText: { fontSize: 13, fontWeight: '500' },
   list: { padding: Spacing.screenHorizontal, gap: Spacing.sm },
   card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },

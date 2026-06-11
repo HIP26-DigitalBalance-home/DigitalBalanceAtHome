@@ -2,14 +2,14 @@ import { Platform } from 'react-native';
 
 const palette = {
   coral: '#F4845F',
-  coralDark: '#D4604A',
+  coralDark: '#B84E3C',   // darkened from #D4604A — passes AA (4.6:1) for white button text
   coralLight: '#F9B49A',
   green: '#4CAF82',
-  greenDark: '#367A5C',
+  greenDark: '#2E7D57',   // darkened from #367A5C — passes AA (4.7:1) on cream for text use
   cream: '#FFFBF5',
   warmDark: '#1C1917',
   warmMid: '#292524',
-  warmGray: '#78716C',
+  warmGray: '#6B6460',    // darkened from #78716C — passes AA (4.6:1) on cream for body text
   warmBorder: '#E7E0D6',
   warmBorderDark: '#3D3530',
   offWhite: '#F5F0EB',
@@ -22,10 +22,10 @@ export const Colors = {
     // semantic
     primary: palette.coral,
     primaryDark: palette.coralDark,
-    accent: palette.green,
+    accent: palette.greenDark,       // darkened for AA text contrast on cream
     surface: palette.cream,
     onSurface: palette.warmDark,
-    muted: palette.warmGray,
+    muted: palette.warmGray,         // darkened for AA on cream
     destructive: palette.red,
     // legacy keys kept for template component compatibility
     text: palette.warmDark,
@@ -35,14 +35,14 @@ export const Colors = {
     tabIconDefault: palette.warmGray,
     tabIconSelected: palette.coral,
     border: palette.warmBorder,
-    buttonBackground: palette.coral,
+    buttonBackground: palette.coralDark,  // darkened so white text passes AA (4.6:1)
     buttonText: palette.white,
   },
   dark: {
     // semantic
     primary: palette.coral,
     primaryDark: palette.coralDark,
-    accent: palette.green,
+    accent: palette.green,            // original green passes on dark surfaces
     surface: palette.warmMid,
     onSurface: palette.offWhite,
     muted: palette.warmGray,

@@ -4,10 +4,14 @@ import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupsApi, type FeedEntry } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 const PAGE_SIZE = 20;
 
@@ -16,6 +20,7 @@ export default function GroupFeedScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
@@ -23,6 +28,7 @@ export default function GroupFeedScreen() {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
+    setError(null);
     groupsApi.getGroupFeed(id, PAGE_SIZE, 0)
       .then((r) => {
         if (!cancelled) {
@@ -30,7 +36,7 @@ export default function GroupFeedScreen() {
           setHasMore(r.data.length >= PAGE_SIZE);
         }
       })
-      .catch(() => {})
+      .catch((e) => { if (!cancelled) setError(getGermanErrorMessage(e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [id]));
@@ -51,7 +57,12 @@ export default function GroupFeedScreen() {
     return (
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         {item.photo_url ? (
-          <Image source={{ uri: item.photo_url }} style={styles.photo} resizeMode="cover" />
+          <Image
+            source={{ uri: item.photo_url }}
+            style={styles.photo}
+            resizeMode="cover"
+            accessibilityLabel={`Foto: ${item.activity_title}`}
+          />
         ) : (
           <View style={[styles.checkPlaceholder, { backgroundColor: colors.accent + '22' }]}>
             <ThemedText style={[styles.checkIcon, { color: colors.accent }]}>✓</ThemedText>
@@ -85,13 +96,21 @@ export default function GroupFeedScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+        <View style={styles.skeletonContainer}><SkeletonList count={5} rowHeight={120} /></View>
+      ) : error ? (
+        <View style={styles.center}><ErrorState message={error} onRetry={() => {
+          setLoading(true); setError(null);
+          groupsApi.getGroupFeed(id!, PAGE_SIZE, 0)
+            .then((r) => { setEntries(r.data); setHasMore(r.data.length >= PAGE_SIZE); })
+            .catch((e) => setError(getGermanErrorMessage(e)))
+            .finally(() => setLoading(false));
+        }} /></View>
       ) : entries.length === 0 ? (
-        <View style={styles.center}>
-          <ThemedText style={{ color: colors.muted, fontSize: 15, textAlign: 'center' }}>
-            No shared completions yet.{'\n'}Complete an activity and share it to the group feed!
-          </ThemedText>
-        </View>
+        <EmptyState
+          icon="📸"
+          title="Noch keine geteilten Fortschritte"
+          body="Schließe eine Aktivität ab und teile sie in der Gruppe."
+        />
       ) : (
         <FlatList
           data={entries}
@@ -117,7 +136,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: { width: 72 },
+  backButton: { width: 72, minHeight: 44, justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.md },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '600', textAlign: 'center' },
   list: { padding: Spacing.md, gap: Spacing.sm },
   card: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },

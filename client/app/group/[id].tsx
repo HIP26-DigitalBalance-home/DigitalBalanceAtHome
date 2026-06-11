@@ -2,14 +2,18 @@ import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { challengesApi, groupsApi, type ChallengeSummary } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
 
 interface Parent {
@@ -36,6 +40,7 @@ interface GroupDetail {
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = Colors[useColorScheme() ?? 'light'];
+  const isOnline = useNetworkStatus();
   const { currentUser } = useAuth();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,11 +50,12 @@ export default function GroupDetailScreen() {
   const fetchGroup = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await groupsApi.getGroup(id);
       setGroup(res.data);
-    } catch {
-      setError('Failed to load group');
+    } catch (e) {
+      setError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -119,7 +125,7 @@ export default function GroupDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+        <View style={styles.skeletonContainer}><SkeletonList count={4} rowHeight={60} /></View>
       </SafeAreaView>
     );
   }
@@ -128,8 +134,7 @@ export default function GroupDetailScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>{error ?? 'Group not found'}</ThemedText>
-          <Pressable onPress={fetchGroup}><ThemedText style={{ color: colors.primary }}>Retry</ThemedText></Pressable>
+          <ErrorState message={error ?? 'Gruppe nicht gefunden.'} onRetry={fetchGroup} />
         </View>
       </SafeAreaView>
     );
@@ -196,8 +201,9 @@ export default function GroupDetailScreen() {
             <View style={[styles.adminPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ADMIN CONTROLS</ThemedText>
               <Pressable
-                style={[styles.adminButton, { borderColor: colors.primary }]}
-                onPress={handleGenerateInvite}>
+                style={[styles.adminButton, { borderColor: colors.primary, opacity: isOnline ? 1 : 0.4 }]}
+                onPress={handleGenerateInvite}
+                disabled={!isOnline}>
                 <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
                   Generate invite link
                 </ThemedText>
@@ -262,7 +268,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: { width: 72 },
+  backButton: { width: 72, minHeight: 44, justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.md },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   headerTitle: { fontSize: 17 },
   adminBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },

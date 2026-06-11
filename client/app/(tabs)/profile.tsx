@@ -6,12 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
+import { ErrorState } from '@/components/ui/error-state';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { onboardingApi, devApi, usersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 import type { ChildProfile } from '@/lib/api/onboarding';
 
@@ -45,9 +48,11 @@ export default function ProfileScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const { currentUser, logout, updateCurrentUser } = useAuth();
   const router = useRouter();
+  const isOnline = useNetworkStatus();
   const [family, setFamily] = useState<FamilyData | null>(null);
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
@@ -55,6 +60,7 @@ export default function ProfileScreen() {
   const [seeding, setSeeding] = useState(false);
 
   const fetchData = useCallback(async () => {
+    setFetchError(null);
     try {
       const [familiesRes, childrenRes, userRes] = await Promise.all([
         onboardingApi.getMyFamilies(),
@@ -64,8 +70,8 @@ export default function ProfileScreen() {
       if (familiesRes.data.length > 0) setFamily(familiesRes.data[0]);
       setChildren(childrenRes.data);
       await updateCurrentUser(userRes.data);
-    } catch {
-      // silently ignore
+    } catch (e) {
+      setFetchError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -160,6 +166,8 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
+            {fetchError ? <ErrorState message={fetchError} onRetry={fetchData} /> : null}
+
             {/* Avatar + user info */}
             <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.avatarRow}>
@@ -256,9 +264,9 @@ export default function ProfileScreen() {
                 ))}
 
                 <Pressable
-                  style={[styles.outlineButton, { borderColor: colors.primary, opacity: inviting ? 0.6 : 1 }]}
+                  style={[styles.outlineButton, { borderColor: colors.primary, opacity: (inviting || !isOnline) ? 0.6 : 1 }]}
                   onPress={handleInviteToFamily}
-                  disabled={inviting}>
+                  disabled={inviting || !isOnline}>
                   {inviting ? (
                     <ActivityIndicator color={colors.primary} size="small" />
                   ) : (
@@ -269,9 +277,9 @@ export default function ProfileScreen() {
                 </Pressable>
 
                 <Pressable
-                  style={[styles.outlineButton, { borderColor: colors.destructive, opacity: leaving ? 0.6 : 1 }]}
+                  style={[styles.outlineButton, { borderColor: colors.destructive, opacity: (leaving || !isOnline) ? 0.6 : 1 }]}
                   onPress={handleLeaveFamily}
-                  disabled={leaving}>
+                  disabled={leaving || !isOnline}>
                   {leaving ? (
                     <ActivityIndicator color={colors.destructive} size="small" />
                   ) : (
@@ -317,9 +325,9 @@ export default function ProfileScreen() {
             {/* Demo data */}
             <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>DEMO</ThemedText>
             <Pressable
-              style={[styles.outlineButton, { borderColor: colors.accent, opacity: seeding ? 0.6 : 1 }]}
+              style={[styles.outlineButton, { borderColor: colors.accent, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
               onPress={handleSeedDemo}
-              disabled={seeding}>
+              disabled={seeding || !isOnline}>
               {seeding ? (
                 <ActivityIndicator color={colors.accent} size="small" />
               ) : (

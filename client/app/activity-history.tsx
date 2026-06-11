@@ -3,10 +3,13 @@ import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { completionsApi } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import type { CompletionHistoryItem } from '@/lib/api';
 
 const PAGE_SIZE = 20;
@@ -17,6 +20,7 @@ export default function ActivityHistoryScreen() {
 
   const [items, setItems] = useState<CompletionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
@@ -25,6 +29,7 @@ export default function ActivityHistoryScreen() {
     if (reset) {
       offsetRef.current = 0;
       setHasMore(true);
+      setError(null);
     }
     const offset = offsetRef.current;
     try {
@@ -33,8 +38,8 @@ export default function ActivityHistoryScreen() {
       setItems((prev) => (reset ? page : [...prev, ...page]));
       offsetRef.current = offset + page.length;
       if (page.length < PAGE_SIZE) setHasMore(false);
-    } catch {
-      // silently ignore
+    } catch (e) {
+      setError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -89,7 +94,9 @@ export default function ActivityHistoryScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: Spacing.xl }} />
+        <View style={styles.skeletonContainer}><SkeletonList count={8} rowHeight={68} /></View>
+      ) : error ? (
+        <View style={styles.center}><ErrorState message={error} onRetry={() => load(true)} /></View>
       ) : (
         <FlatList
           data={items}
@@ -119,7 +126,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: { marginBottom: Spacing.xs },
+  backButton: { marginBottom: Spacing.xs, minHeight: 44, justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.md },
   title: { fontSize: 24 },
   list: { padding: Spacing.md, gap: Spacing.sm },
   row: {
