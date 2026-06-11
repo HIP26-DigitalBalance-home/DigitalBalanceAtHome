@@ -131,6 +131,78 @@ Key invariants:
 - **Collage**: a family's collage is derived at query time from their Completions for a Challenge. Each family fills one shared collage — either parent can complete slots.
 - **Completion**: one per `(family_id, challenge_activity_id)`; `completed_by_user_id` tracks which parent did it. Group aggregate view shows "X of Y **families** completed."
 
+## Project Wiki Schema
+
+The project wiki lives at `wiki/` and follows a three-layer architecture:
+
+```
+wiki/
+  raw/                    # Immutable source documents — never modify
+    interviews/           # Parent and stakeholder interviews
+    papers/               # Research papers and clinical literature
+    observations/         # Field notes and usability observations
+    competitors/          # Competitor analysis and screenshots
+    regulatory/           # Legal and compliance documents
+    media/                # Press, social media, other media
+  pages/                  # AI-maintained wiki pages — only write here
+    index.md              # Catalog of all pages (updated on every ingest)
+    log.md                # Append-only chronological activity log
+    overview.md           # Project summary, mission, current stage
+    stakeholders/         # One page per stakeholder group
+    evidence/             # Clinical, behavioral, and design evidence
+    landscape/            # Competitive and market analysis
+    design/               # User journeys, data model, architecture, roadmap
+    regulatory/           # Compliance landscape and open decisions
+    questions/            # Living list of open questions
+```
+
+### Domain and Key Terminology
+
+- **Parent**: only authenticated user type; German-speaking adult with ≥1 child
+- **Family**: primary unit of participation; children and completions belong to Family, not User
+- **ChildProfile**: non-account child representation; belongs to Family; never in group-visible responses
+- **Group**: invite-only set of families; group admins are individual parents
+- **Challenge**: set of activities with start/end date; `group_id` nullable (null = personal/family)
+- **Collage**: derived at query time from Completions for (family_id, challenge_id); not stored
+- **Completion**: one per (family_id, challenge_activity_id); states: processing, ready, self_reported
+- **ConsentRecord**: append-only GDPR consent log; 3 types: data_storage, photo_processing, location
+
+### Page Naming Conventions
+
+- Filenames: lowercase kebab-case (e.g., `kita-staff.md`, `open-questions.md`)
+- Stakeholder pages: one per distinct stakeholder group
+- Evidence pages: one per topic area (problem framing, design principle, clinical finding)
+- Design pages: one per design concern (user journeys, data model, architecture, roadmap)
+- Cross-references use standard Markdown links: `[label](relative/path.md)`
+
+### Ingest Workflow
+
+When the user adds a source (interview, paper, observation, competitor, regulatory doc):
+1. Save to the correct `wiki/raw/` subfolder with a dated descriptive filename (`YYYY-MM-DD-description.md`)
+2. Read the source completely
+3. Discuss key takeaways with the user
+4. Write or update a summary page in `wiki/pages/`
+5. Update every relevant page across the wiki (a single source may touch 5–15 pages)
+6. Flag contradictions with existing wiki content explicitly
+7. Update `wiki/pages/index.md`
+8. Append an entry to `wiki/pages/log.md`
+
+### Query Workflow
+
+When answering a question about the project:
+1. Read `wiki/pages/index.md` to find relevant pages
+2. Read those pages and synthesise an answer with citations
+3. Offer to file useful synthesis as a new wiki page
+
+### Stage and Priorities
+
+Current stage: **active development prototype** (M9 of 13 complete). Wiki depth priorities:
+- **High priority:** compliance open decisions (D2–D5, D7), M10–M12 implementation context, UX risk validation
+- **Medium priority:** stakeholder evidence from user testing once it begins
+- **Low priority:** landscape analysis (no competitor research conducted yet)
+
+---
+
 ## Design Constraints
 
 - **No competitive comparison** — no leaderboards, no per-family rankings; group progress is aggregate only
