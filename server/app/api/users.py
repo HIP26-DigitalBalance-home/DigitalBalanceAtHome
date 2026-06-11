@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_current_user_allow_pending
 from app.dependencies.database import get_db
 from app.models.user import User
+from app.schemas.generated import DataExport, DeletionPendingResponse
 from app.schemas.generated import User as UserSchema
 from app.services import user as user_service
 
@@ -44,16 +45,25 @@ async def update_me(
     return await user_service.update_me(session, current_user, display_name, image_data, content_type)
 
 
-@router.delete("/me", status_code=202)
-async def delete_me():
-    raise HTTPException(status_code=501, detail="Not implemented")
+@router.delete("/me", status_code=202, response_model=DeletionPendingResponse)
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    return await user_service.delete_me(session, current_user)
 
 
-@router.post("/me/cancel-deletion")
-async def cancel_deletion():
-    raise HTTPException(status_code=501, detail="Not implemented")
+@router.post("/me/cancel-deletion", response_model=UserSchema)
+async def cancel_deletion(
+    current_user: User = Depends(get_current_user_allow_pending),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    return await user_service.cancel_deletion(session, current_user)
 
 
-@router.get("/me/export")
-async def export_data():
-    raise HTTPException(status_code=501, detail="Not implemented")
+@router.get("/me/export", response_model=DataExport)
+async def export_data(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    return await user_service.export_data(session, current_user)

@@ -116,3 +116,8 @@ class InvalidDateRange(DomainError):
 class AlreadyCompleted(DomainError):
     status_code = 409
     code = "already_completed"
+
+
+class NoDeletionPending(DomainError):
+    status_code = 409
+    code = "no_deletion_pending"

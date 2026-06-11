@@ -187,6 +187,12 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/activity-history' as any)}>
                 <ThemedText style={{ fontWeight: '600' }}>Activity History</ThemedText>
               </Pressable>
+
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.border }]}
+                onPress={() => router.push('/privacy' as any)}>
+                <ThemedText style={{ fontWeight: '600' }}>Privacy & Data</ThemedText>
+              </Pressable>
             </View>
 
             {/* Children */}

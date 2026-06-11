@@ -12,10 +12,7 @@ from app.services.auth import decode_access_token
 _bearer = HTTPBearer()
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-    session: AsyncSession = Depends(get_db),
-) -> User:
+async def _resolve_user(credentials: HTTPAuthorizationCredentials, session: AsyncSession) -> User:
     try:
         user_id: uuid.UUID = decode_access_token(credentials.credentials)
     except ValueError:
@@ -26,7 +23,24 @@ async def get_current_user(
 
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    if user.deletion_pending_at is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account scheduled for deletion")
 
     return user
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    session: AsyncSession = Depends(get_db),
+) -> User:
+    user = await _resolve_user(credentials, session)
+    if user.deletion_pending_at is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account scheduled for deletion")
+    return user
+
+
+async def get_current_user_allow_pending(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    session: AsyncSession = Depends(get_db),
+) -> User:
+    """Like get_current_user but allows users with a pending deletion through.
+    Use only for the cancel-deletion endpoint."""
+    return await _resolve_user(credentials, session)
