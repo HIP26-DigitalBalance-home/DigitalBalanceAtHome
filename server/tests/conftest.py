@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_current_user_allow_pending
 from app.dependencies.database import get_db
 from app.main import app
 
@@ -45,6 +45,7 @@ async def auth_client():
 
     app.dependency_overrides[get_db] = mock_get_db
     app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_current_user_allow_pending] = lambda: mock_user
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c

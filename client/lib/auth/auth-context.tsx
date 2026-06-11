@@ -17,6 +17,7 @@ export interface AuthUser {
   display_name: string;
   profile_photo_url: string | null;
   points_balance: number;
+  deletion_pending_at?: string | null;
 }
 
 interface AuthContextValue {
