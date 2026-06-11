@@ -20,6 +20,7 @@ import {
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
 import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
+import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
@@ -134,22 +135,24 @@ export default function ChallengeDetailScreen() {
         checkCelebration(updated);
       })
       .catch(() => {
-        if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
+        showAlert('Error', 'Could not mark as complete. Please try again.');
       });
   }
 
   async function handleDeleteChallenge() {
     if (!challenge) return;
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm(`Delete "${challenge.title}"? This cannot be undone.`)
-      : true;
+    const confirmed = await confirmDestructive(
+      'Delete challenge',
+      `Delete "${challenge.title}"? This cannot be undone.`,
+      'Delete',
+    );
     if (!confirmed) return;
     setDeleting(true);
     try {
       await challengesApi.delete(challenge.id);
       router.back();
     } catch {
-      if (Platform.OS === 'web') window.alert('Failed to delete challenge. Please try again.');
+      showAlert('Error', 'Failed to delete challenge. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -177,7 +180,7 @@ export default function ChallengeDetailScreen() {
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch(() => {
         setLocalCompletions((prev) => { const next = { ...prev }; delete next[slotId]; return next; });
-        if (Platform.OS === 'web') window.alert('Photo upload failed. Please try again.');
+        showAlert('Error', 'Photo upload failed. Please try again.');
       });
   }
 
@@ -235,7 +238,7 @@ export default function ChallengeDetailScreen() {
                 onPress={async () => {
                   setExportingPng(true);
                   try { await saveCollagePng(challenge.title, challenge.activities); }
-                  catch { window.alert('Could not export the collage.'); }
+                  catch { showAlert('Error', 'Could not export the collage.'); }
                   finally { setExportingPng(false); }
                 }}
                 disabled={exportingPng}

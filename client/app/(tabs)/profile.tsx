@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onboardingApi, devApi, usersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 import type { ChildProfile } from '@/lib/api/onboarding';
 
 const CITY_KEY = '@dba_city_preference';
@@ -87,16 +88,18 @@ export default function ProfileScreen() {
   }, []);
 
   async function handleSeedDemo() {
-    const confirmed = window.confirm(
-      'Load demo data?\n\nThis will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
+    const confirmed = await confirmDestructive(
+      'Load demo data?',
+      'This will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
+      'Load',
     );
     if (!confirmed) return;
     setSeeding(true);
     try {
       await devApi.seed();
-      window.alert('Demo data loaded! Pull to refresh your Home and Groups tabs.');
+      showAlert('Demo data loaded!', 'Pull to refresh your Home and Groups tabs.');
     } catch {
-      window.alert('Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
+      showAlert('Error', 'Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
     } finally {
       setSeeding(false);
     }
@@ -104,14 +107,18 @@ export default function ProfileScreen() {
 
   async function handleLeaveFamily() {
     if (!family || !currentUser) return;
-    const confirmed = window.confirm(`Leave "${family.name ?? 'your family'}"? You can rejoin with an invite link.`);
+    const confirmed = await confirmDestructive(
+      'Leave family',
+      `Leave "${family.name ?? 'your family'}"? You can rejoin with an invite link.`,
+      'Leave',
+    );
     if (!confirmed) return;
     setLeaving(true);
     try {
       await apiClient.delete(`/families/${family.id}/members/${currentUser.id}`);
       setFamily(null);
     } catch {
-      window.alert('Failed to leave family. Please try again.');
+      showAlert('Error', 'Failed to leave family. Please try again.');
     } finally {
       setLeaving(false);
     }
@@ -128,10 +135,10 @@ export default function ProfileScreen() {
       if (canShare) {
         await Sharing.shareAsync(url, { dialogTitle: 'Invite to family' });
       } else {
-        window.alert('Share this link to invite your partner:\n\n' + url);
+        showAlert('Link copied', 'Share this link to invite your partner:\n\n' + url);
       }
     } catch {
-      window.alert('Failed to generate invite link');
+      showAlert('Error', 'Failed to generate invite link');
     } finally {
       setInviting(false);
     }

@@ -21,6 +21,7 @@ import {
   type ChallengeWithProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
+import { showAlert } from '@/lib/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CITY_KEY = '@dba_city_preference';
@@ -186,7 +187,7 @@ export default function HomeScreen() {
         checkCelebration(slotId, updated);
       })
       .catch(() => {
-        if (Platform.OS === 'web') window.alert('Could not mark as complete. Please try again.');
+        showAlert('Error', 'Could not mark as complete. Please try again.');
       });
   }
 
@@ -202,7 +203,7 @@ export default function HomeScreen() {
           delete next[slotId];
           return next;
         });
-        if (Platform.OS === 'web') window.alert('Photo upload failed. Please try again.');
+        showAlert('Error', 'Photo upload failed. Please try again.');
       });
   }
 

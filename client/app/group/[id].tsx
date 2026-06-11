@@ -10,6 +10,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { challengesApi, groupsApi, type ChallengeSummary } from '@/lib/api';
+import { showAlert } from '@/lib/utils/alert';
 
 interface Parent {
   user_id: string;
@@ -76,10 +77,10 @@ export default function GroupDetailScreen() {
       if (canShare) {
         await Sharing.shareAsync(url, { dialogTitle: 'Invite to group' });
       } else {
-        Alert.alert('Link copied', 'Share this link to invite families:\n\n' + url);
+        showAlert('Link copied', 'Share this link to invite families:\n\n' + url);
       }
     } catch {
-      Alert.alert('Error', 'Failed to generate invite link');
+      showAlert('Error', 'Failed to generate invite link');
     }
   }
 

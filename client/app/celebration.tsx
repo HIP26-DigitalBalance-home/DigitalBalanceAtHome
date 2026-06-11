@@ -9,6 +9,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { challengesApi, type ChallengeWithProgress } from '@/lib/api';
 import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
+import { showAlert } from '@/lib/utils/alert';
 
 export default function CelebrationScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
@@ -71,7 +72,7 @@ export default function CelebrationScreen() {
     try {
       await saveCollagePng(challenge.title, challenge.activities);
     } catch {
-      if (Platform.OS === 'web') window.alert('Could not export the collage. Please try again.');
+      showAlert('Error', 'Could not export the collage. Please try again.');
     } finally {
       setExporting(false);
     }
