@@ -1,16 +1,18 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { onboardingApi, devApi } from '@/lib/api';
+import { onboardingApi, devApi, usersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+import type { ChildProfile } from '@/lib/api/onboarding';
 
 const CITY_KEY = '@dba_city_preference';
 
@@ -25,10 +27,25 @@ interface FamilyData {
   members: FamilyMemberItem[];
 }
 
+function ageFromDob(dob: string): number {
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (
+    today.getMonth() < birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+  return age;
+}
+
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, updateCurrentUser } = useAuth();
+  const router = useRouter();
   const [family, setFamily] = useState<FamilyData | null>(null);
+  const [children, setChildren] = useState<ChildProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -36,20 +53,25 @@ export default function ProfileScreen() {
   const [city, setCity] = useState('');
   const [seeding, setSeeding] = useState(false);
 
-  const fetchFamily = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await onboardingApi.getMyFamilies();
-      if (res.data.length > 0) setFamily(res.data[0]);
+      const [familiesRes, childrenRes, userRes] = await Promise.all([
+        onboardingApi.getMyFamilies(),
+        onboardingApi.getChildren(),
+        usersApi.getMe(),
+      ]);
+      if (familiesRes.data.length > 0) setFamily(familiesRes.data[0]);
+      setChildren(childrenRes.data);
+      await updateCurrentUser(userRes.data);
     } catch {
       // silently ignore
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updateCurrentUser]);
 
-  useEffect(() => { fetchFamily(); }, [fetchFamily]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Load location consent and stored city preference
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -115,6 +137,10 @@ export default function ProfileScreen() {
     }
   }
 
+  const initials = currentUser?.display_name
+    ? currentUser.display_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -127,12 +153,76 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
-            {/* User info */}
+            {/* Avatar + user info */}
             <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText style={styles.cardLabel}>Signed in as</ThemedText>
-              <ThemedText style={styles.cardValue}>{currentUser?.display_name ?? '—'}</ThemedText>
-              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>{currentUser?.email}</ThemedText>
+              <View style={styles.avatarRow}>
+                {currentUser?.profile_photo_url ? (
+                  <Image
+                    source={{ uri: currentUser.profile_photo_url }}
+                    style={styles.avatar}
+                    accessibilityLabel="Profile photo"
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+                    <ThemedText style={styles.avatarInitials}>{initials}</ThemedText>
+                  </View>
+                )}
+                <View style={styles.avatarInfo}>
+                  <ThemedText style={styles.displayName}>{currentUser?.display_name ?? '—'}</ThemedText>
+                  <ThemedText style={[styles.email, { color: colors.muted }]}>{currentUser?.email}</ThemedText>
+                  <ThemedText style={[styles.points, { color: colors.accent }]}>
+                    {currentUser?.points_balance ?? 0} pts
+                  </ThemedText>
+                </View>
+              </View>
+
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.primary }]}
+                onPress={() => router.push('/edit-profile' as any)}>
+                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Edit Profile</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.border }]}
+                onPress={() => router.push('/activity-history' as any)}>
+                <ThemedText style={{ fontWeight: '600' }}>Activity History</ThemedText>
+              </Pressable>
             </View>
+
+            {/* Children */}
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY CHILDREN</ThemedText>
+            {children.length === 0 ? (
+              <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
+                No children added yet
+              </ThemedText>
+            ) : (
+              children.map((child) => (
+                <View key={child.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View style={styles.childRow}>
+                    <View>
+                      <ThemedText style={styles.cardValue}>{child.nickname}</ThemedText>
+                      <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
+                        Age {ageFromDob(child.date_of_birth)}
+                      </ThemedText>
+                    </View>
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: '/edit-child/[id]',
+                          params: {
+                            id: child.id,
+                            nickname: child.nickname,
+                            date_of_birth: child.date_of_birth,
+                            interests: child.interests?.join(',') ?? '',
+                          },
+                        } as any)
+                      }>
+                      <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Edit</ThemedText>
+                    </Pressable>
+                  </View>
+                </View>
+              ))
+            )}
 
             {/* My Family */}
             <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY FAMILY</ThemedText>
@@ -153,7 +243,7 @@ export default function ProfileScreen() {
                 ))}
 
                 <Pressable
-                  style={[styles.inviteButton, { borderColor: colors.primary, opacity: inviting ? 0.6 : 1 }]}
+                  style={[styles.outlineButton, { borderColor: colors.primary, opacity: inviting ? 0.6 : 1 }]}
                   onPress={handleInviteToFamily}
                   disabled={inviting}>
                   {inviting ? (
@@ -166,7 +256,7 @@ export default function ProfileScreen() {
                 </Pressable>
 
                 <Pressable
-                  style={[styles.inviteButton, { borderColor: colors.destructive, opacity: leaving ? 0.6 : 1 }]}
+                  style={[styles.outlineButton, { borderColor: colors.destructive, opacity: leaving ? 0.6 : 1 }]}
                   onPress={handleLeaveFamily}
                   disabled={leaving}>
                   {leaving ? (
@@ -184,7 +274,7 @@ export default function ProfileScreen() {
               </ThemedText>
             )}
 
-            {/* Location / city preference — only shown if user gave location consent */}
+            {/* Location / city preference */}
             {locationConsent && (
               <>
                 <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVITY SUGGESTIONS</ThemedText>
@@ -214,7 +304,7 @@ export default function ProfileScreen() {
             {/* Demo data */}
             <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>DEMO</ThemedText>
             <Pressable
-              style={[styles.inviteButton, { borderColor: colors.accent, opacity: seeding ? 0.6 : 1 }]}
+              style={[styles.outlineButton, { borderColor: colors.accent, opacity: seeding ? 0.6 : 1 }]}
               onPress={handleSeedDemo}
               disabled={seeding}>
               {seeding ? (
@@ -251,17 +341,26 @@ const styles = StyleSheet.create({
   cardLabel: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
   cardValue: { fontSize: 16, fontWeight: '600' },
   cardSub: { fontSize: 13 },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  avatar: { width: 64, height: 64, borderRadius: 32 },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  avatarInitials: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  avatarInfo: { flex: 1, gap: 2 },
+  displayName: { fontSize: 18, fontWeight: '700' },
+  email: { fontSize: 13 },
+  points: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  childRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingTop: Spacing.sm, borderTopWidth: 1, marginTop: Spacing.sm },
   memberName: { flex: 1, fontSize: 15 },
   memberRole: { fontSize: 13 },
   cityInput: { height: 44, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: Spacing.md, fontSize: 15, marginTop: Spacing.xs },
-  inviteButton: {
+  outlineButton: {
     height: 44,
     borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   signOutButton: {
     height: 52,

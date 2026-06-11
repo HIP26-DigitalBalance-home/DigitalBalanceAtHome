@@ -150,7 +150,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: "#/components/schemas/UpdateUserRequest"
       responses:
@@ -1224,6 +1224,9 @@ components:
         display_name:
           type: string
           minLength: 1
+        image:
+          type: string
+          format: binary
 
     DeletionPendingResponse:
       type: object

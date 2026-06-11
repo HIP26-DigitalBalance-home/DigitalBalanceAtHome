@@ -17,6 +17,22 @@ export interface ChildPayload {
   interests?: string[];
 }
 
+export interface UpdateChildPayload {
+  nickname?: string;
+  date_of_birth?: string;
+  interests?: string[];
+}
+
+export interface ChildProfile {
+  id: string;
+  family_id: string;
+  nickname: string;
+  date_of_birth: string;
+  interests: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export const onboardingApi = {
   postConsent: (payload: ConsentPayload) =>
     apiClient.post('/consents', payload),
@@ -37,5 +53,8 @@ export const onboardingApi = {
     apiClient.post('/children', payload),
 
   getChildren: () =>
-    apiClient.get('/children'),
+    apiClient.get<ChildProfile[]>('/children'),
+
+  updateChild: (id: string, payload: UpdateChildPayload) =>
+    apiClient.patch<ChildProfile>(`/children/${id}`, payload),
 };

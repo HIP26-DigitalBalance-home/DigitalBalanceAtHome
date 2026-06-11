@@ -48,6 +48,23 @@ class CompletionRepository:
         await self.session.flush()
         return completion
 
+    async def get_by_family(
+        self, family_id: uuid.UUID, limit: int = 20, offset: int = 0
+    ) -> list[tuple["Completion", str, str]]:
+        """Return (Completion, activity_title, challenge_title) for a family's history."""
+        stmt = (
+            select(Completion, Activity.title, Challenge.title)
+            .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
+            .join(Challenge, ChallengeActivity.challenge_id == Challenge.id)
+            .join(Activity, ChallengeActivity.activity_id == Activity.id)
+            .where(Completion.family_id == family_id)
+            .order_by(Completion.completed_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.tuples().all())
+
     async def get_group_feed(
         self, group_id: uuid.UUID, limit: int = 20, offset: int = 0
     ) -> list[tuple[Completion, str, str | None]]:

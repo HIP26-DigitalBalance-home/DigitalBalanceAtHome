@@ -2,12 +2,25 @@ import { Platform } from 'react-native';
 import { apiClient } from './client';
 import type { Completion } from './challenges';
 
+export interface CompletionHistoryItem {
+  id: string;
+  activity_title: string;
+  challenge_title: string;
+  status: 'processing' | 'ready' | 'self_reported';
+  photo_url: string | null;
+  caption: string | null;
+  completed_at: string;
+}
+
 export interface PhotoUrlResponse {
   url: string;
   expires_at: string;
 }
 
 export const completionsApi = {
+  getMyHistory: (limit = 20, offset = 0) =>
+    apiClient.get<CompletionHistoryItem[]>('/completions/me', { params: { limit, offset } }),
+
   createSelfReported: (payload: {
     challenge_activity_id: string;
     caption?: string | null;
