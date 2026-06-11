@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_current_user_with_consent_check
 from app.dependencies.database import get_db
 from app.models.user import User
 from app.schemas.generated import Completion, CompletionHistoryItem, CreateCompletionRequest
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.post("", status_code=201, response_model=Completion)
 async def create_completion(
     payload: CreateCompletionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_consent_check),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     return await completion_service.create_self_reported(

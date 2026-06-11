@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -86,16 +86,23 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
         >
           {/* Photo with X overlaid */}
           <View style={[styles.photoContainer, { width: cardWidth, height: cardWidth * 0.75 }]}>
-            {photoUrl ? (
-              <Image
-                source={{ uri: photoUrl }}
+            {photoUrl && completionId ? (
+              <ImageWithFallback
+                uri={photoUrl}
+                completionId={completionId}
                 style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
+                accessibilityLabel={`Foto: ${activityTitle}`}
               />
             ) : (
               <ActivityIndicator color={colors.primary} />
             )}
-            <Pressable style={styles.closeButton} onPress={onClose}>
+            <Pressable
+              style={styles.closeButton}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Schließen"
+            >
               <ThemedText style={styles.closeText}>✕</ThemedText>
             </Pressable>
           </View>
@@ -154,9 +161,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',

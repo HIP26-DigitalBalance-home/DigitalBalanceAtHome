@@ -1,15 +1,19 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
   activitiesApi,
   challengesApi,
@@ -21,6 +25,7 @@ import {
   type ChallengeWithProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -39,9 +44,11 @@ function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): Acti
 
 export default function HomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const isOnline = useNetworkStatus();
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
+  const [challengeError, setChallengeError] = useState<string | null>(null);
   const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
@@ -73,11 +80,12 @@ export default function HomeScreen() {
     setLocalCompletions({});
 
     async function loadChallenges() {
+      setChallengeError(null);
       try {
         const res = await challengesApi.getActive();
         if (!cancelled) setChallenges(res.data);
-      } catch {
-        // empty list on error
+      } catch (e) {
+        if (!cancelled) setChallengeError(getGermanErrorMessage(e));
       } finally {
         if (!cancelled) setLoadingChallenges(false);
       }
@@ -178,6 +186,10 @@ export default function HomeScreen() {
   }
 
   function handleSelfReported(slotId: string, sharedToFeed: boolean) {
+    if (!isOnline) {
+      showAlert('Offline', 'Keine Internetverbindung.');
+      return;
+    }
     setActiveSlot(null);
     completionsApi
       .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed })
@@ -186,24 +198,28 @@ export default function HomeScreen() {
         setLocalCompletions(updated);
         checkCelebration(slotId, updated);
       })
-      .catch(() => {
-        showAlert('Error', 'Could not mark as complete. Please try again.');
+      .catch((e) => {
+        showAlert('Fehler', getGermanErrorMessage(e));
       });
   }
 
   function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
+    if (!isOnline) {
+      showAlert('Offline', 'Keine Internetverbindung.');
+      return;
+    }
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
     photosApi
       .upload(slotId, imageUri, mimeType, undefined, sharedToFeed)
       .then((r) => startPolling(slotId, r.data.completion_id))
-      .catch(() => {
+      .catch((e) => {
         setLocalCompletions((prev) => {
           const next = { ...prev };
           delete next[slotId];
           return next;
         });
-        showAlert('Error', 'Photo upload failed. Please try again.');
+        showAlert('Fehler', getGermanErrorMessage(e));
       });
   }
 
@@ -225,7 +241,12 @@ export default function HomeScreen() {
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
+            <SkeletonList count={2} rowHeight={180} />
+          </View>
+        ) : challengeError ? (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
+            <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
           </View>
         ) : challenges.length > 0 ? (
           challenges.map((challenge) => (
@@ -254,15 +275,13 @@ export default function HomeScreen() {
         ) : (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
-            <View style={styles.emptyChallenge}>
-              <ThemedText style={[styles.emptyText, { color: colors.muted }]}>No active challenge yet.</ThemedText>
-              <Pressable
-                style={[styles.createButton, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/create-challenge' as any)}
-              >
-                <ThemedText style={[styles.createButtonText, { color: colors.buttonText }]}>Create one →</ThemedText>
-              </Pressable>
-            </View>
+            <EmptyState
+              icon="🎯"
+              title="Noch keine aktive Herausforderung"
+              body="Erstelle deine erste Herausforderung."
+              actionLabel="Herausforderung erstellen"
+              onAction={() => router.push('/create-challenge' as any)}
+            />
           </View>
         )}
 
@@ -270,7 +289,7 @@ export default function HomeScreen() {
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>TODAY&apos;S SUGGESTION</ThemedText>
           {loadingChallenges ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
+            <SkeletonList count={1} rowHeight={80} />
           ) : suggestion ? (
             <>
               <ThemedText style={styles.suggestionTitle}>{suggestion.title}</ThemedText>
@@ -325,7 +344,7 @@ const styles = StyleSheet.create({
   challengeDates: { fontSize: 12, marginBottom: Spacing.xs },
   emptyChallenge: { gap: Spacing.md, alignItems: 'flex-start' },
   emptyText: { fontSize: 14 },
-  createButton: { height: 40, paddingHorizontal: Spacing.lg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  createButton: { height: 44, paddingHorizontal: Spacing.lg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   createButtonText: { fontSize: 14, fontWeight: '600' },
   suggestionTitle: { fontSize: 17, fontWeight: '600', lineHeight: 24 },
   suggestionMeta: { fontSize: 13 },

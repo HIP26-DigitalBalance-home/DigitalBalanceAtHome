@@ -7,9 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
   challengesApi,
   completionsApi,
@@ -20,6 +23,7 @@ import {
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
 import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
@@ -35,6 +39,7 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function ChallengeDetailScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +81,7 @@ export default function ChallengeDetailScreen() {
           }
         }
       })
-      .catch(() => { if (!cancelled) setError('Could not load challenge.'); })
+      .catch((e) => { if (!cancelled) setError(getGermanErrorMessage(e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [id]);
@@ -126,6 +131,7 @@ export default function ChallengeDetailScreen() {
   }
 
   function handleSelfReported(slotId: string, sharedToFeed: boolean) {
+    if (!isOnline) { showAlert('Offline', 'Keine Internetverbindung.'); return; }
     setActiveSlot(null);
     completionsApi
       .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed })
@@ -134,8 +140,8 @@ export default function ChallengeDetailScreen() {
         setLocalCompletions(updated);
         checkCelebration(updated);
       })
-      .catch(() => {
-        showAlert('Error', 'Could not mark as complete. Please try again.');
+      .catch((e) => {
+        showAlert('Fehler', getGermanErrorMessage(e));
       });
   }
 
@@ -173,21 +179,22 @@ export default function ChallengeDetailScreen() {
   }
 
   function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
+    if (!isOnline) { showAlert('Offline', 'Keine Internetverbindung.'); return; }
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
     photosApi
       .upload(slotId, imageUri, mimeType, undefined, sharedToFeed)
       .then((r) => startPolling(slotId, r.data.completion_id))
-      .catch(() => {
+      .catch((e) => {
         setLocalCompletions((prev) => { const next = { ...prev }; delete next[slotId]; return next; });
-        showAlert('Error', 'Photo upload failed. Please try again.');
+        showAlert('Fehler', getGermanErrorMessage(e));
       });
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
         </Pressable>
         <ThemedText style={styles.headerTitle}>Challenge</ThemedText>
@@ -195,13 +202,10 @@ export default function ChallengeDetailScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+        <View style={styles.skeletonContainer}><SkeletonList count={3} rowHeight={120} /></View>
       ) : error ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>{error}</ThemedText>
-          <Pressable onPress={() => router.back()}>
-            <ThemedText style={{ color: colors.primary }}>Go back</ThemedText>
-          </Pressable>
+          <ErrorState message={error} onRetry={() => router.back()} />
         </View>
       ) : challenge ? (
         <ScrollView contentContainerStyle={styles.content}>
@@ -343,6 +347,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  backButton: { minHeight: 44, justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { router } from 'expo-router';
 
 import { apiClient, registerAuthHandlers } from '@/lib/api';
 import { tokenStore } from './token-store';
@@ -100,6 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tokenStore.clear();
         accessTokenRef.current = null;
         setCurrentUser(null);
+      },
+      onConsentMismatch: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.replace('/(onboarding)/consent' as any);
       },
     });
   }, [refreshTokens]);

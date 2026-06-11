@@ -1,13 +1,17 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { activitiesApi, type ActivityItem, type ActivityFilters } from '@/lib/api';
 import { onboardingApi } from '@/lib/api';
+import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 // Derive current season from month
 function currentSeason(): string {
@@ -68,8 +72,8 @@ export default function ActivitiesScreen() {
       if (childAge !== undefined) filters.age = childAge;
       const res = await activitiesApi.list(filters);
       setActivities(res.data);
-    } catch {
-      setError('Failed to load activities');
+    } catch (e) {
+      setError(getGermanErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -129,11 +133,12 @@ export default function ActivitiesScreen() {
       </ScrollView>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+        <View style={styles.skeletonContainer}>
+          <SkeletonList count={6} rowHeight={72} />
+        </View>
       ) : error ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>{error}</ThemedText>
-          <Pressable onPress={fetchActivities}><ThemedText style={{ color: colors.primary }}>Retry</ThemedText></Pressable>
+          <ErrorState message={error} onRetry={fetchActivities} />
         </View>
       ) : (
         <FlatList
@@ -142,9 +147,11 @@ export default function ActivitiesScreen() {
           style={styles.listContainer}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <View style={styles.center}>
-              <ThemedText style={{ color: colors.muted }}>No activities match these filters.</ThemedText>
-            </View>
+            <EmptyState
+              icon="🌱"
+              title="Keine Aktivitäten gefunden"
+              body="Passe die Filter an, um mehr zu sehen."
+            />
           }
           renderItem={({ item }) => (
             <Pressable
@@ -178,7 +185,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 28 },
   filtersScroll: { maxHeight: 52, flexShrink: 0 },
   filtersRow: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.xs, flexDirection: 'row', alignItems: 'center' },
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, minHeight: 44, justifyContent: 'center' },
+  skeletonContainer: { flex: 1, padding: Spacing.md },
   chipText: { fontSize: 13, fontWeight: '500' },
   chipDivider: { width: 1, height: 20, backgroundColor: '#ddd', marginHorizontal: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.xl },

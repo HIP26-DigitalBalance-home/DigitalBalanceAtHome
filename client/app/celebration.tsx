@@ -175,5 +175,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: { fontSize: 15, fontWeight: '600' },
-  backLink: { paddingVertical: Spacing.md },
+  backLink: { paddingVertical: Spacing.md, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
 });

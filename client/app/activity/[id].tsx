@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: { width: 72 },
+  backButton: { width: 72, minHeight: 44, justifyContent: 'center' },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   badge: {
