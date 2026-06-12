@@ -59,8 +59,9 @@ export default function ChallengeDetailScreen() {
   localCompletionsRef.current = localCompletions;
 
   useEffect(() => {
+    const polling = pollingRef.current;
     return () => {
-      Object.values(pollingRef.current).forEach(({ interval, timeout }) => {
+      Object.values(polling).forEach(({ interval, timeout }) => {
         clearInterval(interval);
         clearTimeout(timeout);
       });

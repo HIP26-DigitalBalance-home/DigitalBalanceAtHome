@@ -10,6 +10,7 @@ Creates:
   - 4 mock families (with display names) added to the group
   - Your family is the creator/admin family
   - 3 mock challenges: one active group, one upcoming personal, one completed group
+  - 8 photo completions uploaded to S3 (requires S3 to be configured)
 
 Your email is detected from the SEED_ADMIN_EMAIL env var (default: ignacio.garcian15@gmail.com).
 """
@@ -18,8 +19,11 @@ import asyncio
 import os
 import uuid
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
-from sqlalchemy import select, delete
+import boto3
+from botocore.config import Config
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import settings
@@ -33,6 +37,50 @@ from app.models.group import Group, GroupAdmin, GroupMembership
 from app.models.user import User
 
 ADMIN_EMAIL = os.environ.get("SEED_ADMIN_EMAIL", "ignacio.garcian15@gmail.com")
+
+_SEED_PHOTOS_DIR = Path(__file__).parent / "seed_photos"
+
+_ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
+    ("bake", "baking.jpg"),
+    ("cookie", "baking.jpg"),
+    ("pancake", "baking.jpg"),
+    ("cook", "cooking.jpg"),
+    ("park", "park.jpg"),
+    ("playground", "park.jpg"),
+    ("scavenger", "park.jpg"),
+    ("catch", "park.jpg"),
+    ("frisbee", "park.jpg"),
+    ("nature walk", "park.jpg"),
+    ("pillow fort", "fort.jpg"),
+    ("blanket", "fort.jpg"),
+    ("draw", "drawing.jpg"),
+    ("paint", "drawing.jpg"),
+    ("collage", "drawing.jpg"),
+    ("plant", "planting.jpg"),
+    ("garden", "planting.jpg"),
+    ("bird feeder", "planting.jpg"),
+    ("library", "library.jpg"),
+    ("book", "library.jpg"),
+    ("playdough", "playdough.jpg"),
+    ("dough", "playdough.jpg"),
+    ("board game", "board_game.jpg"),
+    ("jigsaw", "board_game.jpg"),
+    ("puzzle", "board_game.jpg"),
+    ("picnic", "picnic.jpg"),
+    ("snowman", "park.jpg"),
+    ("star gaz", "park.jpg"),
+    ("cloud", "park.jpg"),
+    ("bike", "park.jpg"),
+]
+
+
+def _photo_for_activity(title: str) -> str | None:
+    lower = title.lower()
+    for keyword, filename in _ACTIVITY_PHOTO_MAP:
+        if keyword in lower:
+            return filename
+    return None
+
 
 MOCK_FAMILIES = [
     {
@@ -64,6 +112,36 @@ MOCK_FAMILIES = [
 ]
 
 
+def _upload_seed_photo(family_id: uuid.UUID, filename: str) -> str | None:
+    """Upload a bundled seed photo to S3. Returns photo_key, or None if storage is unavailable."""
+    if not settings.S3_ENDPOINT_URL or not settings.S3_BUCKET_NAME:
+        return None
+    photo_path = _SEED_PHOTOS_DIR / filename
+    if not photo_path.exists():
+        return None
+    try:
+        client = boto3.client(
+            "s3",
+            endpoint_url=settings.S3_ENDPOINT_URL,
+            aws_access_key_id=settings.S3_ACCESS_KEY,
+            aws_secret_access_key=settings.S3_SECRET_KEY,
+            region_name=settings.S3_REGION,
+            config=Config(signature_version="s3v4"),
+        )
+        data = photo_path.read_bytes()
+        key = f"photos/{family_id}/{uuid.uuid4()}.jpg"
+        client.put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Body=data,
+            ContentType="image/jpeg",
+        )
+        return key
+    except Exception as e:
+        print(f"  ⚠  Photo upload failed ({filename}): {e}")
+        return None
+
+
 async def seed():
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     Session = async_sessionmaker(engine, expire_on_commit=False)
@@ -86,7 +164,6 @@ async def seed():
         admin_membership = result.scalars().first()
 
         if admin_membership is None:
-            # Create family + membership + consent + child profile for admin
             admin_family = Family(name="García Family")
             session.add(admin_family)
             await session.flush()
@@ -94,7 +171,6 @@ async def seed():
             admin_membership = FamilyMembership(
                 family_id=admin_family.id,
                 user_id=admin_user.id,
-                
                 joined_at=datetime.now(timezone.utc),
             )
             session.add(admin_membership)
@@ -146,24 +222,20 @@ async def seed():
         session.add(group)
         await session.flush()
 
-        # Admin family membership + admin record
-        gm_admin = GroupMembership(
+        session.add(GroupMembership(
             group_id=group.id,
             family_id=admin_family.id,
             joined_at=datetime.now(timezone.utc),
-        )
-        session.add(gm_admin)
-
-        ga = GroupAdmin(
+        ))
+        session.add(GroupAdmin(
             group_id=group.id,
             user_id=admin_user.id,
             granted_at=datetime.now(timezone.utc),
-        )
-        session.add(ga)
+        ))
         print(f"✓  Created group '3B Class Parents' with {admin_user.display_name} as admin")
 
         # ── Create mock families ─────────────────────────────────────────────
-        mock_family_records: list[tuple[Family, User]] = []  # (family, first_parent_user)
+        mock_family_records: list[tuple[Family, User]] = []
         for mock in MOCK_FAMILIES:
             family = Family(name=mock["family_name"])
             session.add(family)
@@ -185,22 +257,20 @@ async def seed():
                     session.add(mock_user)
                     await session.flush()
 
-                fm = FamilyMembership(
+                session.add(FamilyMembership(
                     family_id=family.id,
                     user_id=mock_user.id,
                     joined_at=datetime.now(timezone.utc),
-                )
-                session.add(fm)
+                ))
                 if first_user is None:
                     first_user = mock_user
 
             mock_family_records.append((family, first_user))
-            gm = GroupMembership(
+            session.add(GroupMembership(
                 group_id=group.id,
                 family_id=family.id,
                 joined_at=datetime.now(timezone.utc),
-            )
-            session.add(gm)
+            ))
             print(f"  + Added mock family: {mock['family_name']}")
 
         # ── Fetch activities to use in challenges ────────────────────────────
@@ -213,7 +283,6 @@ async def seed():
         else:
             today = date.today()
 
-            # Clean up previously seeded challenges
             for challenge_title in [
                 "Spring Outdoor Adventures",
                 "Summer Family Challenge",
@@ -230,7 +299,7 @@ async def seed():
                     await session.delete(existing)
             await session.flush()
 
-            def _make_challenge(title, description, group_id, family_id, start_offset, end_offset, activities):
+            def _make_challenge(title, description, group_id, family_id, start_offset, end_offset):
                 return Challenge(
                     title=title,
                     description=description,
@@ -253,47 +322,36 @@ async def seed():
                 await session.flush()
                 return challenge
 
-            # 1. Active group challenge (started 7 days ago, ends in 14 days)
-            c1 = _make_challenge(
-                title="Spring Outdoor Adventures",
-                description="Explore nature and spend quality time together this spring!",
-                group_id=group.id,
-                family_id=admin_family.id,
-                start_offset=-7,
-                end_offset=14,
-                activities=all_activities[:6],
+            c1 = await _add_challenge(
+                _make_challenge(
+                    "Spring Outdoor Adventures",
+                    "Explore nature and spend quality time together this spring!",
+                    group.id, admin_family.id, -7, 14,
+                ),
+                all_activities[:6],
             )
-            c1 = await _add_challenge(c1, all_activities[:6])
-            print(f"✓  Created active group challenge: 'Spring Outdoor Adventures' (6 activities)")
+            print("✓  Created active group challenge: 'Spring Outdoor Adventures' (6 activities)")
 
-            # 2. Upcoming personal challenge (starts in 3 days, runs 3 weeks)
-            c2 = _make_challenge(
-                title="Summer Family Challenge",
-                description="Get ready for summer with these fun activities!",
-                group_id=None,
-                family_id=admin_family.id,
-                start_offset=3,
-                end_offset=24,
-                activities=all_activities[6:12],
+            c2 = await _add_challenge(  # noqa: F841
+                _make_challenge(
+                    "Summer Family Challenge",
+                    "Get ready for summer with these fun activities!",
+                    None, admin_family.id, 3, 24,
+                ),
+                all_activities[6:12],
             )
-            c2 = await _add_challenge(c2, all_activities[6:12])
-            print(f"✓  Created upcoming personal challenge: 'Summer Family Challenge' (6 activities)")
+            print("✓  Created upcoming personal challenge: 'Summer Family Challenge' (6 activities)")
 
-            # 3. Completed group challenge (ended 10 days ago)
-            c3 = _make_challenge(
-                title="Winter Warmth Challenge",
-                description="Cozy indoor activities to brighten the cold months.",
-                group_id=group.id,
-                family_id=admin_family.id,
-                start_offset=-40,
-                end_offset=-10,
-                activities=all_activities[12:18],
+            c3 = await _add_challenge(
+                _make_challenge(
+                    "Winter Warmth Challenge",
+                    "Cozy indoor activities to brighten the cold months.",
+                    group.id, admin_family.id, -40, -10,
+                ),
+                all_activities[12:18],
             )
-            c3 = await _add_challenge(c3, all_activities[12:18])
-            print(f"✓  Created completed group challenge: 'Winter Warmth Challenge' (6 activities)")
+            print("✓  Created completed group challenge: 'Winter Warmth Challenge' (6 activities)")
 
-            # ── Seed mock completions for the feed ───────────────────────────
-            # Fetch ChallengeActivity rows for c1 (active group) and c3 (completed group)
             ca_result = await session.execute(
                 select(ChallengeActivity)
                 .where(ChallengeActivity.challenge_id == c1.id)
@@ -308,63 +366,84 @@ async def seed():
             )
             c3_slots = list(ca_result.scalars().all())
 
+            # Map slot id → activity title for photo matching
+            slot_activity_title: dict[uuid.UUID, str] = {}
+            for i, ca in enumerate(c1_slots):
+                slot_activity_title[ca.id] = all_activities[i].title
+            for i, ca in enumerate(c3_slots):
+                slot_activity_title[ca.id] = all_activities[12 + i].title
+
             def _ts(days_ago: float) -> datetime:
                 return datetime.now(timezone.utc) - timedelta(days=days_ago)
 
-            # schema: (family, user, challenge_slot, days_ago, shared, caption)
             schmidt, schmidt_user = mock_family_records[0]
             mueller, mueller_user = mock_family_records[1]
             bauer, bauer_user = mock_family_records[2]
             koch, koch_user = mock_family_records[3]
 
-            mock_completions = [
-                # Schmidt — active challenge (slots 0,1,2)
-                (schmidt, schmidt_user, c1_slots[0], 6.1, True,  "Herrlicher Waldspaziergang heute! 🌳"),
-                (schmidt, schmidt_user, c1_slots[1], 4.3, True,  "Thomas hat Maxi beim Fahrradfahren geholfen — so stolz!"),
+            # (family, user, slot, days_ago, shared, caption)
+            # Shared completions automatically get a photo matched to the activity.
+            completions_data = [
+                # Schmidt — active challenge
+                (schmidt, schmidt_user, c1_slots[0], 6.1, True, "Backen mit den Kindern 🍪"),
+                (schmidt, schmidt_user, c1_slots[1], 4.3, True, "Toller Nachmittag auf dem Spielplatz!"),
                 (schmidt, schmidt_user, c1_slots[2], 1.8, False, None),
-                # Müller — active challenge (slots 0,3)
+                # Müller — active challenge
                 (mueller, mueller_user, c1_slots[0], 5.2, False, None),
-                (mueller, mueller_user, c1_slots[3], 2.5, True,  "Backen macht die Kinder so glücklich ☀️"),
-                # Bauer — active challenge (slots 1,2,3,4)
-                (bauer, bauer_user,   c1_slots[1], 6.5, True,  "Endlich mal wieder raus in die Natur!"),
-                (bauer, bauer_user,   c1_slots[2], 4.9, True,  "Sabine und Klaus haben Picknick gemacht mit den Kids"),
-                (bauer, bauer_user,   c1_slots[3], 2.2, True,  "Wir haben Blumen gepflanzt 🌻"),
-                (bauer, bauer_user,   c1_slots[4], 0.9, False, None),
-                # Koch — active challenge (slot 0)
-                (koch,  koch_user,    c1_slots[0], 3.7, True,  "Tolle Aktivität, sehr empfehlenswert!"),
-                # Admin family — active challenge (slots 0,1)
-                (admin_family, admin_user, c1_slots[0], 3.1, True,  "Super Idee, die Kinder waren begeistert"),
+                (mueller, mueller_user, c1_slots[3], 2.5, True, "Malerische Stunden mit Maxi!"),
+                # Bauer — active challenge
+                (bauer, bauer_user, c1_slots[1], 6.5, True, "Schöner Ausflug in den Park ☀️"),
+                (bauer, bauer_user, c1_slots[2], 4.9, True, "Unsere Burg war riesig! 🏰"),
+                (bauer, bauer_user, c1_slots[3], 2.2, True, "Wir haben Kunstwerke geschaffen 🎨"),
+                (bauer, bauer_user, c1_slots[4], 0.9, False, None),
+                # Koch — active challenge
+                (koch, koch_user, c1_slots[0], 3.7, True, "Die Kinder waren so begeistert!"),
+                # Admin family — active challenge
+                (admin_family, admin_user, c1_slots[0], 3.1, True, "Unsere besten Kekse! 🍪"),
                 (admin_family, admin_user, c1_slots[1], 0.5, False, None),
-                # Schmidt — completed challenge (slots 0,1)
-                (schmidt, schmidt_user, c3_slots[0], 35.0, True,  "Winterabend mit Brettspielen — wunderschön 🎲"),
+                # Schmidt — completed winter challenge
+                (schmidt, schmidt_user, c3_slots[0], 35.0, True, "Bücherei-Besuch — Maxi liebt Bücher! 📚"),
                 (schmidt, schmidt_user, c3_slots[1], 29.0, False, None),
-                # Bauer — completed challenge (slots 0,2,3)
-                (bauer,  bauer_user,   c3_slots[0], 38.0, True,  "Gemeinsames Kochen in der Adventszeit"),
-                (bauer,  bauer_user,   c3_slots[2], 31.5, True,  "Basteln mit den Kindern hat so viel Spaß gemacht!"),
-                (bauer,  bauer_user,   c3_slots[3], 24.0, False, None),
+                # Bauer — completed winter challenge
+                (bauer, bauer_user, c3_slots[0], 38.0, True, "So viele tolle Bücher entdeckt!"),
+                (bauer, bauer_user, c3_slots[2], 31.5, True, "Kneten macht so viel Spaß! 🎨"),
+                (bauer, bauer_user, c3_slots[3], 24.0, False, None),
             ]
 
-            for family, user, slot, days_ago, shared, caption in mock_completions:
+            photo_count = 0
+            for fam, u, slot, days_ago, shared, caption in completions_data:
+                photo_file: str | None = None
+                if shared:
+                    photo_file = _photo_for_activity(slot_activity_title.get(slot.id, ""))
+                photo_key: str | None = None
+                if photo_file:
+                    photo_key = _upload_seed_photo(fam.id, photo_file)
+                    if photo_key:
+                        photo_count += 1
                 session.add(Completion(
                     challenge_activity_id=slot.id,
-                    family_id=family.id,
-                    completed_by_user_id=user.id,
-                    status="self_reported",
+                    family_id=fam.id,
+                    completed_by_user_id=u.id,
+                    status="ready" if photo_key else "self_reported",
+                    photo_key=photo_key,
                     caption=caption,
                     shared_to_feed=shared,
                     completed_at=_ts(days_ago),
                 ))
 
             await session.flush()
-            shared_count = sum(1 for *_, shared, _ in mock_completions if shared)
-            print(f"✓  Seeded {len(mock_completions)} completions ({shared_count} shared to feed)")
+            shared_count = sum(1 for *_, shared, _ in completions_data if shared)
+            print(f"✓  Seeded {len(completions_data)} completions ({shared_count} shared, {photo_count} with photos)")
 
         await session.commit()
         print("\n✅  Seed complete!")
         print(f"   Group: '3B Class Parents' ({group.id})")
         print(f"   Members: {1 + len(MOCK_FAMILIES)} families")
-        print(f"\n   Note: mock users have fake google_sub values and cannot sign in.")
-        print(f"   Hint: clear the client's AsyncStorage to re-run onboarding if needed.")
+        if not settings.S3_ENDPOINT_URL:
+            print("\n   ⚠  S3 not configured — completions seeded as self_reported (no photos).")
+            print("      Run inside docker compose to use MinIO and get photo completions.")
+        print("\n   Note: mock users have fake google_sub values and cannot sign in.")
+        print("   Hint: clear the client's AsyncStorage to re-run onboarding if needed.")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
@@ -65,9 +64,9 @@ export default function HomeScreen() {
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
 
   useEffect(() => {
+    const polling = pollingRef.current;
     return () => {
-      // Clean up all polling on unmount
-      Object.values(pollingRef.current).forEach(({ interval, timeout }) => {
+      Object.values(polling).forEach(({ interval, timeout }) => {
         clearInterval(interval);
         clearTimeout(timeout);
       });

@@ -66,6 +66,7 @@ export default function CreateChallengeScreen() {
       setLoadingGroups(true);
       groupsApi.getMyGroups().then((r) => setGroups(r.data)).catch(() => {}).finally(() => setLoadingGroups(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   function toggleActivity(id: string) {
