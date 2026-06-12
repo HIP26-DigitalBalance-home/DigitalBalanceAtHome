@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity import Activity
@@ -37,6 +37,18 @@ class CompletionRepository:
         self.session.add(completion)
         await self.session.flush()
         return completion
+
+    async def count_photo_completions(self, family_id: uuid.UUID) -> int:
+        """Count completions with a photo (processing or ready) for a family."""
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Completion)
+            .where(
+                Completion.family_id == family_id,
+                Completion.status.in_(["processing", "ready"]),
+            )
+        )
+        return result.scalar_one()
 
     async def get_by_id(self, completion_id: uuid.UUID) -> Completion | None:
         result = await self.session.execute(select(Completion).where(Completion.id == completion_id))

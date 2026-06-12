@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,12 @@ class Settings(BaseSettings):
     API_BASE_URL: str = "http://localhost:8000"
     CLIENT_BASE_URL: str = "http://localhost:8081"
     SEED_ENABLED: bool = False
+    PHOTO_UPLOAD_LIMIT: int = 50
+
+    @field_validator("PHOTO_UPLOAD_LIMIT")
+    @classmethod
+    def _clamp_photo_limit(cls, v: int) -> int:
+        return v if v > 0 else 50
 
 
 settings = Settings()

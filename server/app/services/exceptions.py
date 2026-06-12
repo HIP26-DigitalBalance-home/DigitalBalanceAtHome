@@ -118,6 +118,11 @@ class AlreadyCompleted(DomainError):
     code = "already_completed"
 
 
+class PhotoLimitReached(DomainError):
+    status_code = 429
+    code = "photo_limit_reached"
+
+
 class NoDeletionPending(DomainError):
     status_code = 409
     code = "no_deletion_pending"

@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import storage
+from app.core.config import settings
 from app.models.challenge import ChallengeActivity
 from app.models.completion import Completion
 from app.repositories.challenge import _accessible_predicate
@@ -17,6 +18,7 @@ from app.services.exceptions import (
     GroupNotFound,
     NoFamilyError,
     NotGroupMember,
+    PhotoLimitReached,
 )
 from app.services.family import get_user_family
 
@@ -261,6 +263,12 @@ async def start_photo_completion(
     if not fm:
         raise NoFamilyError("You must be in a family to complete activities")
 
+    repo = CompletionRepository(session)
+    photo_count = await repo.count_photo_completions(fm.family_id)
+    limit = settings.PHOTO_UPLOAD_LIMIT
+    if photo_count >= limit:
+        raise PhotoLimitReached(f"Your family has reached the photo limit of {limit}")
+
     await _resolve_slot(session, challenge_activity_id, fm.family_id)
 
     photo_id = uuid.uuid4()
@@ -269,7 +277,6 @@ async def start_photo_completion(
 
     storage.upload_bytes(raw_key, photo_data, content_type)
 
-    repo = CompletionRepository(session)
     try:
         completion = await repo.create(
             challenge_activity_id=challenge_activity_id,
