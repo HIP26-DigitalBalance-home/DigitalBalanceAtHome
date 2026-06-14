@@ -1,8 +1,7 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -15,9 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { activitiesApi, challengesApi, groupsApi, type ActivityItem } from '@/lib/api';
+import { challengesApi, groupsApi } from '@/lib/api';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3;
 
 interface GroupSummary {
   id: string;
@@ -30,6 +29,13 @@ function toISODate(d: Date): string {
 
 export default function CreateChallengeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { activityIds: activityIdsParam } = useLocalSearchParams<{ activityIds?: string }>();
+
+  // The collage is built before this wizard; activity ids arrive as a param.
+  const activityIds = useMemo(
+    () => (activityIdsParam ? activityIdsParam.split(',').filter(Boolean) : []),
+    [activityIdsParam]
+  );
 
   const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
@@ -39,12 +45,7 @@ export default function CreateChallengeScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  // Step 2: Activities
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  // Step 3: Dates — default to today → today + 14 days
+  // Step 2: Dates — default to today → today + 14 days
   const [startDate, setStartDate] = useState(() => toISODate(new Date()));
   const [endDate, setEndDate] = useState(() => {
     const d = new Date();
@@ -52,28 +53,18 @@ export default function CreateChallengeScreen() {
     return toISODate(d);
   });
 
-  // Step 4: Group
+  // Step 3: Group
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (step === 2 && activities.length === 0) {
-      setLoadingActivities(true);
-      activitiesApi.list({}).then((r) => setActivities(r.data)).catch(() => {}).finally(() => setLoadingActivities(false));
-    }
-    if (step === 4 && groups.length === 0) {
+    if (step === 3 && groups.length === 0) {
       setLoadingGroups(true);
       groupsApi.getMyGroups().then((r) => setGroups(r.data)).catch(() => {}).finally(() => setLoadingGroups(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
-
-  function toggleActivity(id: string) {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
 
   function validateDates(): string | null {
     if (!startDate || !endDate) return 'Both dates are required.';
@@ -92,12 +83,9 @@ export default function CreateChallengeScreen() {
       if (!title.trim()) { setError('Title is required.'); return; }
       setStep(2);
     } else if (step === 2) {
-      if (selectedIds.length === 0) { setError('Select at least one activity.'); return; }
-      setStep(3);
-    } else if (step === 3) {
       const dateError = validateDates();
       if (dateError) { setError(dateError); return; }
-      setStep(4);
+      setStep(3);
     }
   }
 
@@ -109,7 +97,7 @@ export default function CreateChallengeScreen() {
         title: title.trim(),
         description: description.trim() || null,
         group_id: selectedGroupId,
-        activity_ids: selectedIds,
+        activity_ids: activityIds,
         start_date: startDate,
         end_date: endDate,
       });
@@ -122,7 +110,12 @@ export default function CreateChallengeScreen() {
     }
   }
 
-  const stepTitle = ['', 'Challenge details', 'Choose activities', 'Set dates', 'Assign to group'][step];
+  // The wizard must never be entered without a built collage.
+  if (activityIds.length === 0) {
+    return <Redirect href={'/(tabs)/explore' as any} />;
+  }
+
+  const stepTitle = ['', 'Challenge details', 'Set dates', 'Assign to group'][step];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -131,7 +124,7 @@ export default function CreateChallengeScreen() {
           <ThemedText style={{ color: colors.primary }}>← {step === 1 ? 'Back' : 'Previous'}</ThemedText>
         </Pressable>
         <ThemedText style={styles.stepTitle}>{stepTitle}</ThemedText>
-        <ThemedText style={[styles.stepCounter, { color: colors.muted }]}>{step}/4</ThemedText>
+        <ThemedText style={[styles.stepCounter, { color: colors.muted }]}>{step}/3</ThemedText>
       </View>
 
       {error && (
@@ -167,53 +160,6 @@ export default function CreateChallengeScreen() {
       )}
 
       {step === 2 && (
-        <View style={{ flex: 1 }}>
-          <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            Tap activities to select them. The order you select sets the collage layout.
-            {selectedIds.length > 0 ? ` (${selectedIds.length} selected)` : ''}
-          </ThemedText>
-          {loadingActivities ? (
-            <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
-          ) : (
-            <FlatList
-              data={activities}
-              keyExtractor={(a) => a.id}
-              style={{ flex: 1 }}
-              contentContainerStyle={styles.list}
-              renderItem={({ item }) => {
-                const pos = selectedIds.indexOf(item.id);
-                const selected = pos !== -1;
-                return (
-                  <Pressable
-                    style={[
-                      styles.activityRow,
-                      { backgroundColor: selected ? colors.primary + '15' : colors.surface, borderColor: selected ? colors.primary : colors.border },
-                    ]}
-                    onPress={() => toggleActivity(item.id)}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <ThemedText style={[styles.activityTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                      <ThemedText style={[styles.activityMeta, { color: colors.muted }]}>⏱ {item.estimated_duration_minutes} min</ThemedText>
-                    </View>
-                    {selected && (
-                      <View style={[styles.positionBadge, { backgroundColor: colors.primary }]}>
-                        <ThemedText style={styles.positionText}>{pos + 1}</ThemedText>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              }}
-            />
-          )}
-          <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <Pressable style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={nextStep}>
-              <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>Next →</ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {step === 3 && (
         <ScrollView contentContainerStyle={styles.content}>
           <ThemedText style={[styles.label, { color: colors.muted }]}>START DATE *</ThemedText>
           <TextInput
@@ -239,7 +185,7 @@ export default function CreateChallengeScreen() {
         </ScrollView>
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.content}>
             <ThemedText style={[styles.label, { color: colors.muted }]}>WHO IS THIS CHALLENGE FOR?</ThemedText>
@@ -311,16 +257,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
   input: { height: 48, borderRadius: 10, borderWidth: 1, paddingHorizontal: Spacing.md, fontSize: 15 },
   textarea: { height: 80, paddingTop: Spacing.sm, textAlignVertical: 'top' },
-  hint: { fontSize: 13, paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.sm },
-  list: { padding: Spacing.md, gap: Spacing.sm },
-  activityRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
-  activityTitle: { fontSize: 14, fontWeight: '500' },
-  activityMeta: { fontSize: 12, marginTop: 2 },
-  positionBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  positionText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   groupOption: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: 4 },
   nextButton: { height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   nextText: { fontSize: 16, fontWeight: '600' },
   footer: { padding: Spacing.screenHorizontal, borderTopWidth: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

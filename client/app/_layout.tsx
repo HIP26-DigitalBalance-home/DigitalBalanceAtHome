@@ -73,6 +73,8 @@ function RootLayoutNav() {
         <Stack.Screen name="join-family" />
         <Stack.Screen name="group/[id]" />
         <Stack.Screen name="activity/[id]" />
+        <Stack.Screen name="collage-builder" />
+        <Stack.Screen name="create-activity" />
         <Stack.Screen name="create-challenge" />
         <Stack.Screen name="challenges" />
         <Stack.Screen name="challenge/[id]" />
