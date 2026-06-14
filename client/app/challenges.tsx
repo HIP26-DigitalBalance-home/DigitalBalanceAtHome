@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,13 +14,6 @@ import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 type StatusFilter = 'upcoming' | 'active' | 'completed' | undefined;
 
-const STATUS_CHIPS: { label: string; value: StatusFilter }[] = [
-  { label: 'All', value: undefined },
-  { label: 'Active', value: 'active' },
-  { label: 'Upcoming', value: 'upcoming' },
-  { label: 'Completed', value: 'completed' },
-];
-
 const STATUS_COLORS: Record<string, string> = {
   active: '#4CAF82',
   upcoming: '#F4845F',
@@ -28,10 +22,23 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ChallengesScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>(undefined);
+
+  const STATUS_CHIPS: { label: string; value: StatusFilter }[] = [
+    { label: t('common.all'), value: undefined },
+    { label: t('status.active'), value: 'active' },
+    { label: t('status.upcoming'), value: 'upcoming' },
+    { label: t('status.completed'), value: 'completed' },
+  ];
+  const statusLabels: Record<string, string> = {
+    active: t('status.active'),
+    upcoming: t('status.upcoming'),
+    completed: t('status.completed'),
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,11 +59,11 @@ export default function ChallengesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.title}>Challenges</ThemedText>
-        <Pressable onPress={() => router.push('/create-challenge' as any)}>
-          <ThemedText style={{ color: colors.primary }}>+ New</ThemedText>
+        <ThemedText style={styles.title}>{t('challengesList.title')}</ThemedText>
+        <Pressable onPress={() => router.push('/(tabs)/explore' as any)}>
+          <ThemedText style={{ color: colors.primary }}>{t('challengesList.new')}</ThemedText>
         </Pressable>
       </View>
 
@@ -90,12 +97,12 @@ export default function ChallengesScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
-              <ThemedText style={{ color: colors.muted }}>No challenges found.</ThemedText>
+              <ThemedText style={{ color: colors.muted }}>{t('challengesList.noneFound')}</ThemedText>
               <Pressable
                 style={[styles.createBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/create-challenge' as any)}
+                onPress={() => router.push('/(tabs)/explore' as any)}
               >
-                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Create a challenge</ThemedText>
+                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
               </Pressable>
             </View>
           }
@@ -108,7 +115,7 @@ export default function ChallengesScreen() {
                 <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
                 <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[item.status] ?? colors.muted) + '22' }]}>
                   <ThemedText style={[styles.statusText, { color: STATUS_COLORS[item.status] ?? colors.muted }]}>
-                    {item.status}
+                    {statusLabels[item.status] ?? item.status}
                   </ThemedText>
                 </View>
               </View>

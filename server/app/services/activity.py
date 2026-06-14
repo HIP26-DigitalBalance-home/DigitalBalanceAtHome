@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.activity import Activity
 from app.repositories.activity import ActivityRepository
 from app.repositories.child_profile import ChildProfileRepository
+from app.schemas.generated import CreateActivityRequest
+from app.services.exceptions import NoFamilyError
+from app.services.family import get_user_family
 
 
 def _current_season() -> str:
@@ -27,13 +30,40 @@ def _child_age(date_of_birth: date) -> int:
 
 async def list_activities(
     session: AsyncSession,
+    user_id: uuid.UUID,
     age: int | None,
     season: str | None,
     weather: str | None,
     cost: str | None,
 ) -> list[Activity]:
     repo = ActivityRepository(session)
-    return await repo.get_all(age=age, season=season, weather=weather, cost=cost, exclude_paid=True)
+    membership = await get_user_family(session, user_id)
+    family_id = membership.family_id if membership else None
+    return await repo.get_all(
+        age=age, season=season, weather=weather, cost=cost, exclude_paid=True, family_id=family_id
+    )
+
+
+async def create_activity(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    req: CreateActivityRequest,
+    language: str = "de",
+) -> Activity:
+    membership = await get_user_family(session, user_id)
+    if not membership:
+        raise NoFamilyError("You must create or join a family before adding activities")
+
+    repo = ActivityRepository(session)
+    return await repo.create(
+        created_by_user_id=user_id,
+        family_id=membership.family_id,
+        title=req.title,
+        description=req.description,
+        estimated_duration_minutes=req.estimated_duration_minutes or 30,
+        cost_indicator=str(req.cost_indicator or "free"),
+        language=language,
+    )
 
 
 async def get_suggestion(

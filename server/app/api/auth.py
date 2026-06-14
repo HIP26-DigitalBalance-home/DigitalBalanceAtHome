@@ -19,6 +19,7 @@ def _user_schema(user: User) -> dict:
         "display_name": user.display_name,
         "profile_photo_url": None,
         "points_balance": user.points_balance,
+        "preferred_language": user.preferred_language,
         "deletion_pending_at": user.deletion_pending_at,
         "created_at": user.created_at,
     }

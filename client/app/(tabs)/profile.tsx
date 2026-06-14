@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,6 +46,7 @@ function ageFromDob(dob: string): number {
 
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { currentUser, logout, updateCurrentUser } = useAuth();
   const router = useRouter();
   const isOnline = useNetworkStatus();
@@ -94,17 +96,17 @@ export default function ProfileScreen() {
 
   async function handleSeedDemo() {
     const confirmed = await confirmDestructive(
-      'Load demo data?',
-      'This will create a sample group, mock families, and example challenges. Safe to run again — demo data will be reset.',
-      'Load',
+      t('profile.loadDemoTitle'),
+      t('profile.loadDemoMsg'),
+      t('profile.loadDemoConfirm'),
     );
     if (!confirmed) return;
     setSeeding(true);
     try {
       await devApi.seed();
-      showAlert('Demo data loaded!', 'Pull to refresh your Home and Groups tabs.');
+      showAlert(t('profile.loadDemoSuccess'), t('profile.loadDemoSuccessMsg'));
     } catch {
-      showAlert('Error', 'Failed to load demo data. Make sure the server has SEED_ENABLED=true.');
+      showAlert(t('common.error'), t('profile.loadDemoFailed'));
     } finally {
       setSeeding(false);
     }
@@ -113,9 +115,9 @@ export default function ProfileScreen() {
   async function handleLeaveFamily() {
     if (!family || !currentUser) return;
     const confirmed = await confirmDestructive(
-      'Leave family',
-      `Leave "${family.name ?? 'your family'}"? You can rejoin with an invite link.`,
-      'Leave',
+      t('profile.leaveFamilyTitle'),
+      t('profile.leaveFamilyConfirm', { name: family.name ?? t('profile.defaultFamilyName') }),
+      t('common.remove'),
     );
     if (!confirmed) return;
     setLeaving(true);
@@ -123,7 +125,7 @@ export default function ProfileScreen() {
       await apiClient.delete(`/families/${family.id}/members/${currentUser.id}`);
       setFamily(null);
     } catch {
-      showAlert('Error', 'Failed to leave family. Please try again.');
+      showAlert(t('common.error'), t('profile.leaveFamilyFailed'));
     } finally {
       setLeaving(false);
     }
@@ -138,12 +140,12 @@ export default function ProfileScreen() {
       await Clipboard.setStringAsync(url);
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(url, { dialogTitle: 'Invite to family' });
+        await Sharing.shareAsync(url, { dialogTitle: t('profile.inviteFamilyTitle') });
       } else {
-        showAlert('Link copied', 'Share this link to invite your partner:\n\n' + url);
+        showAlert(t('profile.inviteFamilyCopied'), t('profile.inviteFamilyMessage', { url }));
       }
     } catch {
-      showAlert('Error', 'Failed to generate invite link');
+      showAlert(t('common.error'), t('profile.inviteFamilyFailed'));
     } finally {
       setInviting(false);
     }
@@ -156,7 +158,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <ThemedText type="title" style={styles.title}>Profile</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('profile.title')}</ThemedText>
       </View>
 
       <FlatList
@@ -185,7 +187,7 @@ export default function ProfileScreen() {
                   <ThemedText style={styles.displayName}>{currentUser?.display_name ?? '—'}</ThemedText>
                   <ThemedText style={[styles.email, { color: colors.muted }]}>{currentUser?.email}</ThemedText>
                   <ThemedText style={[styles.points, { color: colors.accent }]}>
-                    {currentUser?.points_balance ?? 0} pts
+                    {currentUser?.points_balance ?? 0} {t('profile.pts')}
                   </ThemedText>
                 </View>
               </View>
@@ -193,27 +195,27 @@ export default function ProfileScreen() {
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.primary }]}
                 onPress={() => router.push('/edit-profile' as any)}>
-                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Edit Profile</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>{t('profile.editProfile')}</ThemedText>
               </Pressable>
 
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.border }]}
                 onPress={() => router.push('/activity-history' as any)}>
-                <ThemedText style={{ fontWeight: '600' }}>Activity History</ThemedText>
+                <ThemedText style={{ fontWeight: '600' }}>{t('profile.activityHistory')}</ThemedText>
               </Pressable>
 
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.border }]}
                 onPress={() => router.push('/privacy' as any)}>
-                <ThemedText style={{ fontWeight: '600' }}>Privacy & Data</ThemedText>
+                <ThemedText style={{ fontWeight: '600' }}>{t('profile.privacyData')}</ThemedText>
               </Pressable>
             </View>
 
             {/* Children */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY CHILDREN</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.myChildren')}</ThemedText>
             {children.length === 0 ? (
               <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
-                No children added yet
+                {t('profile.noChildren')}
               </ThemedText>
             ) : (
               children.map((child) => (
@@ -222,7 +224,7 @@ export default function ProfileScreen() {
                     <View>
                       <ThemedText style={styles.cardValue}>{child.nickname}</ThemedText>
                       <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
-                        Age {ageFromDob(child.date_of_birth)}
+                        {t('profile.age', { count: ageFromDob(child.date_of_birth) })}
                       </ThemedText>
                     </View>
                     <Pressable
@@ -237,7 +239,7 @@ export default function ProfileScreen() {
                           },
                         } as any)
                       }>
-                      <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>Edit</ThemedText>
+                      <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>{t('common.edit')}</ThemedText>
                     </Pressable>
                   </View>
                 </View>
@@ -245,19 +247,19 @@ export default function ProfileScreen() {
             )}
 
             {/* My Family */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY FAMILY</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.myFamily')}</ThemedText>
 
             {loading ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.lg }} />
             ) : family ? (
               <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <ThemedText style={styles.cardValue}>{family.name ?? 'My Family'}</ThemedText>
+                <ThemedText style={styles.cardValue}>{family.name ?? t('profile.defaultFamilyName')}</ThemedText>
 
                 {family.members.map((m) => (
                   <View key={m.user_id} style={[styles.memberRow, { borderTopColor: colors.border }]}>
                     <ThemedText style={styles.memberName}>{m.display_name}</ThemedText>
                     {m.user_id === currentUser?.id && (
-                      <ThemedText style={[styles.memberRole, { color: colors.muted }]}>(you)</ThemedText>
+                      <ThemedText style={[styles.memberRole, { color: colors.muted }]}>{t('profile.you')}</ThemedText>
                     )}
                   </View>
                 ))}
@@ -270,7 +272,7 @@ export default function ProfileScreen() {
                     <ActivityIndicator color={colors.primary} size="small" />
                   ) : (
                     <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
-                      + Invite to family
+                      {t('profile.inviteToFamily')}
                     </ThemedText>
                   )}
                 </Pressable>
@@ -283,29 +285,29 @@ export default function ProfileScreen() {
                     <ActivityIndicator color={colors.destructive} size="small" />
                   ) : (
                     <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>
-                      Leave family
+                      {t('profile.leaveFamily')}
                     </ThemedText>
                   )}
                 </Pressable>
               </View>
             ) : (
               <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
-                No family found
+                {t('profile.noFamily')}
               </ThemedText>
             )}
 
             {/* Location / city preference */}
             {locationConsent && (
               <>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVITY SUGGESTIONS</ThemedText>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.activitySuggestions')}</ThemedText>
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <ThemedText style={styles.cardLabel}>Your city</ThemedText>
+                  <ThemedText style={styles.cardLabel}>{t('profile.yourCity')}</ThemedText>
                   <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
-                    Used for weather-based suggestions. Leave blank for season-based suggestions.
+                    {t('profile.citySub')}
                   </ThemedText>
                   <TextInput
                     style={[styles.cityInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
-                    placeholder="e.g. Munich"
+                    placeholder={t('profile.cityPlaceholder')}
                     placeholderTextColor={colors.muted}
                     value={city}
                     onChangeText={setCity}
@@ -322,7 +324,7 @@ export default function ProfileScreen() {
             )}
 
             {/* Demo data */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>DEMO</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.demo')}</ThemedText>
             <Pressable
               style={[styles.outlineButton, { borderColor: colors.accent, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
               onPress={handleSeedDemo}
@@ -330,7 +332,7 @@ export default function ProfileScreen() {
               {seeding ? (
                 <ActivityIndicator color={colors.accent} size="small" />
               ) : (
-                <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>Load demo data</ThemedText>
+                <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>{t('profile.loadDemo')}</ThemedText>
               )}
             </Pressable>
 
@@ -338,7 +340,7 @@ export default function ProfileScreen() {
             <Pressable
               style={[styles.signOutButton, { borderColor: colors.destructive }]}
               onPress={logout}>
-              <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>Sign out</ThemedText>
+              <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>{t('profile.signOut')}</ThemedText>
             </Pressable>
           </>
         }

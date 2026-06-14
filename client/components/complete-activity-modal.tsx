@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
@@ -18,6 +19,7 @@ interface Props {
 
 export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose, onSelfReported, onPhotoSelected }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
   const [sharedToFeed, setSharedToFeed] = useState(false);
 
@@ -66,12 +68,12 @@ export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose
             {slot.activity.title}
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-            ⏱ {slot.activity.estimated_duration_minutes} min · Mark as complete
+            {t('completeModal.subtitle', { count: slot.activity.estimated_duration_minutes })}
           </ThemedText>
 
           {isGroupChallenge && (
             <View style={[styles.shareRow, { borderColor: colors.border }]}>
-              <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>Share to group feed</ThemedText>
+              <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
               <Switch
                 value={sharedToFeed}
                 onValueChange={setSharedToFeed}
@@ -90,7 +92,7 @@ export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose
                 <ActivityIndicator color="#fff" />
               ) : (
                 <ThemedText style={styles.buttonText}>
-                  {Platform.OS === 'web' ? '📎 Choose photo' : '🖼 Photo library'}
+                  {Platform.OS === 'web' ? t('completeModal.choosePhoto') : t('completeModal.photoLibrary')}
                 </ThemedText>
               )}
             </Pressable>
@@ -99,14 +101,14 @@ export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose
               style={[styles.button, { backgroundColor: colors.accent }]}
               onPress={() => slot && onSelfReported(slot.id, sharedToFeed)}
             >
-              <ThemedText style={styles.buttonText}>✓ Mark without photo</ThemedText>
+              <ThemedText style={styles.buttonText}>{t('completeModal.markWithoutPhoto')}</ThemedText>
             </Pressable>
 
             <Pressable
               style={[styles.cancelButton, { borderColor: colors.border }]}
               onPress={onClose}
             >
-              <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
+              <ThemedText style={{ color: colors.muted }}>{t('common.cancel')}</ThemedText>
             </Pressable>
           </View>
         </Pressable>

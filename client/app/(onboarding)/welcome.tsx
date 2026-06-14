@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,21 +10,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const SLIDES = [
-  {
-    icon: '🌿',
-    title: 'Time that matters',
-    body: 'Small activities with your child build lasting bonds. The app guides you — no planning needed.',
-  },
-  {
-    icon: '📸',
-    title: 'Your family collage',
-    body: 'Every activity you complete fills a slot in your personal collage — a growing memory of time well spent.',
-  },
-];
-
 export default function WelcomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
+  const SLIDES = [
+    { icon: '🌿', title: t('welcome.slide1Title'), body: t('welcome.slide1Body') },
+    { icon: '📸', title: t('welcome.slide2Title'), body: t('welcome.slide2Body') },
+  ];
   const [activeIndex, setActiveIndex] = useState(0);
   const isLast = activeIndex === SLIDES.length - 1;
   const slide = SLIDES[activeIndex];
@@ -50,7 +43,7 @@ export default function WelcomeScreen() {
           style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={handleNext}>
           <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-            {isLast ? 'Get started' : 'Next'}
+            {isLast ? t('welcome.getStarted') : t('common.next')}
           </ThemedText>
         </Pressable>
       </View>

@@ -14,4 +14,5 @@ class User(Base, TimestampMixin):
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     profile_photo_key: Mapped[str | None] = mapped_column(String, nullable=True)
     points_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    preferred_language: Mapped[str] = mapped_column(String(10), nullable=False, default="de")
     deletion_pending_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

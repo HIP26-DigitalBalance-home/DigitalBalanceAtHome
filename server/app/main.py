@@ -12,6 +12,7 @@ from app.api import (
     auth,
     challenges,
     children,
+    collage_presets,
     completions,
     consents,
     families,
@@ -104,6 +105,7 @@ app.include_router(families.router, prefix="/families", tags=["families"])
 app.include_router(children.router, prefix="/children", tags=["children"])
 app.include_router(groups.router, prefix="/groups", tags=["groups"])
 app.include_router(activities.router, prefix="/activities", tags=["activities"])
+app.include_router(collage_presets.router, prefix="/collage-presets", tags=["collage-presets"])
 app.include_router(challenges.router, prefix="/challenges", tags=["challenges"])
 app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])

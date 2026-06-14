@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Formik } from 'formik';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
@@ -7,21 +8,23 @@ import * as Yup from 'yup';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import i18n from '@/lib/i18n';
 import { onboardingApi } from '@/lib/api';
 
 const today = new Date().toISOString().split('T')[0];
 
 const schema = Yup.object({
-  nickname: Yup.string().required('Nickname is required'),
+  nickname: Yup.string().required(i18n.t('childForm.nicknameRequired')),
   date_of_birth: Yup.string()
-    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Use format YYYY-MM-DD')
-    .test('not-future', 'Date cannot be in the future', (v) => !v || v <= today)
-    .required('Date of birth is required'),
+    .matches(/^\d{4}-\d{2}-\d{2}$/, i18n.t('childForm.dobFormat'))
+    .test('not-future', i18n.t('childForm.dobFuture'), (v) => !v || v <= today)
+    .required(i18n.t('childForm.dobRequired')),
   interests: Yup.string(),
 });
 
 export default function EditChildScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const router = useRouter();
   const { id, nickname, date_of_birth, interests } = useLocalSearchParams<{
     id: string;
@@ -46,7 +49,7 @@ export default function EditChildScreen() {
       });
       router.back();
     } catch {
-      setStatus('Failed to save. Please try again.');
+      setStatus(i18n.t('childForm.saveFailed'));
       setSubmitting(false);
     }
   }
@@ -65,17 +68,17 @@ export default function EditChildScreen() {
           <>
             <View style={[styles.header, { borderBottomColor: colors.border }]}>
               <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← Back</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← {t('common.back')}</ThemedText>
               </Pressable>
-              <ThemedText type="title" style={styles.title}>Edit Child</ThemedText>
+              <ThemedText type="title" style={styles.title}>{t('editChild.title')}</ThemedText>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
               <View style={styles.field}>
-                <ThemedText style={styles.label}>Nickname *</ThemedText>
+                <ThemedText style={styles.label}>{t('childForm.nickname')}</ThemedText>
                 <TextInput
                   style={[styles.input, { borderColor: touched.nickname && errors.nickname ? colors.destructive : colors.border, color: colors.text, backgroundColor: colors.surface }]}
-                  placeholder="e.g. Maxi"
+                  placeholder={t('childForm.nicknamePlaceholder')}
                   placeholderTextColor={colors.muted}
                   value={values.nickname}
                   onChangeText={handleChange('nickname')}
@@ -87,7 +90,7 @@ export default function EditChildScreen() {
               </View>
 
               <View style={styles.field}>
-                <ThemedText style={styles.label}>Date of birth * (YYYY-MM-DD)</ThemedText>
+                <ThemedText style={styles.label}>{t('childForm.dob')}</ThemedText>
                 <TextInput
                   style={[styles.input, { borderColor: touched.date_of_birth && errors.date_of_birth ? colors.destructive : colors.border, color: colors.text, backgroundColor: colors.surface }]}
                   placeholder="2019-03-15"
@@ -103,16 +106,16 @@ export default function EditChildScreen() {
               </View>
 
               <View style={styles.field}>
-                <ThemedText style={styles.label}>Interests (optional, comma-separated)</ThemedText>
+                <ThemedText style={styles.label}>{t('childForm.interests')}</ThemedText>
                 <TextInput
                   style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-                  placeholder="e.g. drawing, music, football"
+                  placeholder={t('childForm.interestsPlaceholder')}
                   placeholderTextColor={colors.muted}
                   value={values.interests}
                   onChangeText={handleChange('interests')}
                 />
                 <ThemedText style={[styles.hint, { color: colors.muted }]}>
-                  Please do not enter medical conditions or sensitive health information here.
+                  {t('childForm.interestsHint')}
                 </ThemedText>
               </View>
 
@@ -129,7 +132,7 @@ export default function EditChildScreen() {
                 {isSubmitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Save changes</ThemedText>
+                  <ThemedText style={[styles.buttonText, { color: '#fff' }]}>{t('common.save')}</ThemedText>
                 )}
               </Pressable>
             </View>

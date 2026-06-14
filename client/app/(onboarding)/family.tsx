@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { pendingInvite } from '@/lib/pending-invite';
 
 export default function FamilyScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function FamilyScreen() {
       await onboardingApi.postFamily({ name: name.trim() || null });
       router.push('/(onboarding)/child');
     } catch {
-      setError('Failed to create family. Please try again.');
+      setError(t('family.createFailed'));
       setIsSubmitting(false);
     }
   }
@@ -46,10 +48,10 @@ export default function FamilyScreen() {
       router.push('/(onboarding)/child');
     } catch (err: any) {
       const code = err?.response?.data?.code;
-      if (code === 'invite_expired') setError('This family invite has expired.');
-      else if (code === 'invite_already_used') setError('This family invite has already been used.');
-      else if (code === 'already_family_member') setError('You are already a member of this family.');
-      else setError('Failed to join family. The invite may be invalid.');
+      if (code === 'invite_expired') setError(t('family.inviteExpired'));
+      else if (code === 'invite_already_used') setError(t('family.inviteUsed'));
+      else if (code === 'already_family_member') setError(t('family.alreadyMember'));
+      else setError(t('family.joinFailed'));
       setIsSubmitting(false);
     }
   }
@@ -58,13 +60,13 @@ export default function FamilyScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <ThemedText type="title">
-          {pendingFamilyToken ? 'Join your family' : 'Create your family'}
+          {pendingFamilyToken ? t('family.joinTitle') : t('family.createTitle')}
         </ThemedText>
 
         {pendingFamilyToken ? (
           <>
             <ThemedText style={{ color: colors.muted }}>
-              You were invited to join a family. Accept the invite or create your own instead.
+              {t('family.joinIntro')}
             </ThemedText>
             {error && (
               <ThemedText style={{ color: colors.destructive, fontSize: 14 }}>{error}</ThemedText>
@@ -73,11 +75,11 @@ export default function FamilyScreen() {
         ) : (
           <>
             <ThemedText style={{ color: colors.muted }}>
-              Give your family a name — or skip and we&apos;ll use the default.
+              {t('family.createIntro')}
             </ThemedText>
             <TextInput
               style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-              placeholder="e.g. The Mustermann Family"
+              placeholder={t('family.namePlaceholder')}
               placeholderTextColor={colors.muted}
               value={name}
               onChangeText={setName}
@@ -103,7 +105,7 @@ export default function FamilyScreen() {
                 <ActivityIndicator color={colors.buttonText} />
               ) : (
                 <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-                  Accept invite
+                  {t('family.acceptInvite')}
                 </ThemedText>
               )}
             </Pressable>
@@ -115,7 +117,7 @@ export default function FamilyScreen() {
               }}
               disabled={isSubmitting}>
               <ThemedText style={{ color: colors.muted, fontSize: 15 }}>
-                Create a new family instead
+                {t('family.createInstead')}
               </ThemedText>
             </Pressable>
           </>
@@ -128,7 +130,7 @@ export default function FamilyScreen() {
               <ActivityIndicator color={colors.buttonText} />
             ) : (
               <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-                Create family
+                {t('family.createButton')}
               </ThemedText>
             )}
           </Pressable>

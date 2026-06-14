@@ -22,6 +22,7 @@ def _fake_user() -> MagicMock:
     user.display_name = "Test Parent"
     user.profile_photo_key = None
     user.points_balance = 0
+    user.preferred_language = "de"
     user.deletion_pending_at = None
     user.created_at = datetime.now(timezone.utc)
     return user

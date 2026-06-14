@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ const PAGE_SIZE = 20;
 
 export default function ActivityHistoryScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [items, setItems] = useState<CompletionHistoryItem[]>([]);
@@ -88,9 +90,9 @@ export default function ActivityHistoryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText type="title" style={styles.title}>Activity History</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('activityHistory.title')}</ThemedText>
       </View>
 
       {loading ? (
@@ -107,7 +109,7 @@ export default function ActivityHistoryScreen() {
           onEndReachedThreshold={0.3}
           ListEmptyComponent={
             <ThemedText style={[styles.empty, { color: colors.muted }]}>
-              No completions yet — complete an activity to see it here.
+              {t('activityHistory.empty')}
             </ThemedText>
           }
           ListFooterComponent={

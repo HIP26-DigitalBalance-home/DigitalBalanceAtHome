@@ -1,5 +1,7 @@
-from sqlalchemy import Boolean, Integer, String
-from sqlalchemy.dialects.postgresql import ARRAY
+import uuid
+
+from sqlalchemy import Boolean, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -17,3 +19,12 @@ class Activity(Base, TimestampMixin):
     season_relevance: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     weather_suitability: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     is_partner_content: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    language: Mapped[str] = mapped_column(String(10), nullable=False, default="de")
+    # Ownership: NULL = global/curated activity. Non-null = user-created, visible
+    # only to the owning family in the activity pool.
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    family_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("families.id", ondelete="CASCADE"), nullable=True
+    )

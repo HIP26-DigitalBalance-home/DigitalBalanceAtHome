@@ -30,6 +30,7 @@ on:
 #   EXPO_PUBLIC_GOOGLE_CLIENT_ID     — Google OAuth web client ID (client-side, same value as GOOGLE_CLIENT_ID)
 #   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID — Google OAuth iOS client ID
 #   SEED_ENABLED                     — true to expose POST /dev/seed for demo data loading (default: false)
+#   PHOTO_UPLOAD_LIMIT               — max photo completions per family (default: 50)
 
 jobs:
   build-server:
@@ -137,6 +138,7 @@ jobs:
             API_BASE_URL=${{ vars.API_BASE_URL }}
             CLIENT_BASE_URL=${{ vars.CLIENT_BASE_URL }}
             SEED_ENABLED=${{ vars.SEED_ENABLED }}
+            PHOTO_UPLOAD_LIMIT=${{ vars.PHOTO_UPLOAD_LIMIT || '50' }}
             API_IMAGE=${{ needs.build-server.outputs.image }}
             CLIENT_IMAGE=${{ needs.build-client.outputs.image }}
             DOMAIN=${{ vars.DOMAIN }}

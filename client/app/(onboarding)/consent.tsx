@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { onboardingApi } from '@/lib/api';
 
 export default function ConsentScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [dataStorage, setDataStorage] = useState(false);
   const [photoProcessing, setPhotoProcessing] = useState(false);
   const [location, setLocation] = useState(false);
@@ -31,7 +33,7 @@ export default function ConsentScreen() {
       });
       router.push('/(onboarding)/family');
     } catch {
-      setError('Failed to save consent. Please try again.');
+      setError(t('consent.saveFailed'));
       setIsSubmitting(false);
     }
   }
@@ -39,36 +41,36 @@ export default function ConsentScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="title" style={styles.title}>Your privacy</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('consent.title')}</ThemedText>
         <ThemedText style={[styles.intro, { color: colors.muted }]}>
-          We collect only what we need to make the app work. You can delete your data at any time.
+          {t('consent.intro')}
         </ThemedText>
 
         <View style={styles.checks}>
           <ConsentCheckbox
             checked={dataStorage}
             onToggle={() => setDataStorage((v) => !v)}
-            label="Data storage"
-            sublabel="We store your profile and activity history to personalise your experience."
+            label={t('consent.dataStorage')}
+            sublabel={t('consent.dataStorageSub')}
             required
           />
           <ConsentCheckbox
             checked={photoProcessing}
             onToggle={() => setPhotoProcessing((v) => !v)}
-            label="Photo processing"
-            sublabel="Photos you upload are compressed and stored privately. They are never shared publicly."
+            label={t('consent.photoProcessing')}
+            sublabel={t('consent.photoProcessingSub')}
             required
           />
           <ConsentCheckbox
             checked={location}
             onToggle={() => setLocation((v) => !v)}
-            label="Location (city-level)"
-            sublabel="Optional. Allows us to suggest weather-appropriate activities. We never collect precise GPS."
+            label={t('consent.location')}
+            sublabel={t('consent.locationSub')}
           />
         </View>
 
         <ThemedText style={[styles.required, { color: colors.muted }]}>
-          * Required to use the app
+          {t('consent.required')}
         </ThemedText>
 
         {error && (
@@ -88,7 +90,7 @@ export default function ConsentScreen() {
             <ActivityIndicator color={colors.buttonText} />
           ) : (
             <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-              Continue
+              {t('consent.continue')}
             </ThemedText>
           )}
         </Pressable>

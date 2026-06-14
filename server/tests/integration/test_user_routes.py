@@ -16,6 +16,7 @@ def _deletion_pending_user() -> MagicMock:
     user.display_name = "Pending User"
     user.profile_photo_key = None
     user.points_balance = 0
+    user.preferred_language = "de"
     user.deletion_pending_at = datetime.now(timezone.utc)
     user.created_at = datetime.now(timezone.utc)
     return user
@@ -75,6 +76,7 @@ class TestCancelDeletion:
                 "display_name": user.display_name,
                 "profile_photo_url": None,
                 "points_balance": 0,
+                "preferred_language": "de",
                 "deletion_pending_at": None,
                 "created_at": datetime.now(timezone.utc),
             },
@@ -110,6 +112,7 @@ class TestCancelDeletion:
                 "display_name": user.display_name,
                 "profile_photo_url": None,
                 "points_balance": 0,
+                "preferred_language": "de",
                 "deletion_pending_at": None,
                 "created_at": datetime.now(timezone.utc),
             },
@@ -136,6 +139,7 @@ class TestExportData:
                     "display_name": user.display_name,
                     "profile_photo_url": None,
                     "points_balance": 0,
+                    "preferred_language": "de",
                     "deletion_pending_at": None,
                     "created_at": datetime.now(timezone.utc),
                 },

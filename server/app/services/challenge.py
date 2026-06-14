@@ -31,6 +31,7 @@ def _activity_dict(a: Activity) -> dict:
         "season_relevance": a.season_relevance,
         "weather_suitability": a.weather_suitability,
         "is_partner_content": a.is_partner_content,
+        "language": a.language,
     }
 
 

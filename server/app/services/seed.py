@@ -26,36 +26,31 @@ _SEED_PHOTOS_DIR = Path(__file__).parent.parent.parent / "scripts" / "seed_photo
 # Maps activity title keywords to a bundled photo filename.
 # First matching keyword wins; None means no photo for that activity.
 _ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
-    ("bake", "baking.jpg"),
-    ("cookie", "baking.jpg"),
-    ("pancake", "baking.jpg"),
-    ("cook", "cooking.jpg"),
+    ("backen", "baking.jpg"),
+    ("plätzchen", "baking.jpg"),
+    ("pfannkuchen", "baking.jpg"),
+    ("kochen", "cooking.jpg"),
     ("park", "park.jpg"),
-    ("playground", "park.jpg"),
-    ("scavenger", "park.jpg"),
-    ("catch", "park.jpg"),
+    ("schnitzeljagd", "park.jpg"),
+    ("fangen", "park.jpg"),
     ("frisbee", "park.jpg"),
-    ("nature walk", "park.jpg"),
-    ("pillow fort", "fort.jpg"),
-    ("blanket", "fort.jpg"),
-    ("draw", "drawing.jpg"),
-    ("paint", "drawing.jpg"),
+    ("naturspaziergang", "park.jpg"),
+    ("kissenburg", "fort.jpg"),
+    ("zeichnen", "drawing.jpg"),
+    ("malen", "drawing.jpg"),
     ("collage", "drawing.jpg"),
-    ("plant", "planting.jpg"),
-    ("garden", "planting.jpg"),
-    ("bird feeder", "planting.jpg"),
-    ("library", "library.jpg"),
-    ("book", "library.jpg"),
-    ("playdough", "playdough.jpg"),
-    ("dough", "playdough.jpg"),
-    ("board game", "board_game.jpg"),
-    ("jigsaw", "board_game.jpg"),
+    ("pflanzen", "planting.jpg"),
+    ("vogelhäuschen", "planting.jpg"),
+    ("bücherei", "library.jpg"),
+    ("buch", "library.jpg"),
+    ("knete", "playdough.jpg"),
+    ("brettspiel", "board_game.jpg"),
     ("puzzle", "board_game.jpg"),
-    ("picnic", "picnic.jpg"),
-    ("snowman", "park.jpg"),
-    ("star gaz", "park.jpg"),
-    ("cloud", "park.jpg"),
-    ("bike", "park.jpg"),
+    ("picknick", "picnic.jpg"),
+    ("schneemann", "park.jpg"),
+    ("sterne", "park.jpg"),
+    ("wolken", "park.jpg"),
+    ("fahrrad", "park.jpg"),
 ]
 
 
@@ -227,9 +222,9 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     await session.flush()
 
     # ── Fetch activities ──────────────────────────────────────────────────────
-    act_result = await session.execute(select(Activity).where(Activity.cost_indicator != "paid").limit(18))
+    act_result = await session.execute(select(Activity).where(Activity.cost_indicator != "paid").limit(27))
     activities = list(act_result.scalars().all())
-    if len(activities) < 6:
+    if len(activities) < 27:
         await session.commit()
         return
 
@@ -260,15 +255,15 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             -7,
             14,
         ),
-        activities[:6],
+        activities[:9],
     )
     c2 = await _add_challenge(  # noqa: F841
         _ch("Summer Family Challenge", "Get ready for summer with these fun activities!", None, 3, 24),
-        activities[6:12],
+        activities[9:18],
     )
     c3 = await _add_challenge(
         _ch("Winter Warmth Challenge", "Cozy indoor activities to brighten the cold months.", group.id, -40, -10),
-        activities[12:18],
+        activities[18:27],
     )
 
     # ── Seed mock completions ─────────────────────────────────────────────────
@@ -300,7 +295,7 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     for i, ca in enumerate(c1_slots):
         slot_activity_title[ca.id] = activities[i].title
     for i, ca in enumerate(c3_slots):
-        slot_activity_title[ca.id] = activities[12 + i].title
+        slot_activity_title[ca.id] = activities[18 + i].title
 
     def _ts(days_ago: float) -> datetime:
         return datetime.now(timezone.utc) - timedelta(days=days_ago)

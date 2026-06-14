@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Dimensions,
@@ -39,6 +40,7 @@ async function downloadPhoto(url: string, filename: string) {
 
 export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, onClose, onDeleted }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { width } = Dimensions.get('window');
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -46,7 +48,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
   async function handleDelete() {
     if (!completionId) return;
     const confirmed = Platform.OS === 'web'
-      ? window.confirm('Delete this photo? This cannot be undone.')
+      ? window.confirm(t('photoViewer.deleteConfirm'))
       : true; // Alert.alert callback not needed — we confirm inline
     if (!confirmed) return;
 
@@ -56,7 +58,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
       onDeleted(completionId);
       onClose();
     } catch {
-      if (Platform.OS === 'web') window.alert('Failed to delete. Please try again.');
+      if (Platform.OS === 'web') window.alert(t('photoViewer.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -69,7 +71,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
       const safeName = activityTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       await downloadPhoto(photoUrl, `${safeName}.jpg`);
     } catch {
-      if (Platform.OS === 'web') window.alert('Download failed. Please try again.');
+      if (Platform.OS === 'web') window.alert(t('photoViewer.downloadFailed'));
     } finally {
       setDownloading(false);
     }
@@ -120,7 +122,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
             >
               {downloading
                 ? <ActivityIndicator color={colors.primary} />
-                : <ThemedText style={[styles.actionText, { color: colors.primary }]}>⬇ Download</ThemedText>}
+                : <ThemedText style={[styles.actionText, { color: colors.primary }]}>⬇ {t('photoViewer.download')}</ThemedText>}
             </Pressable>
 
             <Pressable
@@ -130,7 +132,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
             >
               {deleting
                 ? <ActivityIndicator color={colors.destructive} />
-                : <ThemedText style={[styles.actionText, { color: colors.destructive }]}>🗑 Delete</ThemedText>}
+                : <ThemedText style={[styles.actionText, { color: colors.destructive }]}>🗑 {t('common.delete')}</ThemedText>}
             </Pressable>
           </View>
         </Pressable>
