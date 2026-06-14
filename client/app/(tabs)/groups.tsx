@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +25,7 @@ import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 export default function GroupsScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
@@ -64,7 +66,7 @@ export default function GroupsScreen() {
         <Pressable
           style={styles.accordionHeader}
           onPress={() => setAccordionOpen((o) => !o)}>
-          <ThemedText style={styles.accordionTitle}>Your Groups</ThemedText>
+          <ThemedText style={styles.accordionTitle}>{t('groups.yourGroups')}</ThemedText>
           <ThemedText style={[styles.accordionChevron, { color: colors.muted }]}>
             {accordionOpen ? '▴' : '▾'}
           </ThemedText>
@@ -97,7 +99,7 @@ export default function GroupsScreen() {
               onPress={() => router.push('/join-group' as any)}
               disabled={!isOnline}>
               <ThemedText style={{ color: colors.primary, fontWeight: '500' }}>
-                Join with a code
+                {t('groups.joinWithCode')}
               </ThemedText>
             </Pressable>
           </View>
@@ -117,8 +119,8 @@ export default function GroupsScreen() {
     return (
       <EmptyState
         icon="📸"
-        title="Noch keine geteilten Fortschritte"
-        body="Schließe eine Aktivität ab und teile sie in der Gruppe."
+        title={t('groups.feedEmpty')}
+        body={t('groups.feedEmptyBody')}
       />
     );
   }
@@ -140,7 +142,7 @@ export default function GroupsScreen() {
         )}
         <View style={styles.feedCardContent}>
           <Text style={[styles.attribution, { color: colors.muted }]}>
-            <Text>{item.family_name ?? 'A family'} in </Text>
+            <Text>{item.family_name ?? t('groups.aFamily')} in </Text>
             {item.group_id ? (
               <Text
                 style={{ color: colors.primary }}
@@ -169,7 +171,7 @@ export default function GroupsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <ThemedText type="title" style={styles.title}>Groups</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('groups.title')}</ThemedText>
         <Pressable
           style={[styles.addButton, { backgroundColor: colors.primary, opacity: isOnline ? 1 : 0.4 }]}
           onPress={() => router.push('/create-group' as any)}
@@ -189,20 +191,20 @@ export default function GroupsScreen() {
       ) : groups.length === 0 ? (
         <View style={styles.center}>
           <ThemedText style={styles.emptyIcon}>👨‍👩‍👧</ThemedText>
-          <ThemedText type="title" style={styles.emptyTitle}>No groups yet</ThemedText>
+          <ThemedText type="title" style={styles.emptyTitle}>{t('groups.noGroupsTitle')}</ThemedText>
           <ThemedText style={[styles.emptyBody, { color: colors.muted }]}>
-            Create a group with your child&apos;s class or join one with an invite link.
+            {t('groups.noGroupsBody')}
           </ThemedText>
           <View style={styles.emptyActions}>
             <Pressable
               style={[styles.ctaButton, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/create-group' as any)}>
-              <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>Create a group</ThemedText>
+              <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>{t('groups.createGroup')}</ThemedText>
             </Pressable>
             <Pressable
               style={[styles.ctaButton, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border }]}
               onPress={() => router.push('/join-group' as any)}>
-              <ThemedText style={[styles.ctaText, { color: colors.onSurface }]}>Join with a code</ThemedText>
+              <ThemedText style={[styles.ctaText, { color: colors.onSurface }]}>{t('groups.joinWithCodeBtn')}</ThemedText>
             </Pressable>
           </View>
         </View>

@@ -16,6 +16,7 @@ def _fake_activity(family_id: uuid.UUID | None = None) -> MagicMock:
     a.season_relevance = None
     a.weather_suitability = None
     a.is_partner_content = False
+    a.language = "de"
     a.created_by_user_id = uuid.uuid4()
     a.family_id = family_id or uuid.uuid4()
     return a

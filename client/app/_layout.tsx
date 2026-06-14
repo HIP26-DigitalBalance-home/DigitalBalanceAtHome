@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import 'react-native-reanimated';
 import '@/assets/styles/global.css';
+import '@/lib/i18n';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';

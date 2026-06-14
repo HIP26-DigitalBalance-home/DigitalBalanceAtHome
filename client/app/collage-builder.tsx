@@ -1,5 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,6 +29,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export default function CollageBuilderScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { mode, preset: presetParam } = useLocalSearchParams<{ mode: string; preset?: string }>();
 
   const [slots, setSlots] = useState<Slot[]>(() => Array(SLOT_COUNT).fill(null));
@@ -148,9 +150,9 @@ export default function CollageBuilderScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} accessibilityRole="button">
-          <ThemedText style={{ color: colors.primary }}>← Zurück</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Collage gestalten</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('builder.title')}</ThemedText>
         <ThemedText style={[styles.counter, { color: colors.muted }]}>{filledCount}/{SLOT_COUNT}</ThemedText>
       </View>
 
@@ -161,7 +163,7 @@ export default function CollageBuilderScreen() {
       ) : (
         <>
           <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            Tippe auf ein Feld, um eine Aktivität zu wählen oder zu ändern.
+            {t('builder.hint')}
           </ThemedText>
           <View style={styles.gridOuter}>
             <View onLayout={(e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width)}>
@@ -186,7 +188,7 @@ export default function CollageBuilderScreen() {
           disabled={!allFilled}
           accessibilityRole="button"
         >
-          <ThemedText style={[styles.continueText, { color: colors.buttonText }]}>Weiter →</ThemedText>
+          <ThemedText style={[styles.continueText, { color: colors.buttonText }]}>{t('builder.continue')}</ThemedText>
         </Pressable>
       </View>
 

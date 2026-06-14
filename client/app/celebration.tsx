@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ import { showAlert } from '@/lib/utils/alert';
 
 export default function CelebrationScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,7 @@ export default function CelebrationScreen() {
     try {
       await saveCollagePng(challenge.title, challenge.activities);
     } catch {
-      showAlert('Error', 'Could not export the collage. Please try again.');
+      showAlert(t('common.error'), t('celebration.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -102,9 +104,9 @@ export default function CelebrationScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
-          <ThemedText>Challenge not found.</ThemedText>
+          <ThemedText>{t('celebration.notFound')}</ThemedText>
           <Pressable onPress={() => router.back()}>
-            <ThemedText style={{ color: colors.primary }}>Go back</ThemedText>
+            <ThemedText style={{ color: colors.primary }}>{t('celebration.goBack')}</ThemedText>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -116,10 +118,10 @@ export default function CelebrationScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText style={[styles.emoji]}>🎉</ThemedText>
         <ThemedText type="title" style={[styles.headline, { color: colors.onSurface }]}>
-          Challenge complete!
+          {t('celebration.complete')}
         </ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-          You filled every slot in &quot;{challenge.title}&quot; — amazing work with your family!
+          {t('celebration.subtitle', { title: challenge.title })}
         </ThemedText>
 
         <View collapsable={false} style={styles.collageWrapper}>
@@ -134,19 +136,19 @@ export default function CelebrationScreen() {
           >
             {exporting
               ? <ActivityIndicator color={colors.buttonText} />
-              : <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>Save as PNG</ThemedText>}
+              : <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>{t('common.saveAsPng')}</ThemedText>}
           </Pressable>
           <Pressable
             style={[styles.button, { backgroundColor: colors.accent }]}
             onPress={handleShare}
             disabled={exporting}
           >
-            <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Share</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: '#fff' }]}>{t('common.share')}</ThemedText>
           </Pressable>
         </View>
 
         <Pressable onPress={() => router.back()} style={styles.backLink}>
-          <ThemedText style={{ color: colors.primary, fontSize: 15 }}>← Back to home</ThemedText>
+          <ThemedText style={{ color: colors.primary, fontSize: 15 }}>{t('celebration.backToHome')}</ThemedText>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

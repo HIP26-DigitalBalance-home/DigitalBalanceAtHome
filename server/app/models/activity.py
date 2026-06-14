@@ -19,6 +19,7 @@ class Activity(Base, TimestampMixin):
     season_relevance: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     weather_suitability: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     is_partner_content: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    language: Mapped[str] = mapped_column(String(10), nullable=False, default="de")
     # Ownership: NULL = global/curated activity. Non-null = user-created, visible
     # only to the owning family in the activity pool.
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(

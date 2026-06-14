@@ -63,6 +63,7 @@ class ActivityRepository:
         description: str | None,
         estimated_duration_minutes: int,
         cost_indicator: str,
+        language: str = "de",
     ) -> Activity:
         activity = Activity(
             title=title,
@@ -76,6 +77,7 @@ class ActivityRepository:
             is_partner_content=False,
             created_by_user_id=created_by_user_id,
             family_id=family_id,
+            language=language,
         )
         self.session.add(activity)
         await self.session.commit()

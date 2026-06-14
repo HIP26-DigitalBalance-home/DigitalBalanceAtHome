@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,7 +17,14 @@ const WEATHER_EMOJI: Record<string, string> = {
 
 export default function ActivityDetailScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ data: string }>();
+  const seasonLabel: Record<string, string> = {
+    spring: t('season.spring'), summer: t('season.summer'), autumn: t('season.autumn'), winter: t('season.winter'),
+  };
+  const weatherLabel: Record<string, string> = {
+    sunny: t('weather.sunny'), cloudy: t('weather.cloudy'), rainy: t('weather.rainy'), any: t('weather.any'),
+  };
 
   let activity: ActivityItem;
   try {
@@ -27,20 +35,20 @@ export default function ActivityDetailScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>Activity not found.</ThemedText>
+          <ThemedText style={{ color: colors.destructive }}>{t('activityDetail.notFound')}</ThemedText>
         </View>
       </SafeAreaView>
     );
   }
 
-  const costLabel = activity.cost_indicator === 'free' ? 'Free' : 'Low cost';
+  const costLabel = activity.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost');
   const costColor = activity.cost_indicator === 'free' ? colors.accent : colors.primary;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
         <View style={{ flex: 1 }} />
       </View>
@@ -53,11 +61,11 @@ export default function ActivityDetailScreen() {
             <ThemedText style={[styles.badgeText, { color: costColor }]}>{costLabel}</ThemedText>
           </View>
           <View style={[styles.badge, { backgroundColor: colors.border }]}>
-            <ThemedText style={styles.badgeText}>⏱ {activity.estimated_duration_minutes} min</ThemedText>
+            <ThemedText style={styles.badgeText}>{t('common.minutes', { count: activity.estimated_duration_minutes })}</ThemedText>
           </View>
           <View style={[styles.badge, { backgroundColor: colors.border }]}>
             <ThemedText style={styles.badgeText}>
-              👧 {activity.age_min}–{activity.age_max} yrs
+              👧 {t('activityDetail.years', { min: activity.age_min, max: activity.age_max })}
             </ThemedText>
           </View>
         </View>
@@ -68,11 +76,11 @@ export default function ActivityDetailScreen() {
 
         {activity.season_relevance && activity.season_relevance.length > 0 && (
           <View style={styles.tagGroup}>
-            <ThemedText style={[styles.tagLabel, { color: colors.muted }]}>SEASONS</ThemedText>
+            <ThemedText style={[styles.tagLabel, { color: colors.muted }]}>{t('activityDetail.seasons')}</ThemedText>
             <View style={styles.tags}>
               {activity.season_relevance.map(s => (
                 <View key={s} style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <ThemedText style={styles.tagText}>{SEASON_EMOJI[s]} {s}</ThemedText>
+                  <ThemedText style={styles.tagText}>{SEASON_EMOJI[s]} {seasonLabel[s] ?? s}</ThemedText>
                 </View>
               ))}
             </View>
@@ -81,11 +89,11 @@ export default function ActivityDetailScreen() {
 
         {activity.weather_suitability && activity.weather_suitability.length > 0 && (
           <View style={styles.tagGroup}>
-            <ThemedText style={[styles.tagLabel, { color: colors.muted }]}>WEATHER</ThemedText>
+            <ThemedText style={[styles.tagLabel, { color: colors.muted }]}>{t('activityDetail.weather')}</ThemedText>
             <View style={styles.tags}>
               {activity.weather_suitability.map(w => (
                 <View key={w} style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <ThemedText style={styles.tagText}>{WEATHER_EMOJI[w]} {w}</ThemedText>
+                  <ThemedText style={styles.tagText}>{WEATHER_EMOJI[w]} {weatherLabel[w] ?? w}</ThemedText>
                 </View>
               ))}
             </View>
@@ -94,7 +102,7 @@ export default function ActivityDetailScreen() {
 
         <View style={[styles.ctaBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ThemedText style={[styles.ctaHint, { color: colors.muted }]}>
-            Include this activity when creating a challenge from the Home screen.
+            {t('activityDetail.ctaHint')}
           </ThemedText>
         </View>
       </ScrollView>

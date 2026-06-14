@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,18 +21,20 @@ type ExploreCard =
 
 const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 
-function cardCopy(card: ExploreCard): { name: string; description: string; emoji: string } {
-  if (card.kind === 'custom') {
-    return { name: 'Eigene Collage', description: 'Starte mit 9 leeren Feldern und wähle alles selbst.', emoji: '✨' };
-  }
-  if (card.kind === 'random') {
-    return { name: 'Überrasch mich', description: '9 zufällige Aktivitäten für eine schnelle Collage.', emoji: '🎲' };
-  }
-  return { name: card.preset.name, description: card.preset.description, emoji: '🧩' };
-}
-
 export default function ExploreScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
+
+  function cardCopy(card: ExploreCard): { name: string; description: string; emoji: string } {
+    if (card.kind === 'custom') {
+      return { name: t('explore.customName'), description: t('explore.customDesc'), emoji: '✨' };
+    }
+    if (card.kind === 'random') {
+      return { name: t('explore.randomName'), description: t('explore.randomDesc'), emoji: '🎲' };
+    }
+    return { name: card.preset.name, description: card.preset.description, emoji: '🧩' };
+  }
+
   const [presets, setPresets] = useState<CollagePreset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,9 +103,9 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <ThemedText type="title" style={styles.title}>Explore</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('explore.headerTitle')}</ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-          Wähle eine Vorlage, würfle oder gestalte deine eigene 3×3-Collage.
+          {t('explore.subtitle')}
         </ThemedText>
       </View>
 

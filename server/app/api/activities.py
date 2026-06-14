@@ -25,6 +25,7 @@ def _activity_schema(a) -> dict:
         "season_relevance": a.season_relevance,
         "weather_suitability": a.weather_suitability,
         "is_partner_content": a.is_partner_content,
+        "language": a.language,
     }
 
 
@@ -49,7 +50,9 @@ async def create_activity(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    activity = await activity_service.create_activity(session, current_user.id, body)
+    activity = await activity_service.create_activity(
+        session, current_user.id, body, language=current_user.preferred_language
+    )
     return _activity_schema(activity)
 
 

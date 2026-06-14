@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,6 +15,7 @@ import type { ConsentRecord } from '@/lib/api/users';
 
 export default function PrivacyScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [consent, setConsent] = useState<ConsentRecord | null>(null);
@@ -63,7 +65,7 @@ export default function PrivacyScreen() {
       }
       setExportDone(true);
     } catch {
-      setError('Export failed. Please try again.');
+      setError(t('privacy.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -82,21 +84,21 @@ export default function PrivacyScreen() {
       });
       setConsent(res.data as ConsentRecord);
     } catch {
-      setError('Failed to update consent. Please try again.');
+      setError(t('privacy.consentUpdateFailed'));
     } finally {
       setTogglingConsent(false);
     }
   }
 
   async function handleDeleteAccount() {
-    const message = 'Your account will be scheduled for deletion in 30 days. You can cancel this at any time before then.';
+    const message = t('privacy.deleteMsg');
     if (Platform.OS === 'web') {
-      if (!window.confirm(`Delete account?\n\n${message}`)) return;
+      if (!window.confirm(`${t('privacy.deleteTitle')}\n\n${message}`)) return;
     } else {
       const confirmed = await new Promise<boolean>((resolve) => {
-        Alert.alert('Delete account', message, [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+        Alert.alert(t('privacy.deleteTitle'), message, [
+          { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+          { text: t('privacy.deleteConfirmBtn'), style: 'destructive', onPress: () => resolve(true) },
         ]);
       });
       if (!confirmed) return;
@@ -107,7 +109,7 @@ export default function PrivacyScreen() {
       const res = await usersApi.deleteMe();
       setDeletionPendingAt(res.data.deletion_date);
     } catch {
-      setError('Failed to request deletion. Please try again.');
+      setError(t('privacy.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -120,7 +122,7 @@ export default function PrivacyScreen() {
       await usersApi.cancelDeletion();
       setDeletionPendingAt(null);
     } catch {
-      setError('Failed to cancel deletion. Please try again.');
+      setError(t('privacy.cancelFailed'));
     } finally {
       setCancelling(false);
     }
@@ -134,9 +136,9 @@ export default function PrivacyScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>‹ Back</ThemedText>
+          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>‹ {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText type="title" style={styles.title}>Privacy & Data</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('privacy.title')}</ThemedText>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -147,15 +149,12 @@ export default function PrivacyScreen() {
         )}
 
         {/* My Data */}
-        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>MY DATA</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('privacy.yourRights')}</ThemedText>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={styles.cardTitle}>Data export</ThemedText>
-          <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
-            Download a copy of all your personal data: profile, children, consents, groups, and activity history.
-          </ThemedText>
+          <ThemedText style={styles.cardTitle}>{t('privacy.exportData')}</ThemedText>
           {exportDone && (
             <ThemedText style={{ color: colors.accent, fontSize: 13, marginTop: Spacing.xs }}>
-              Export ready — check your share sheet or downloads.
+              {t('privacy.exportSuccess')}
             </ThemedText>
           )}
           <Pressable
@@ -165,34 +164,34 @@ export default function PrivacyScreen() {
             {exporting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <ThemedText style={styles.buttonLabel}>Export my data</ThemedText>
+              <ThemedText style={styles.buttonLabel}>{t('privacy.exportData')}</ThemedText>
             )}
           </Pressable>
         </View>
 
         {/* Consent Settings */}
-        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>CONSENT SETTINGS</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('privacy.consentTitle')}</ThemedText>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.consentRow}>
             <View style={styles.consentText}>
-              <ThemedText style={styles.consentLabel}>Data storage</ThemedText>
-              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>Profile and activity history</ThemedText>
+              <ThemedText style={styles.consentLabel}>{t('consent.dataStorage')}</ThemedText>
+              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>{t('consent.dataStorageSub')}</ThemedText>
             </View>
             <Switch value={true} disabled thumbColor="#fff" trackColor={{ true: colors.muted }} />
           </View>
 
           <View style={[styles.consentRow, { borderTopColor: colors.border }]}>
             <View style={styles.consentText}>
-              <ThemedText style={styles.consentLabel}>Photo processing</ThemedText>
-              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>Upload and store completion photos</ThemedText>
+              <ThemedText style={styles.consentLabel}>{t('consent.photoProcessing')}</ThemedText>
+              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>{t('consent.photoProcessingSub')}</ThemedText>
             </View>
             <Switch value={true} disabled thumbColor="#fff" trackColor={{ true: colors.muted }} />
           </View>
 
           <View style={[styles.consentRow, { borderTopColor: colors.border }]}>
             <View style={styles.consentText}>
-              <ThemedText style={styles.consentLabel}>Location (optional)</ThemedText>
-              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>City-level for weather-based suggestions</ThemedText>
+              <ThemedText style={styles.consentLabel}>{t('privacy.locationConsent')}</ThemedText>
+              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>{t('consent.locationSub')}</ThemedText>
             </View>
             <Switch
               value={consent?.location_consent ?? false}
@@ -202,20 +201,16 @@ export default function PrivacyScreen() {
               trackColor={{ true: colors.accent, false: colors.border }}
             />
           </View>
-
-          <ThemedText style={[styles.cardSub, { color: colors.muted, marginTop: Spacing.sm }]}>
-            To withdraw data storage or photo consent, you must delete your account.
-          </ThemedText>
         </View>
 
         {/* Delete Account */}
-        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACCOUNT</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('privacy.accountSection')}</ThemedText>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {deletionPendingAt ? (
             <>
-              <ThemedText style={[styles.cardTitle, { color: colors.destructive }]}>Deletion scheduled</ThemedText>
+              <ThemedText style={[styles.cardTitle, { color: colors.destructive }]}>{t('privacy.cancelDeletion')}</ThemedText>
               <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
-                Your account is scheduled for permanent deletion on {deletionDate}. You can cancel this until then.
+                {t('privacy.deletionScheduled', { date: deletionDate })}
               </ThemedText>
               <Pressable
                 style={[styles.button, { backgroundColor: colors.primary, opacity: cancelling ? 0.6 : 1, marginTop: Spacing.sm }]}
@@ -224,17 +219,13 @@ export default function PrivacyScreen() {
                 {cancelling ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <ThemedText style={styles.buttonLabel}>Cancel deletion</ThemedText>
+                  <ThemedText style={styles.buttonLabel}>{t('privacy.cancelDeletion')}</ThemedText>
                 )}
               </Pressable>
             </>
           ) : (
             <>
-              <ThemedText style={styles.cardTitle}>Delete account</ThemedText>
-              <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
-                Permanently removes your account, children, and all personal data. A 30-day grace period applies before
-                data is erased.
-              </ThemedText>
+              <ThemedText style={styles.cardTitle}>{t('privacy.deleteAccount')}</ThemedText>
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.destructive, opacity: deleting ? 0.6 : 1 }]}
                 onPress={handleDeleteAccount}
@@ -242,7 +233,7 @@ export default function PrivacyScreen() {
                 {deleting ? (
                   <ActivityIndicator color={colors.destructive} size="small" />
                 ) : (
-                  <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>Delete my account</ThemedText>
+                  <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>{t('privacy.deleteAccount')}</ThemedText>
                 )}
               </Pressable>
             </>

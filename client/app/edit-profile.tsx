@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,6 +13,7 @@ import { usersApi } from '@/lib/api';
 
 export default function EditProfileScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const router = useRouter();
   const { currentUser, updateCurrentUser } = useAuth();
 
@@ -37,11 +39,11 @@ export default function EditProfileScreen() {
   async function handleSave() {
     const name = displayName.trim();
     if (!name && !imageUri) {
-      setError('Enter a display name or choose a photo.');
+      setError(t('editProfile.nameOrPhotoRequired'));
       return;
     }
     if (name.length === 0 && currentUser?.display_name) {
-      setError('Display name cannot be empty.');
+      setError(t('editProfile.nameEmpty'));
       return;
     }
     setSaving(true);
@@ -55,7 +57,7 @@ export default function EditProfileScreen() {
       await updateCurrentUser(res.data);
       router.back();
     } catch {
-      setError('Failed to save. Please try again.');
+      setError(t('editProfile.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -70,9 +72,9 @@ export default function EditProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText type="title" style={styles.title}>Edit Profile</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('editProfile.title')}</ThemedText>
       </View>
 
       <View style={styles.content}>
@@ -85,16 +87,16 @@ export default function EditProfileScreen() {
               <ThemedText style={styles.avatarInitials}>{initials}</ThemedText>
             </View>
           )}
-          <ThemedText style={[styles.changePhoto, { color: colors.primary }]}>Change photo</ThemedText>
+          <ThemedText style={[styles.changePhoto, { color: colors.primary }]}>{t('editProfile.changePhoto')}</ThemedText>
         </Pressable>
 
         {/* Display name */}
-        <ThemedText style={[styles.label, { color: colors.muted }]}>Display name</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.muted }]}>{t('editProfile.displayName')}</ThemedText>
         <TextInput
           style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
           value={displayName}
           onChangeText={setDisplayName}
-          placeholder="Your name"
+          placeholder={t('editProfile.displayNamePlaceholder')}
           placeholderTextColor={colors.muted}
           autoCapitalize="words"
           maxLength={60}
@@ -111,7 +113,7 @@ export default function EditProfileScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+            <ThemedText style={styles.saveButtonText}>{t('common.save')}</ThemedText>
           )}
         </Pressable>
       </View>

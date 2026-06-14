@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,6 +44,7 @@ function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): Acti
 
 export default function HomeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const isOnline = useNetworkStatus();
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
@@ -186,7 +188,7 @@ export default function HomeScreen() {
 
   function handleSelfReported(slotId: string, sharedToFeed: boolean) {
     if (!isOnline) {
-      showAlert('Offline', 'Keine Internetverbindung.');
+      showAlert(t('common.offline'), t('common.noConnection'));
       return;
     }
     setActiveSlot(null);
@@ -198,13 +200,13 @@ export default function HomeScreen() {
         checkCelebration(slotId, updated);
       })
       .catch((e) => {
-        showAlert('Fehler', getGermanErrorMessage(e));
+        showAlert(t('common.error'), getGermanErrorMessage(e));
       });
   }
 
   function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
     if (!isOnline) {
-      showAlert('Offline', 'Keine Internetverbindung.');
+      showAlert(t('common.offline'), t('common.noConnection'));
       return;
     }
     setActiveSlot(null);
@@ -218,7 +220,7 @@ export default function HomeScreen() {
           delete next[slotId];
           return next;
         });
-        showAlert('Fehler', getGermanErrorMessage(e));
+        showAlert(t('common.error'), getGermanErrorMessage(e));
       });
   }
 
@@ -232,19 +234,19 @@ export default function HomeScreen() {
         <View style={styles.titleRow}>
           <ThemedText type="title">Bond</ThemedText>
           <Pressable onPress={() => router.push('/challenges' as any)}>
-            <ThemedText style={{ color: colors.primary, fontSize: 14 }}>All challenges</ThemedText>
+            <ThemedText style={{ color: colors.primary, fontSize: 14 }}>{t('home.allChallenges')}</ThemedText>
           </Pressable>
         </View>
 
         {/* Active challenge collages */}
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
             <SkeletonList count={2} rowHeight={180} />
           </View>
         ) : challengeError ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
             <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
           </View>
         ) : challenges.length > 0 ? (
@@ -252,10 +254,10 @@ export default function HomeScreen() {
             <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>
                 <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
-                  {challenge.status === 'completed' ? 'COMPLETED CHALLENGE' : 'ACTIVE CHALLENGE'}
+                  {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
                 </ThemedText>
                 <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
-                  <ThemedText style={{ color: colors.primary, fontSize: 13 }}>View details</ThemedText>
+                  <ThemedText style={{ color: colors.primary, fontSize: 13 }}>{t('home.viewDetails')}</ThemedText>
                 </Pressable>
               </View>
               <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
@@ -273,12 +275,12 @@ export default function HomeScreen() {
           ))
         ) : (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGES</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
             <EmptyState
               icon="🎯"
-              title="Noch keine aktive Herausforderung"
-              body="Erstelle deine erste Herausforderung."
-              actionLabel="Herausforderung erstellen"
+              title={t('home.emptyTitle')}
+              body={t('home.emptyBody')}
+              actionLabel={t('home.emptyAction')}
               onAction={() => router.push('/(tabs)/explore' as any)}
             />
           </View>
@@ -286,26 +288,26 @@ export default function HomeScreen() {
 
         {/* Suggestion card */}
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>TODAY&apos;S SUGGESTION</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.todaysSuggestion')}</ThemedText>
           {loadingChallenges ? (
             <SkeletonList count={1} rowHeight={80} />
           ) : suggestion ? (
             <>
               <ThemedText style={styles.suggestionTitle}>{suggestion.title}</ThemedText>
               <ThemedText style={[styles.suggestionMeta, { color: colors.muted }]}>
-                ⏱ {suggestion.estimated_duration_minutes} min ·{' '}
-                {suggestion.cost_indicator === 'free' ? 'Free' : 'Low cost'}
+                {t('common.minutes', { count: suggestion.estimated_duration_minutes })} ·{' '}
+                {suggestion.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
               </ThemedText>
               <Pressable
                 style={[styles.ctaButton, { backgroundColor: colors.primary }]}
                 onPress={() => openActivity(suggestion)}
               >
-                <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>Let&apos;s do it →</ThemedText>
+                <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>{t('home.letsDoIt')}</ThemedText>
               </Pressable>
             </>
           ) : (
             <ThemedText style={{ color: colors.muted, fontSize: 14 }}>
-              No suggestion available right now.
+              {t('home.noSuggestion')}
             </ThemedText>
           )}
         </View>

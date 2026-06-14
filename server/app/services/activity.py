@@ -48,6 +48,7 @@ async def create_activity(
     session: AsyncSession,
     user_id: uuid.UUID,
     req: CreateActivityRequest,
+    language: str = "de",
 ) -> Activity:
     membership = await get_user_family(session, user_id)
     if not membership:
@@ -61,6 +62,7 @@ async def create_activity(
         description=req.description,
         estimated_duration_minutes=req.estimated_duration_minutes or 30,
         cost_indicator=str(req.cost_indicator or "free"),
+        language=language,
     )
 
 

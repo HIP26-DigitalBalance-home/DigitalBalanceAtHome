@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,6 +18,7 @@ const PAGE_SIZE = 20;
 export default function GroupFeedScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export default function GroupFeedScreen() {
             {item.activity_title}
           </ThemedText>
           <ThemedText style={[styles.familyName, { color: colors.muted }]}>
-            {item.family_name ?? 'A family'} · {new Date(item.completed_at).toLocaleDateString()}
+            {item.family_name ?? t('groupFeed.aFamily')} · {new Date(item.completed_at).toLocaleDateString()}
           </ThemedText>
           {item.caption ? (
             <ThemedText style={[styles.caption, { color: colors.onSurface }]} numberOfLines={2}>
@@ -88,9 +90,9 @@ export default function GroupFeedScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Group Feed</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('groupFeed.title')}</ThemedText>
         <View style={styles.backButton} />
       </View>
 
@@ -107,8 +109,8 @@ export default function GroupFeedScreen() {
       ) : entries.length === 0 ? (
         <EmptyState
           icon="📸"
-          title="Noch keine geteilten Fortschritte"
-          body="Schließe eine Aktivität ab und teile sie in der Gruppe."
+          title={t('groupFeed.emptyTitle')}
+          body={t('groupFeed.emptyBody')}
         />
       ) : (
         <FlatList

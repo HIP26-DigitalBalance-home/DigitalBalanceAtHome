@@ -1242,7 +1242,7 @@ components:
 
     User:
       type: object
-      required: [id, email, display_name, points_balance, created_at]
+      required: [id, email, display_name, points_balance, preferred_language, created_at]
       properties:
         id:
           type: string
@@ -1259,6 +1259,10 @@ components:
         points_balance:
           type: integer
           minimum: 0
+        preferred_language:
+          type: string
+          minLength: 2
+          description: BCP 47 language tag for content created by this user (e.g. "de")
         deletion_pending_at:
           type: string
           format: date-time
@@ -1604,7 +1608,7 @@ components:
 
     Activity:
       type: object
-      required: [id, title, description, estimated_duration_minutes, age_min, age_max, cost_indicator, is_partner_content]
+      required: [id, title, description, estimated_duration_minutes, age_min, age_max, cost_indicator, is_partner_content, language]
       properties:
         id:
           type: string
@@ -1637,6 +1641,10 @@ components:
           nullable: true
         is_partner_content:
           type: boolean
+        language:
+          type: string
+          minLength: 2
+          description: BCP 47 language tag for the activity's content language (e.g. "de")
 
     CreateActivityRequest:
       type: object

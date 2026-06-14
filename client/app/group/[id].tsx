@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,6 +41,7 @@ interface GroupDetail {
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const { currentUser } = useAuth();
   const [group, setGroup] = useState<GroupDetail | null>(null);
@@ -81,41 +83,40 @@ export default function GroupDetailScreen() {
       await Clipboard.setStringAsync(url);
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(url, { dialogTitle: 'Invite to group' });
+        await Sharing.shareAsync(url, { dialogTitle: t('groupDetail.inviteShareTitle') });
       } else {
-        showAlert('Link copied', 'Share this link to invite families:\n\n' + url);
+        showAlert(t('groupDetail.inviteLinkCopied'), t('groupDetail.inviteLinkMessage', { url }));
       }
     } catch {
-      showAlert('Error', 'Failed to generate invite link');
+      showAlert(t('common.error'), t('groupDetail.inviteFailed'));
     }
   }
 
   async function handleRemoveFamily(familyId: string, familyName: string | null) {
-    const message = `Remove "${familyName ?? 'this family'}" from the group?`;
+    const message = t('groupDetail.removeFamilyConfirm', { name: familyName ?? t('groups.aFamily') });
 
     if (Platform.OS === 'web') {
-      // Alert.alert callbacks are not supported on web — use window.confirm
-      if (!window.confirm(message)) return;
+      if (!window.confirm(`${t('groupDetail.removeFamilyTitle')}\n\n${message}`)) return;
       try {
         await groupsApi.removeGroupMember(id!, familyId);
         fetchGroup();
       } catch {
-        window.alert('Failed to remove family. Please try again.');
+        window.alert(t('groupDetail.removeFamilyFailed'));
       }
       return;
     }
 
-    Alert.alert('Remove family', message, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('groupDetail.removeFamilyTitle'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('groupDetail.remove'),
         style: 'destructive',
         onPress: async () => {
           try {
             await groupsApi.removeGroupMember(id!, familyId);
             fetchGroup();
           } catch {
-            Alert.alert('Error', 'Failed to remove family');
+            Alert.alert(t('common.error'), t('groupDetail.removeFamilyFailed'));
           }
         },
       },
@@ -148,7 +149,7 @@ export default function GroupDetailScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
         <View style={styles.headerCenter}>
           <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
@@ -175,13 +176,13 @@ export default function GroupDetailScreen() {
               onPress={() => router.push({ pathname: '/group-feed/[id]', params: { id: id! } } as any)}
             >
               <ThemedText style={{ color: colors.primary, fontWeight: '600', fontSize: 15 }}>
-                View group feed
+                {t('groupDetail.viewFeed')}
               </ThemedText>
             </Pressable>
 
             {groupChallenges.length > 0 ? (
               <View style={[styles.challengesPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ACTIVE CHALLENGES</ThemedText>
+                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('groupDetail.activeChallenges')}</ThemedText>
                 {groupChallenges.map((c) => (
                   <Pressable
                     key={c.id}
@@ -199,13 +200,13 @@ export default function GroupDetailScreen() {
         ListHeaderComponent={
           isAdmin ? (
             <View style={[styles.adminPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>ADMIN CONTROLS</ThemedText>
+              <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('groupDetail.adminControls')}</ThemedText>
               <Pressable
                 style={[styles.adminButton, { borderColor: colors.primary, opacity: isOnline ? 1 : 0.4 }]}
                 onPress={handleGenerateInvite}
                 disabled={!isOnline}>
                 <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
-                  Generate invite link
+                  {t('groupDetail.generateInvite')}
                 </ThemedText>
               </Pressable>
             </View>
@@ -219,17 +220,19 @@ export default function GroupDetailScreen() {
             <View style={styles.familyHeader}>
               <View style={styles.familyTitleRow}>
                 <ThemedText style={styles.familyName}>
-                  {item.family_name ?? 'Unnamed family'}{isOwnFamily ? ' (you)' : ''}
+                  {isOwnFamily
+                    ? t('groupDetail.ownFamily', { name: item.family_name ?? '' }).trim()
+                    : (item.family_name ?? t('groups.aFamily'))}
                 </ThemedText>
                 <ThemedText style={[styles.joinedAt, { color: colors.muted }]}>
-                  Joined {new Date(item.joined_at).toLocaleDateString()}
+                  {t('groupDetail.joinedAt', { date: new Date(item.joined_at).toLocaleDateString() })}
                 </ThemedText>
               </View>
               {isAdmin && !isOwnFamily && (
                 <Pressable
                   style={[styles.removeButton, { borderColor: colors.destructive }]}
                   onPress={() => handleRemoveFamily(item.family_id, item.family_name)}>
-                  <ThemedText style={{ color: colors.destructive, fontSize: 13 }}>Remove</ThemedText>
+                  <ThemedText style={{ color: colors.destructive, fontSize: 13 }}>{t('groupDetail.remove')}</ThemedText>
                 </Pressable>
               )}
             </View>

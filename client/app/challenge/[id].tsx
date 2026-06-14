@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,8 +40,14 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function ChallengeDetailScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const statusLabels: Record<string, string> = {
+    active: t('status.active'),
+    upcoming: t('status.upcoming'),
+    completed: t('status.completed'),
+  };
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +139,7 @@ export default function ChallengeDetailScreen() {
   }
 
   function handleSelfReported(slotId: string, sharedToFeed: boolean) {
-    if (!isOnline) { showAlert('Offline', 'Keine Internetverbindung.'); return; }
+    if (!isOnline) { showAlert(t('common.offline'), t('common.noConnection')); return; }
     setActiveSlot(null);
     completionsApi
       .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed })
@@ -142,16 +149,16 @@ export default function ChallengeDetailScreen() {
         checkCelebration(updated);
       })
       .catch((e) => {
-        showAlert('Fehler', getGermanErrorMessage(e));
+        showAlert(t('common.error'), getGermanErrorMessage(e));
       });
   }
 
   async function handleDeleteChallenge() {
     if (!challenge) return;
     const confirmed = await confirmDestructive(
-      'Delete challenge',
-      `Delete "${challenge.title}"? This cannot be undone.`,
-      'Delete',
+      t('challengeDetail.deleteTitle'),
+      t('challengeDetail.deleteConfirm', { title: challenge.title }),
+      t('common.delete'),
     );
     if (!confirmed) return;
     setDeleting(true);
@@ -159,7 +166,7 @@ export default function ChallengeDetailScreen() {
       await challengesApi.delete(challenge.id);
       router.back();
     } catch {
-      showAlert('Error', 'Failed to delete challenge. Please try again.');
+      showAlert(t('common.error'), t('challengeDetail.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -180,7 +187,7 @@ export default function ChallengeDetailScreen() {
   }
 
   function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
-    if (!isOnline) { showAlert('Offline', 'Keine Internetverbindung.'); return; }
+    if (!isOnline) { showAlert(t('common.offline'), t('common.noConnection')); return; }
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
     photosApi
@@ -188,7 +195,7 @@ export default function ChallengeDetailScreen() {
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch((e) => {
         setLocalCompletions((prev) => { const next = { ...prev }; delete next[slotId]; return next; });
-        showAlert('Fehler', getGermanErrorMessage(e));
+        showAlert(t('common.error'), getGermanErrorMessage(e));
       });
   }
 
@@ -196,9 +203,9 @@ export default function ChallengeDetailScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Challenge</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('challengeDetail.header')}</ThemedText>
         <View style={{ width: 60 }} />
       </View>
 
@@ -214,7 +221,7 @@ export default function ChallengeDetailScreen() {
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
             <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[challenge.status] ?? colors.muted) + '22' }]}>
               <ThemedText style={[styles.statusText, { color: STATUS_COLORS[challenge.status] ?? colors.muted }]}>
-                {challenge.status}
+                {statusLabels[challenge.status] ?? challenge.status}
               </ThemedText>
             </View>
           </View>
@@ -227,7 +234,7 @@ export default function ChallengeDetailScreen() {
             <ThemedText style={[styles.description, { color: colors.onSurface }]}>{challenge.description}</ThemedText>
           ) : null}
 
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>YOUR COLLAGE</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('challengeDetail.yourCollage')}</ThemedText>
           <CollageGrid
             slots={challenge.activities}
             groupFamiliesCount={challenge.group_families_count}
@@ -243,14 +250,14 @@ export default function ChallengeDetailScreen() {
                 onPress={async () => {
                   setExportingPng(true);
                   try { await saveCollagePng(challenge.title, challenge.activities); }
-                  catch { showAlert('Error', 'Could not export the collage.'); }
+                  catch { showAlert(t('common.error'), t('challengeDetail.exportFailed')); }
                   finally { setExportingPng(false); }
                 }}
                 disabled={exportingPng}
               >
                 {exportingPng
                   ? <ActivityIndicator color={colors.primary} />
-                  : <ThemedText style={[styles.exportText, { color: colors.primary }]}>Save as PNG</ThemedText>}
+                  : <ThemedText style={[styles.exportText, { color: colors.primary }]}>{t('common.saveAsPng')}</ThemedText>}
               </Pressable>
               <Pressable
                 style={[styles.exportButton, { borderColor: colors.accent }]}
@@ -262,16 +269,16 @@ export default function ChallengeDetailScreen() {
                 }}
                 disabled={exportingPng}
               >
-                <ThemedText style={[styles.exportText, { color: colors.accent }]}>Share</ThemedText>
+                <ThemedText style={[styles.exportText, { color: colors.accent }]}>{t('common.share')}</ThemedText>
               </Pressable>
             </View>
           )}
 
           {challenge.group_families_count != null && (
             <View style={[styles.progressBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>GROUP PROGRESS</ThemedText>
+              <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('challengeDetail.groupProgress')}</ThemedText>
               <ThemedText style={{ color: colors.muted, fontSize: 13 }}>
-                {challenge.group_families_count} {challenge.group_families_count === 1 ? 'family' : 'families'} in this group.
+                {t('challengeDetail.familiesInGroup', { count: challenge.group_families_count })}
               </ThemedText>
               <View style={styles.activityList}>
                 {challenge.activities.map((slot) => (
@@ -294,9 +301,9 @@ export default function ChallengeDetailScreen() {
               style={[styles.groupLink, { borderColor: colors.border, backgroundColor: colors.surface }]}
               onPress={() => router.push({ pathname: '/group/[id]', params: { id: challenge.group_id! } } as any)}
             >
-              <ThemedText style={[styles.groupLinkLabel, { color: colors.muted }]}>GROUP</ThemedText>
+              <ThemedText style={[styles.groupLinkLabel, { color: colors.muted }]}>{t('challengeDetail.group')}</ThemedText>
               <ThemedText style={[styles.groupLinkName, { color: colors.primary }]}>
-                {groupName ?? 'View group →'}
+                {groupName ?? t('challengeDetail.viewGroup')}
               </ThemedText>
               {groupName && <ThemedText style={{ color: colors.muted, fontSize: 13 }}>→</ThemedText>}
             </Pressable>
@@ -310,7 +317,7 @@ export default function ChallengeDetailScreen() {
           >
             {deleting
               ? <ActivityIndicator color={colors.destructive} />
-              : <ThemedText style={[styles.deleteText, { color: colors.destructive }]}>Delete challenge</ThemedText>}
+              : <ThemedText style={[styles.deleteText, { color: colors.destructive }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
           </Pressable>
         </ScrollView>
       ) : null}

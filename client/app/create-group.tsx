@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +11,7 @@ import { groupsApi } from '@/lib/api';
 
 export default function CreateGroupScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +29,7 @@ export default function CreateGroupScreen() {
       });
       router.back();
     } catch {
-      setError('Failed to create group. Please try again.');
+      setError(t('createGroup.createFailed'));
       setIsSubmitting(false);
     }
   }
@@ -36,18 +38,18 @@ export default function CreateGroupScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>Cancel</ThemedText>
+          <ThemedText style={{ color: colors.primary, fontSize: 16 }}>{t('common.cancel')}</ThemedText>
         </Pressable>
-        <ThemedText type="defaultSemiBold" style={styles.headerTitle}>New Group</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.headerTitle}>{t('createGroup.title')}</ThemedText>
         <View style={styles.backButton} />
       </View>
 
       <View style={styles.content}>
         <View style={styles.field}>
-          <ThemedText style={styles.label}>Group name *</ThemedText>
+          <ThemedText style={styles.label}>{t('createGroup.nameLabel')}</ThemedText>
           <TextInput
             style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-            placeholder="e.g. 3B Class Parents"
+            placeholder={t('createGroup.namePlaceholder')}
             placeholderTextColor={colors.muted}
             value={name}
             onChangeText={setName}
@@ -57,10 +59,10 @@ export default function CreateGroupScreen() {
         </View>
 
         <View style={styles.field}>
-          <ThemedText style={styles.label}>Description (optional)</ThemedText>
+          <ThemedText style={styles.label}>{t('createGroup.descLabel')}</ThemedText>
           <TextInput
             style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-            placeholder="What is this group for?"
+            placeholder={t('createGroup.descPlaceholder')}
             placeholderTextColor={colors.muted}
             value={description}
             onChangeText={setDescription}
@@ -80,7 +82,7 @@ export default function CreateGroupScreen() {
           {isSubmitting ? (
             <ActivityIndicator color={colors.buttonText} />
           ) : (
-            <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>Create group</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>{t('createGroup.submit')}</ThemedText>
           )}
         </Pressable>
       </View>

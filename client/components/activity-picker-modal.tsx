@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,22 +23,24 @@ interface Props {
 
 type ChipGroup = { label: string; value: string | undefined };
 
-const COST_CHIPS: ChipGroup[] = [
-  { label: 'Alle', value: undefined },
-  { label: 'Kostenlos', value: 'free' },
-  { label: 'Günstig', value: 'low_cost' },
-];
-
-const SEASON_CHIPS: ChipGroup[] = [
-  { label: 'Alle Jahreszeiten', value: undefined },
-  { label: '🌸 Frühling', value: 'spring' },
-  { label: '☀️ Sommer', value: 'summer' },
-  { label: '🍂 Herbst', value: 'autumn' },
-  { label: '❄️ Winter', value: 'winter' },
-];
-
 export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
+
+  const COST_CHIPS: ChipGroup[] = [
+    { label: t('common.all'), value: undefined },
+    { label: t('cost.free'), value: 'free' },
+    { label: t('cost.lowCost'), value: 'low_cost' },
+  ];
+
+  const SEASON_CHIPS: ChipGroup[] = [
+    { label: t('picker.allSeasons'), value: undefined },
+    { label: `🌸 ${t('season.spring')}`, value: 'spring' },
+    { label: `☀️ ${t('season.summer')}`, value: 'summer' },
+    { label: `🍂 ${t('season.autumn')}`, value: 'autumn' },
+    { label: `❄️ ${t('season.winter')}`, value: 'winter' },
+  ];
+
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +81,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <ThemedText style={styles.title}>Aktivität wählen</ThemedText>
+          <ThemedText style={styles.title}>{t('picker.title')}</ThemedText>
           <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Schließen" hitSlop={8}>
             <ThemedText style={[styles.close, { color: colors.primary }]}>✕</ThemedText>
           </Pressable>
@@ -89,7 +92,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
           onPress={onCreateNew}
           accessibilityRole="button"
         >
-          <ThemedText style={[styles.createText, { color: colors.primary }]}>＋ Neue Aktivität erstellen</ThemedText>
+          <ThemedText style={[styles.createText, { color: colors.primary }]}>{t('picker.createNew')}</ThemedText>
         </Pressable>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRow}>
@@ -112,7 +115,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
             keyExtractor={(a) => a.id}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
-              <EmptyState icon="🌱" title="Keine Aktivitäten gefunden" body="Passe die Filter an, um mehr zu sehen." />
+              <EmptyState icon="🌱" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
             }
             renderItem={({ item }) => (
               <Pressable
@@ -124,7 +127,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
                   <ThemedText style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>{item.description}</ThemedText>
                 </View>
                 <ThemedText style={[styles.cardMeta, { color: item.cost_indicator === 'free' ? colors.accent : colors.primary }]}>
-                  {item.cost_indicator === 'free' ? 'Kostenlos' : 'Günstig'}
+                  {item.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
                 </ThemedText>
               </Pressable>
             )}

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,6 +15,7 @@ type Cost = 'free' | 'low_cost';
 
 export default function CreateActivityScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -24,7 +26,7 @@ export default function CreateActivityScreen() {
 
   async function submit() {
     if (!title.trim()) {
-      setError('Bitte gib einen Titel ein.');
+      setError(t('createActivity.titleRequired'));
       return;
     }
     setError(null);
@@ -51,9 +53,9 @@ export default function CreateActivityScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} accessibilityRole="button">
-          <ThemedText style={{ color: colors.primary }}>← Zurück</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Neue Aktivität</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('createActivity.title')}</ThemedText>
         <View style={{ width: 60 }} />
       </View>
 
@@ -64,29 +66,29 @@ export default function CreateActivityScreen() {
       )}
 
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText style={[styles.label, { color: colors.muted }]}>TITEL *</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createActivity.titleLabel')}</ThemedText>
         <TextInput
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
           value={title}
           onChangeText={setTitle}
-          placeholder="z. B. Drachen steigen lassen"
+          placeholder={t('createActivity.titlePlaceholder')}
           placeholderTextColor={colors.muted}
           maxLength={100}
         />
 
-        <ThemedText style={[styles.label, { color: colors.muted }]}>BESCHREIBUNG (optional)</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createActivity.descLabel')}</ThemedText>
         <TextInput
           style={[styles.input, styles.textarea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
           value={description}
           onChangeText={setDescription}
-          placeholder="Beschreibe die Aktivität..."
+          placeholder={t('createActivity.descPlaceholder')}
           placeholderTextColor={colors.muted}
           multiline
           numberOfLines={3}
           maxLength={500}
         />
 
-        <ThemedText style={[styles.label, { color: colors.muted }]}>DAUER (MINUTEN)</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createActivity.durationLabel')}</ThemedText>
         <TextInput
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
           value={duration}
@@ -96,7 +98,7 @@ export default function CreateActivityScreen() {
           keyboardType="number-pad"
         />
 
-        <ThemedText style={[styles.label, { color: colors.muted }]}>KOSTEN</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createActivity.costLabel')}</ThemedText>
         <View style={styles.costRow}>
           {(['free', 'low_cost'] as Cost[]).map((c) => (
             <Pressable
@@ -105,7 +107,7 @@ export default function CreateActivityScreen() {
               onPress={() => setCost(c)}
             >
               <ThemedText style={[styles.costChipText, { color: cost === c ? '#fff' : colors.onSurface }]}>
-                {c === 'free' ? 'Kostenlos' : 'Günstig'}
+                {c === 'free' ? t('cost.free') : t('cost.lowCost')}
               </ThemedText>
             </Pressable>
           ))}
@@ -119,7 +121,7 @@ export default function CreateActivityScreen() {
           {submitting ? (
             <ActivityIndicator color={colors.buttonText} />
           ) : (
-            <ThemedText style={[styles.submitText, { color: colors.buttonText }]}>Aktivität erstellen</ThemedText>
+            <ThemedText style={[styles.submitText, { color: colors.buttonText }]}>{t('createActivity.submit')}</ThemedText>
           )}
         </Pressable>
       </ScrollView>

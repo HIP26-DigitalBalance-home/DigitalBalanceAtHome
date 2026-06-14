@@ -1,5 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Platform,
@@ -29,6 +30,7 @@ function toISODate(d: Date): string {
 
 export default function CreateChallengeScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { activityIds: activityIdsParam } = useLocalSearchParams<{ activityIds?: string }>();
 
   // The collage is built before this wizard; activity ids arrive as a param.
@@ -67,20 +69,20 @@ export default function CreateChallengeScreen() {
   }, [step]);
 
   function validateDates(): string | null {
-    if (!startDate || !endDate) return 'Both dates are required.';
+    if (!startDate || !endDate) return t('createChallenge.bothDates');
     const s = new Date(startDate);
     const e = new Date(endDate);
-    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 'Invalid date format.';
-    if (e < s) return 'End date must be on or after start date.';
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return t('createChallenge.invalidDate');
+    if (e < s) return t('createChallenge.endAfterStart');
     const today = toISODate(new Date());
-    if (endDate < today) return 'End date cannot be in the past.';
+    if (endDate < today) return t('createChallenge.endNotPast');
     return null;
   }
 
   function nextStep() {
     setError(null);
     if (step === 1) {
-      if (!title.trim()) { setError('Title is required.'); return; }
+      if (!title.trim()) { setError(t('createChallenge.titleRequired')); return; }
       setStep(2);
     } else if (step === 2) {
       const dateError = validateDates();
@@ -103,7 +105,7 @@ export default function CreateChallengeScreen() {
       });
       router.replace({ pathname: '/challenge/[id]', params: { id: res.data.id } } as any);
     } catch (e: any) {
-      const detail = e?.response?.data?.detail ?? 'Failed to create challenge. Please try again.';
+      const detail = e?.response?.data?.detail ?? t('createChallenge.createFailed');
       setError(detail);
     } finally {
       setSubmitting(false);
@@ -115,13 +117,13 @@ export default function CreateChallengeScreen() {
     return <Redirect href={'/(tabs)/explore' as any} />;
   }
 
-  const stepTitle = ['', 'Challenge details', 'Set dates', 'Assign to group'][step];
+  const stepTitle = ['', t('createChallenge.stepDetails'), t('createChallenge.stepDates'), t('createChallenge.stepGroup')][step];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => (step === 1 ? router.back() : setStep((s) => (s - 1) as Step))}>
-          <ThemedText style={{ color: colors.primary }}>← {step === 1 ? 'Back' : 'Previous'}</ThemedText>
+          <ThemedText style={{ color: colors.primary }}>← {step === 1 ? t('common.back') : t('common.previous')}</ThemedText>
         </Pressable>
         <ThemedText style={styles.stepTitle}>{stepTitle}</ThemedText>
         <ThemedText style={[styles.stepCounter, { color: colors.muted }]}>{step}/3</ThemedText>
@@ -135,52 +137,52 @@ export default function CreateChallengeScreen() {
 
       {step === 1 && (
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText style={[styles.label, { color: colors.muted }]}>CHALLENGE TITLE *</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createChallenge.titleLabel')}</ThemedText>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g. Summer family adventures"
+            placeholder={t('createChallenge.titlePlaceholder')}
             placeholderTextColor={colors.muted}
           />
-          <ThemedText style={[styles.label, { color: colors.muted }]}>DESCRIPTION (optional)</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createChallenge.descLabel')}</ThemedText>
           <TextInput
             style={[styles.input, styles.textarea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe this challenge..."
+            placeholder={t('createChallenge.descPlaceholder')}
             placeholderTextColor={colors.muted}
             multiline
             numberOfLines={3}
           />
           <Pressable style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={nextStep}>
-            <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>Next →</ThemedText>
+            <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>{t('createChallenge.nextArrow')}</ThemedText>
           </Pressable>
         </ScrollView>
       )}
 
       {step === 2 && (
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText style={[styles.label, { color: colors.muted }]}>START DATE *</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createChallenge.startDate')}</ThemedText>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
             value={startDate}
             onChangeText={setStartDate}
-            placeholder="YYYY-MM-DD"
+            placeholder="JJJJ-MM-TT"
             placeholderTextColor={colors.muted}
             {...(Platform.OS === 'web' ? ({ type: 'date', min: toISODate(new Date()) } as any) : {})}
           />
-          <ThemedText style={[styles.label, { color: colors.muted }]}>END DATE *</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createChallenge.endDate')}</ThemedText>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.onSurface }]}
             value={endDate}
             onChangeText={setEndDate}
-            placeholder="YYYY-MM-DD"
+            placeholder="JJJJ-MM-TT"
             placeholderTextColor={colors.muted}
             {...(Platform.OS === 'web' ? ({ type: 'date', min: startDate || toISODate(new Date()) } as any) : {})}
           />
           <Pressable style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={nextStep}>
-            <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>Next →</ThemedText>
+            <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>{t('createChallenge.nextArrow')}</ThemedText>
           </Pressable>
         </ScrollView>
       )}
@@ -188,7 +190,7 @@ export default function CreateChallengeScreen() {
       {step === 3 && (
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.content}>
-            <ThemedText style={[styles.label, { color: colors.muted }]}>WHO IS THIS CHALLENGE FOR?</ThemedText>
+            <ThemedText style={[styles.label, { color: colors.muted }]}>{t('createChallenge.whoFor')}</ThemedText>
 
             <Pressable
               style={[
@@ -197,8 +199,8 @@ export default function CreateChallengeScreen() {
               ]}
               onPress={() => setSelectedGroupId(null)}
             >
-              <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>Personal (just my family)</ThemedText>
-              <ThemedText style={{ color: colors.muted, fontSize: 13 }}>Only visible to your family</ThemedText>
+              <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{t('createChallenge.personal')}</ThemedText>
+              <ThemedText style={{ color: colors.muted, fontSize: 13 }}>{t('createChallenge.personalSub')}</ThemedText>
             </Pressable>
 
             {loadingGroups ? (
@@ -214,7 +216,7 @@ export default function CreateChallengeScreen() {
                   onPress={() => setSelectedGroupId(g.id)}
                 >
                   <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{g.name}</ThemedText>
-                  <ThemedText style={{ color: colors.muted, fontSize: 13 }}>Group challenge — all families participate</ThemedText>
+                  <ThemedText style={{ color: colors.muted, fontSize: 13 }}>{t('createChallenge.groupSub')}</ThemedText>
                 </Pressable>
               ))
             )}
@@ -229,7 +231,7 @@ export default function CreateChallengeScreen() {
               {submitting ? (
                 <ActivityIndicator color={colors.buttonText} />
               ) : (
-                <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>Create challenge</ThemedText>
+                <ThemedText style={[styles.nextText, { color: colors.buttonText }]}>{t('createChallenge.submit')}</ThemedText>
               )}
             </Pressable>
           </View>

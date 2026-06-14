@@ -1,6 +1,7 @@
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri, ResponseType } from 'expo-auth-session';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,6 +15,7 @@ const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
 
 export default function SignInScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -36,7 +38,7 @@ export default function SignInScreen() {
     if (!response) return;
 
     if (response.type === 'error') {
-      setError(response.error?.message ?? 'Google authentication failed. Please try again.');
+      setError(response.error?.message ?? t('signIn.googleFailed'));
       return;
     }
 
@@ -55,17 +57,17 @@ export default function SignInScreen() {
 
     login(payload)
       .catch((err) => {
-        setError(err?.message ?? 'Sign-in failed. Please try again.');
+        setError(err?.message ?? t('signIn.failed'));
         setIsSigningIn(false);
       });
-  }, [response, login, request?.codeVerifier, request?.redirectUri]);
+  }, [response, login, request?.codeVerifier, request?.redirectUri, t]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <ThemedText type="title">Bond</ThemedText>
         <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
-          Encouraging families to spend{'\n'}intentional time together
+          {t('signIn.tagline')}
         </ThemedText>
 
         {error && (
@@ -86,7 +88,7 @@ export default function SignInScreen() {
             <ActivityIndicator color={colors.buttonText} />
           ) : (
             <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-              Sign in with Google
+              {t('signIn.google')}
             </ThemedText>
           )}
         </Pressable>
