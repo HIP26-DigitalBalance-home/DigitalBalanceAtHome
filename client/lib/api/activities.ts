@@ -20,6 +20,13 @@ export interface ActivityFilters {
   cost?: string;
 }
 
+export interface CreateActivityPayload {
+  title: string;
+  description?: string | null;
+  estimated_duration_minutes?: number | null;
+  cost_indicator?: 'free' | 'low_cost';
+}
+
 export const activitiesApi = {
   list: (filters: ActivityFilters = {}) => {
     const params = Object.fromEntries(
@@ -27,6 +34,8 @@ export const activitiesApi = {
     );
     return apiClient.get<ActivityItem[]>('/activities', { params });
   },
+
+  create: (payload: CreateActivityPayload) => apiClient.post<ActivityItem>('/activities', payload),
 
   suggestion: (childId?: string | null, city?: string | null) => {
     const params: Record<string, string> = {};

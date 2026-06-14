@@ -657,7 +657,9 @@ paths:
       operationId: listActivities
       tags: [Activities]
       summary: Browse the activity pool
-      security: []
+      description: |
+        Returns global (curated) activities plus any activities created by the
+        caller's own family. Requires authentication.
       parameters:
         - name: age
           in: query
@@ -695,6 +697,53 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Activity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createActivity
+      tags: [Activities]
+      summary: Create a family-scoped activity
+      description: |
+        Creates a new activity owned by the caller's family. It is visible only
+        to that family in the activity pool (and to others when embedded in a
+        shared challenge). The caller must belong to a family.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityRequest"
+      responses:
+        "201":
+          description: Activity created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "400":
+          description: Caller does not belong to a family
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /collage-presets:
+    get:
+      operationId: listCollagePresets
+      tags: [Activities]
+      summary: List curated 3×3 collage templates
+      description: |
+        Returns all curated collage presets ordered by sort_order. Each preset
+        references exactly nine activities by id, ordered by grid position 0–8.
+      responses:
+        "200":
+          description: Collage presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollagePreset"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /activities/suggestions:
     get:
@@ -1588,6 +1637,45 @@ components:
           nullable: true
         is_partner_content:
           type: boolean
+
+    CreateActivityRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        estimated_duration_minutes:
+          type: integer
+          minimum: 1
+          default: 30
+          nullable: true
+        cost_indicator:
+          type: string
+          enum: [free, low_cost]
+          description: Defaults to "free" when omitted.
+
+    CollagePreset:
+      type: object
+      required: [id, name, description, activity_ids]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        activity_ids:
+          type: array
+          description: Exactly nine activity ids, ordered by grid position 0–8
+          items:
+            type: string
+            format: uuid
 
     # Challenges
 

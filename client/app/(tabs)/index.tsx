@@ -279,7 +279,7 @@ export default function HomeScreen() {
               title="Noch keine aktive Herausforderung"
               body="Erstelle deine erste Herausforderung."
               actionLabel="Herausforderung erstellen"
-              onAction={() => router.push('/create-challenge' as any)}
+              onAction={() => router.push('/(tabs)/explore' as any)}
             />
           </View>
         )}

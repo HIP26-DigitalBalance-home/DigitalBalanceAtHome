@@ -23,7 +23,7 @@ interface Props {
 
 export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
-  const numColumns = Math.max(2, Math.ceil(Math.sqrt(slots.length)));
+  const numColumns = 3;
   // Start with a best-guess width; replaced on first layout with the real container width.
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - Spacing.screenHorizontal * 2

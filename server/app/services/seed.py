@@ -227,9 +227,9 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     await session.flush()
 
     # ── Fetch activities ──────────────────────────────────────────────────────
-    act_result = await session.execute(select(Activity).where(Activity.cost_indicator != "paid").limit(18))
+    act_result = await session.execute(select(Activity).where(Activity.cost_indicator != "paid").limit(27))
     activities = list(act_result.scalars().all())
-    if len(activities) < 6:
+    if len(activities) < 27:
         await session.commit()
         return
 
@@ -260,15 +260,15 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             -7,
             14,
         ),
-        activities[:6],
+        activities[:9],
     )
     c2 = await _add_challenge(  # noqa: F841
         _ch("Summer Family Challenge", "Get ready for summer with these fun activities!", None, 3, 24),
-        activities[6:12],
+        activities[9:18],
     )
     c3 = await _add_challenge(
         _ch("Winter Warmth Challenge", "Cozy indoor activities to brighten the cold months.", group.id, -40, -10),
-        activities[12:18],
+        activities[18:27],
     )
 
     # ── Seed mock completions ─────────────────────────────────────────────────
@@ -300,7 +300,7 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     for i, ca in enumerate(c1_slots):
         slot_activity_title[ca.id] = activities[i].title
     for i, ca in enumerate(c3_slots):
-        slot_activity_title[ca.id] = activities[12 + i].title
+        slot_activity_title[ca.id] = activities[18 + i].title
 
     def _ts(days_ago: float) -> datetime:
         return datetime.now(timezone.utc) - timedelta(days=days_ago)

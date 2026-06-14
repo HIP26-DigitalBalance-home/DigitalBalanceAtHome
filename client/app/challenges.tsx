@@ -55,7 +55,7 @@ export default function ChallengesScreen() {
           <ThemedText style={{ color: colors.primary }}>← Back</ThemedText>
         </Pressable>
         <ThemedText style={styles.title}>Challenges</ThemedText>
-        <Pressable onPress={() => router.push('/create-challenge' as any)}>
+        <Pressable onPress={() => router.push('/(tabs)/explore' as any)}>
           <ThemedText style={{ color: colors.primary }}>+ New</ThemedText>
         </Pressable>
       </View>
@@ -93,7 +93,7 @@ export default function ChallengesScreen() {
               <ThemedText style={{ color: colors.muted }}>No challenges found.</ThemedText>
               <Pressable
                 style={[styles.createBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/create-challenge' as any)}
+                onPress={() => router.push('/(tabs)/explore' as any)}
               >
                 <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Create a challenge</ThemedText>
               </Pressable>
