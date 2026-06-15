@@ -6,8 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { markOnboardingCompleted } from '@/hooks/use-onboarding-status';
 import i18n from '@/lib/i18n';
 import { onboardingApi, groupsApi } from '@/lib/api';
@@ -25,7 +25,7 @@ const schema = Yup.object({
 });
 
 export default function ChildScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
 
   async function handleSubmit(

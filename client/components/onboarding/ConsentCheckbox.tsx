@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 
 interface ConsentCheckboxProps {
   checked: boolean;
@@ -19,7 +19,7 @@ export function ConsentCheckbox({
   sublabel,
   required,
 }: ConsentCheckboxProps) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   return (
     <Pressable style={styles.row} onPress={onToggle} accessibilityRole="checkbox">
       <View

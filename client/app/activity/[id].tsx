@@ -4,8 +4,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import type { ActivityItem } from '@/lib/api';
 
 const SEASON_EMOJI: Record<string, string> = {
@@ -16,7 +16,7 @@ const WEATHER_EMOJI: Record<string, string> = {
 };
 
 export default function ActivityDetailScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ data: string }>();
   const seasonLabel: Record<string, string> = {

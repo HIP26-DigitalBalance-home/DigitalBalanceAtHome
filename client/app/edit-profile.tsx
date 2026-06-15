@@ -6,13 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usersApi } from '@/lib/api';
 
 export default function EditProfileScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const { currentUser, updateCurrentUser } = useAuth();

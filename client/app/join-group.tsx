@@ -5,12 +5,12 @@ import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { groupsApi } from '@/lib/api';
 
 export default function JoinGroupScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   // Pre-fill from URL: /join-group?token=xxx
   const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();

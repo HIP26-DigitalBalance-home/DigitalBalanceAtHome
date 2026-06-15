@@ -29,6 +29,19 @@ export const de = {
     upcoming: 'Bevorstehend',
     completed: 'Abgeschlossen',
   },
+  themes: {
+    salmon: 'Sonnenschein',
+    inkwell: 'Tintenfass',
+    riso: 'Riso-Druck',
+    cork: 'Pinnwand',
+    gartenlaube: 'Gartenlaube',
+    colorMode: {
+      light: 'Hell',
+      system: 'Auto',
+      dark: 'Dunkel',
+      active: 'aktiv',
+    },
+  },
   cost: {
     free: 'Kostenlos',
     lowCost: 'Günstig',
@@ -298,6 +311,8 @@ export const de = {
     loadDemoSuccess: 'Demodaten geladen!',
     loadDemoSuccessMsg: 'Ziehe auf der Start- und Gruppenregisterkarte zum Aktualisieren nach unten.',
     loadDemoFailed: 'Demodaten konnten nicht geladen werden. Stelle sicher, dass der Server SEED_ENABLED=true hat.',
+    displaySection: 'Darstellung',
+    privacyPolicy: 'Datenschutzerklärung',
     signOut: 'Abmelden',
   },
   editProfile: {

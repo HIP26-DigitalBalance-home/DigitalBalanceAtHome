@@ -7,8 +7,8 @@ import { useRouter } from 'expo-router';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { completionsApi } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import type { CompletionHistoryItem } from '@/lib/api';
@@ -16,7 +16,7 @@ import type { CompletionHistoryItem } from '@/lib/api';
 const PAGE_SIZE = 20;
 
 export default function ActivityHistoryScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
 

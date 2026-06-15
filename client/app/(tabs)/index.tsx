@@ -10,9 +10,11 @@ import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
   activitiesApi,
@@ -43,7 +45,7 @@ function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): Acti
 }
 
 export default function HomeScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
 
@@ -264,8 +266,13 @@ export default function HomeScreen() {
                 <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
                   {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
                 </ThemedText>
-                <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
-                  <ThemedText style={{ color: colors.primary, fontSize: 13 }}>{t('home.viewDetails')}</ThemedText>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.viewDetails')}
+                >
+                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
                 </Pressable>
               </View>
               <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
@@ -348,9 +355,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  section: { borderRadius: 16, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
+  section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
   challengeTitle: { fontSize: 16, fontWeight: '600' },
   challengeDates: { fontSize: 12, marginBottom: Spacing.xs },
   emptyChallenge: { gap: Spacing.md, alignItems: 'flex-start' },
@@ -359,6 +366,6 @@ const styles = StyleSheet.create({
   createButtonText: { fontSize: 14, fontWeight: '600' },
   suggestionTitle: { fontSize: 17, fontWeight: '600', lineHeight: 24 },
   suggestionMeta: { fontSize: 13 },
-  ctaButton: { height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
+  ctaButton: { height: 44, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
   ctaText: { fontSize: 15, fontWeight: '600' },
 });

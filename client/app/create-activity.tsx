@@ -5,8 +5,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { activitiesApi, type CreateActivityPayload } from '@/lib/api';
 import { pendingActivity } from '@/lib/pending-activity';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -14,7 +14,7 @@ import { getGermanErrorMessage } from '@/lib/utils/api-error';
 type Cost = 'free' | 'low_cost';
 
 export default function CreateActivityScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
