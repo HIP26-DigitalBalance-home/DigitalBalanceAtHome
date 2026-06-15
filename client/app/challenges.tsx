@@ -15,14 +15,10 @@ import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 type StatusFilter = 'upcoming' | 'active' | 'completed' | undefined;
 
-const STATUS_COLORS: Record<string, string> = {
-  active: '#4CAF82',
-  upcoming: '#F4845F',
-  completed: '#78716C',
-};
-
 export default function ChallengesScreen() {
   const { colors, radii } = useAppTheme();
+  const statusColor = (s: string) =>
+    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
   const { t } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +75,7 @@ export default function ChallengesScreen() {
             ]}
             onPress={() => setFilter(chip.value)}
           >
-            <ThemedText style={[styles.chipText, { color: filter === chip.value ? '#fff' : colors.onSurface }]}>
+            <ThemedText style={[styles.chipText, { color: filter === chip.value ? colors.buttonText : colors.onSurface }]}>
               {chip.label}
             </ThemedText>
           </Pressable>
@@ -103,7 +99,7 @@ export default function ChallengesScreen() {
                 style={[styles.createBtn, { backgroundColor: colors.primary }]}
                 onPress={() => router.push('/(tabs)/explore' as any)}
               >
-                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
+                <ThemedText style={{ color: colors.buttonText, fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
               </Pressable>
             </View>
           }
@@ -114,8 +110,8 @@ export default function ChallengesScreen() {
             >
               <View style={styles.cardTop}>
                 <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[item.status] ?? colors.muted) + '22' }]}>
-                  <ThemedText style={[styles.statusText, { color: STATUS_COLORS[item.status] ?? colors.muted }]}>
+                <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
+                  <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
                     {statusLabels[item.status] ?? item.status}
                   </ThemedText>
                 </View>

@@ -46,14 +46,14 @@ export default function CelebrationScreen() {
             angle: 60,
             spread: 55,
             origin: { x: 0, y: 0.7 },
-            colors: ['#F4845F', '#4CAF82', '#F9B49A', '#FFD700'],
+            colors: [colors.primary, colors.accent, colors.primaryDark, colors.tint],
           });
           confetti({
             particleCount: 3,
             angle: 120,
             spread: 55,
             origin: { x: 1, y: 0.7 },
-            colors: ['#F4845F', '#4CAF82', '#F9B49A', '#FFD700'],
+            colors: [colors.primary, colors.accent, colors.primaryDark, colors.tint],
           });
           if (Date.now() < end) requestAnimationFrame(frame);
         }
@@ -143,7 +143,7 @@ export default function CelebrationScreen() {
             onPress={handleShare}
             disabled={exporting}
           >
-            <ThemedText style={[styles.buttonText, { color: '#fff' }]}>{t('common.share')}</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>{t('common.share')}</ThemedText>
           </Pressable>
         </View>
 

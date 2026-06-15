@@ -127,7 +127,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
 
             {groupFamiliesCount != null && groupFamiliesCount > 0 && familiesCompletedCount != null && (
               <View style={styles.progressSection}>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
                   {familiesCompletedCount > 0 && (
                     <View
                       style={[
@@ -208,7 +208,6 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E8DDD3',
     overflow: 'hidden',
   },
   progressFill: { height: 5, borderRadius: 3 },

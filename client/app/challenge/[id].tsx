@@ -30,17 +30,13 @@ import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
-const STATUS_COLORS: Record<string, string> = {
-  active: '#3D6345',
-  upcoming: '#B83820',
-  completed: '#7A6B5C',
-};
-
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
 
 export default function ChallengeDetailScreen() {
   const { colors, radii } = useAppTheme();
+  const statusColor = (s: string) =>
+    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -226,8 +222,8 @@ export default function ChallengeDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
-            <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[challenge.status] ?? colors.muted) + '22' }]}>
-              <ThemedText style={[styles.statusText, { color: STATUS_COLORS[challenge.status] ?? colors.muted }]}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
+              <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
                 {statusLabels[challenge.status] ?? challenge.status}
               </ThemedText>
             </View>

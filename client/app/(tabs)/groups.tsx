@@ -25,7 +25,7 @@ import { groupsApi, type FeedEntry, type GroupSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 export default function GroupsScreen() {
-  const { colors, radii } = useAppTheme();
+  const { colors, radii, theme } = useAppTheme();
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
@@ -128,7 +128,7 @@ export default function GroupsScreen() {
 
   function renderFeedEntry({ item }: { item: FeedEntry }) {
     return (
-      <View style={[styles.feedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.feedCard, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: theme.cardShadowColor ?? '#1C1208' }]}>
         {item.photo_url ? (
           <Image
             source={{ uri: item.photo_url }}
@@ -288,7 +288,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginHorizontal: Spacing.md,
-    shadowColor: '#6B3A2A',
     shadowOpacity: 0.10,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },

@@ -34,7 +34,6 @@ export interface ThemeRadii {
 
 export interface AppThemeDef {
   id: ThemeId;
-  label: string;
   titleFont: string;
   bodyFont?: string;    // undefined = system default (Salmon, Cork)
   preview: { bg: string; primary: string; border: string };
@@ -84,7 +83,6 @@ const scriptFont = Platform.select({
 export const THEMES: Record<ThemeId, AppThemeDef> = {
   salmon: {
     id: 'salmon',
-    label: 'Sonnenschein',
     titleFont: systemFont,
     preview: { bg: '#FFFBF5', primary: '#F4845F', border: '#E7E0D6' },
     radii: { card: 12, button: 10, input: 10, badge: 20, sm: 8 },
@@ -132,7 +130,6 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
 
   inkwell: {
     id: 'inkwell',
-    label: 'Tintenfass',
     titleFont: serifFont,
     bodyFont: serifFont,
     preview: { bg: '#EDE5D3', primary: '#B83820', border: '#C9B99A' },
@@ -181,7 +178,6 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
 
   riso: {
     id: 'riso',
-    label: 'Riso-Druck',
     titleFont: monoFont,
     bodyFont: monoFont,
     preview: { bg: '#F4F1EB', primary: '#1A6B5A', border: '#DADAD8' },
@@ -232,7 +228,6 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
 
   cork: {
     id: 'cork',
-    label: 'Pinnwand',
     titleFont: roundedFont,
     preview: { bg: '#C4A882', primary: '#5C7A35', border: '#D8CCBA' },
     radii: { card: 20, button: 18, input: 16, badge: 999, sm: 12 },
@@ -282,7 +277,6 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
   },
   gartenlaube: {
     id: 'gartenlaube',
-    label: 'Gartenlaube',
     titleFont: scriptFont,
     bodyFont: serifFont,
     preview: { bg: '#EEE8F0', primary: '#7A4E82', border: '#D8CEDC' },

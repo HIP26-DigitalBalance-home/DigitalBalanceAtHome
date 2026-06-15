@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { ErrorState } from '@/components/ui/error-state';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { DEFAULT_RADII, THEMES, type ColorMode } from '@/constants/themes';
+import { DEFAULT_RADII, THEMES, type ColorMode, type ThemeId } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -216,7 +216,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.border }]}
                 onPress={() => router.push('/privacy-policy' as any)}>
-                <ThemedText style={{ fontWeight: '600' }}>Datenschutzerklärung</ThemedText>
+                <ThemedText style={{ fontWeight: '600' }}>{t('profile.privacyPolicy')}</ThemedText>
               </Pressable>
             </View>
 
@@ -333,13 +333,13 @@ export default function ProfileScreen() {
             )}
 
             {/* Darstellung */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>Darstellung</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('profile.displaySection')}</ThemedText>
             <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 
               {/* Color mode segmented control — one border on the container, hairlines inside */}
               <View style={[styles.modeToggle, { borderColor: colors.border }]}>
                 {(['light', 'system', 'dark'] as ColorMode[]).map((mode, idx, arr) => {
-                  const labels: Record<ColorMode, string> = { light: 'Hell', system: 'Auto', dark: 'Dunkel' };
+                  const labels: Record<ColorMode, string> = { light: t('themes.colorMode.light'), system: t('themes.colorMode.system'), dark: t('themes.colorMode.dark') };
                   const isActive = mode === colorMode;
                   const isLast = idx === arr.length - 1;
                   return (
@@ -352,7 +352,7 @@ export default function ProfileScreen() {
                       ]}
                       onPress={() => setColorMode(mode)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${labels[mode]}${isActive ? ', aktiv' : ''}`}
+                      accessibilityLabel={`${labels[mode]}${isActive ? `, ${t('themes.colorMode.active')}` : ''}`}
                     >
                       <Text style={[
                         styles.modeChipText,
@@ -382,7 +382,7 @@ export default function ProfileScreen() {
                       style={styles.themeSwatch}
                       onPress={() => setTheme(th.id)}
                       accessibilityRole="button"
-                      accessibilityLabel={`Theme ${th.label}${isActive ? ', aktiv' : ''}`}
+                      accessibilityLabel={`${t(`themes.${th.id}` as `themes.${ThemeId}`)}${isActive ? `, ${t('themes.colorMode.active')}` : ''}`}
                     >
                       {/* borderWidth is always 3 — only color changes, no layout shift */}
                       <View style={[
@@ -392,7 +392,7 @@ export default function ProfileScreen() {
                         <View style={[styles.swatchDot, { backgroundColor: th.preview.primary }]} />
                       </View>
                       <Text style={[styles.swatchLabel, { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.6 }]}>
-                        {th.label}
+                        {t(`themes.${th.id}` as `themes.${ThemeId}`)}
                       </Text>
                     </Pressable>
                   );
