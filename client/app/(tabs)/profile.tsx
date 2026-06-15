@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -354,12 +354,12 @@ export default function ProfileScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`${labels[mode]}${isActive ? ', aktiv' : ''}`}
                     >
-                      <ThemedText style={[
+                      <Text style={[
                         styles.modeChipText,
                         { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.55 },
                       ]}>
                         {labels[mode]}
-                      </ThemedText>
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -391,9 +391,9 @@ export default function ProfileScreen() {
                       ]}>
                         <View style={[styles.swatchDot, { backgroundColor: th.preview.primary }]} />
                       </View>
-                      <ThemedText style={[styles.swatchLabel, { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.6 }]}>
+                      <Text style={[styles.swatchLabel, { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.6 }]}>
                         {th.label}
-                      </ThemedText>
+                      </Text>
                     </Pressable>
                   );
                 })}
