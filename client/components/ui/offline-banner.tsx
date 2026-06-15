@@ -3,15 +3,14 @@ import { StyleSheet, Text } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 
 export function OfflineBanner() {
   const isOnline = useNetworkStatus();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, radii } = useAppTheme();
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-60);

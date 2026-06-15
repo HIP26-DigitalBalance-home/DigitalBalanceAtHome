@@ -7,21 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, type ChallengeSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 type StatusFilter = 'upcoming' | 'active' | 'completed' | undefined;
 
-const STATUS_COLORS: Record<string, string> = {
-  active: '#4CAF82',
-  upcoming: '#F4845F',
-  completed: '#78716C',
-};
-
 export default function ChallengesScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
+  const statusColor = (s: string) =>
+    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
   const { t } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +75,7 @@ export default function ChallengesScreen() {
             ]}
             onPress={() => setFilter(chip.value)}
           >
-            <ThemedText style={[styles.chipText, { color: filter === chip.value ? '#fff' : colors.onSurface }]}>
+            <ThemedText style={[styles.chipText, { color: filter === chip.value ? colors.buttonText : colors.onSurface }]}>
               {chip.label}
             </ThemedText>
           </Pressable>
@@ -102,7 +99,7 @@ export default function ChallengesScreen() {
                 style={[styles.createBtn, { backgroundColor: colors.primary }]}
                 onPress={() => router.push('/(tabs)/explore' as any)}
               >
-                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
+                <ThemedText style={{ color: colors.buttonText, fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
               </Pressable>
             </View>
           }
@@ -113,8 +110,8 @@ export default function ChallengesScreen() {
             >
               <View style={styles.cardTop}>
                 <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[item.status] ?? colors.muted) + '22' }]}>
-                  <ThemedText style={[styles.statusText, { color: STATUS_COLORS[item.status] ?? colors.muted }]}>
+                <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
+                  <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
                     {statusLabels[item.status] ?? item.status}
                   </ThemedText>
                 </View>
@@ -152,13 +149,13 @@ const styles = StyleSheet.create({
   skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },
   chipText: { fontSize: 13, fontWeight: '500' },
   list: { padding: Spacing.screenHorizontal, gap: Spacing.sm },
-  card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
+  card: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   cardTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
-  statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
+  statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   dates: { fontSize: 12 },
   desc: { fontSize: 13 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  createBtn: { height: 44, paddingHorizontal: Spacing.xl, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  createBtn: { height: 44, paddingHorizontal: Spacing.xl, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
 });

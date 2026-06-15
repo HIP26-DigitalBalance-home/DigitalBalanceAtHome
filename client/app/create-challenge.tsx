@@ -13,8 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, groupsApi } from '@/lib/api';
 
 type Step = 1 | 2 | 3;
@@ -29,7 +29,7 @@ function toISODate(d: Date): string {
 }
 
 export default function CreateChallengeScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { activityIds: activityIdsParam } = useLocalSearchParams<{ activityIds?: string }>();
 

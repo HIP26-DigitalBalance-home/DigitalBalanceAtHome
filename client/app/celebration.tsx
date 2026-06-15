@@ -6,14 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollageGrid } from '@/components/collage-grid';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, type ChallengeWithProgress } from '@/lib/api';
 import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
 import { showAlert } from '@/lib/utils/alert';
 
 export default function CelebrationScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
@@ -46,14 +46,14 @@ export default function CelebrationScreen() {
             angle: 60,
             spread: 55,
             origin: { x: 0, y: 0.7 },
-            colors: ['#F4845F', '#4CAF82', '#F9B49A', '#FFD700'],
+            colors: [colors.primary, colors.accent, colors.primaryDark, colors.tint],
           });
           confetti({
             particleCount: 3,
             angle: 120,
             spread: 55,
             origin: { x: 1, y: 0.7 },
-            colors: ['#F4845F', '#4CAF82', '#F9B49A', '#FFD700'],
+            colors: [colors.primary, colors.accent, colors.primaryDark, colors.tint],
           });
           if (Date.now() < end) requestAnimationFrame(frame);
         }
@@ -143,7 +143,7 @@ export default function CelebrationScreen() {
             onPress={handleShare}
             disabled={exporting}
           >
-            <ThemedText style={[styles.buttonText, { color: '#fff' }]}>{t('common.share')}</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>{t('common.share')}</ThemedText>
           </Pressable>
         </View>
 

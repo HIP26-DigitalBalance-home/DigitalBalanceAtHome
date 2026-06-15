@@ -17,14 +17,15 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { groupsApi, type FeedEntry, type GroupSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 export default function GroupsScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii, theme } = useAppTheme();
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
@@ -127,7 +128,7 @@ export default function GroupsScreen() {
 
   function renderFeedEntry({ item }: { item: FeedEntry }) {
     return (
-      <View style={[styles.feedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.feedCard, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: theme.cardShadowColor ?? '#1C1208' }]}>
         {item.photo_url ? (
           <Image
             source={{ uri: item.photo_url }}
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   emptyTitle: { textAlign: 'center' },
   emptyBody: { textAlign: 'center', fontSize: 15, lineHeight: 22 },
   emptyActions: { width: '100%', gap: Spacing.sm, marginTop: Spacing.md },
-  ctaButton: { height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  ctaButton: { height: 52, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 16, fontWeight: '600' },
   list: { paddingBottom: Spacing.md, gap: Spacing.sm },
 
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
-    borderRadius: 12,
+    borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
   },
   groupCardLeft: { flex: 1 },
@@ -287,8 +288,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginHorizontal: Spacing.md,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#6B3A2A',
     shadowOpacity: 0.10,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { activitiesApi, type ActivityFilters, type ActivityItem } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
@@ -24,10 +25,10 @@ interface Props {
   selectedId?: string;
 }
 
-type ChipGroup = { label: string; value: string | undefined };
+type ChipGroup = { label: string; value: string | undefined; icon?: IconSymbolName };
 
 export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, selectedId }: Props) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
 
   const COST_CHIPS: ChipGroup[] = [
@@ -38,10 +39,10 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
 
   const SEASON_CHIPS: ChipGroup[] = [
     { label: t('picker.allSeasons'), value: undefined },
-    { label: `🌸 ${t('season.spring')}`, value: 'spring' },
-    { label: `☀️ ${t('season.summer')}`, value: 'summer' },
-    { label: `🍂 ${t('season.autumn')}`, value: 'autumn' },
-    { label: `❄️ ${t('season.winter')}`, value: 'winter' },
+    { label: t('season.spring'), value: 'spring', icon: 'leaf.fill' },
+    { label: t('season.summer'), value: 'summer', icon: 'sun.max.fill' },
+    { label: t('season.autumn'), value: 'autumn', icon: 'wind' },
+    { label: t('season.winter'), value: 'winter', icon: 'snowflake' },
   ];
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -79,13 +80,15 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
   }, [visible, load]);
 
   function renderChip(chip: ChipGroup, active: boolean, onPress: () => void) {
+    const textColor = active ? colors.buttonText : colors.onSurface;
     return (
       <Pressable
-        key={chip.label}
+        key={chip.value ?? 'all'}
         style={[styles.chip, { backgroundColor: active ? colors.primary : colors.surface, borderColor: active ? colors.primary : colors.border }]}
         onPress={onPress}
       >
-        <ThemedText style={[styles.chipText, { color: active ? '#fff' : colors.onSurface }]}>{chip.label}</ThemedText>
+        {chip.icon && <IconSymbol name={chip.icon} size={13} color={textColor} />}
+        <ThemedText style={[styles.chipText, { color: textColor }]}>{chip.label}</ThemedText>
       </Pressable>
     );
   }
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
   createText: { fontSize: 15, fontWeight: '600' },
   filtersScroll: { maxHeight: 60, flexShrink: 0 },
   filtersRow: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.xs, flexDirection: 'row', alignItems: 'center' },
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, minHeight: 40, justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, minHeight: 40 },
   chipText: { fontSize: 13, fontWeight: '500' },
   chipDivider: { width: 1, height: 20, marginHorizontal: 4 },
   skeletonContainer: { flex: 1, padding: Spacing.md },

@@ -4,8 +4,8 @@ import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, View
 import { useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import type { ChallengeActivitySlot } from '@/lib/api';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose, onSelfReported, onPhotoSelected }: Props) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
   const [sharedToFeed, setSharedToFeed] = useState(false);

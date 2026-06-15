@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleProp, StyleSheet, View, ImageStyle } from 'react-native';
 
+import { useAppTheme } from '@/lib/app-theme-context';
 import { photosApi } from '@/lib/api/completions';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
 
 interface ImageWithFallbackProps {
   uri: string;
@@ -25,8 +24,7 @@ export function ImageWithFallback({
   const [currentUri, setCurrentUri] = useState(initialUri);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { colors, radii } = useAppTheme();
 
   // Sync when uri prop changes externally
   useEffect(() => {

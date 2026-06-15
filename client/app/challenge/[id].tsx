@@ -11,8 +11,9 @@ import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
   challengesApi,
@@ -29,17 +30,13 @@ import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
-const STATUS_COLORS: Record<string, string> = {
-  active: '#4CAF82',
-  upcoming: '#F4845F',
-  completed: '#78716C',
-};
-
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
 
 export default function ChallengeDetailScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
+  const statusColor = (s: string) =>
+    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -225,8 +222,8 @@ export default function ChallengeDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
-            <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[challenge.status] ?? colors.muted) + '22' }]}>
-              <ThemedText style={[styles.statusText, { color: STATUS_COLORS[challenge.status] ?? colors.muted }]}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
+              <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
                 {statusLabels[challenge.status] ?? challenge.status}
               </ThemedText>
             </View>
@@ -317,13 +314,13 @@ export default function ChallengeDetailScreen() {
 
           {/* Delete challenge */}
           <Pressable
-            style={[styles.deleteButton, { borderColor: colors.destructive }]}
+            style={styles.deleteButton}
             onPress={handleDeleteChallenge}
             disabled={deleting}
           >
             {deleting
-              ? <ActivityIndicator color={colors.destructive} />
-              : <ThemedText style={[styles.deleteText, { color: colors.destructive }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
+              ? <ActivityIndicator color={colors.destructiveMuted} />
+              : <ThemedText style={[styles.deleteText, { color: colors.destructiveMuted }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
           </Pressable>
         </ScrollView>
       ) : null}
@@ -367,22 +364,22 @@ const styles = StyleSheet.create({
   skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
+  statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   dates: { fontSize: 13, marginTop: -Spacing.sm },
   description: { fontSize: 15, lineHeight: 22 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
   exportRow: { flexDirection: 'row', gap: Spacing.sm },
   exportButton: {
     flex: 1,
     height: 40,
-    borderRadius: 10,
+    borderRadius: DEFAULT_RADII.button,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   exportText: { fontSize: 14, fontWeight: '600' },
-  progressBox: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
+  progressBox: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   activityList: { gap: Spacing.xs },
   activityProgressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   activityProgressTitle: { flex: 1, fontSize: 13 },
@@ -391,19 +388,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    borderRadius: 12,
+    borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
     padding: Spacing.md,
   },
   groupLinkLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
   groupLinkName: { flex: 1, fontSize: 15, fontWeight: '600' },
   deleteButton: {
-    height: 48,
-    borderRadius: 10,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  deleteText: { fontSize: 15, fontWeight: '600' },
+  deleteText: { fontSize: 13 },
 });

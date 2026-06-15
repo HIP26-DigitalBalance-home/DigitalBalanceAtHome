@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 
 interface FeatureCardProps {
   icon: string;
@@ -11,7 +11,7 @@ interface FeatureCardProps {
 }
 
 export function FeatureCard({ icon, title, body }: FeatureCardProps) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   return (
     <View style={styles.card}>
       <ThemedText style={styles.icon}>{icon}</ThemedText>
