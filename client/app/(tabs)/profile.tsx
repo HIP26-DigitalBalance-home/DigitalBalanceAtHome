@@ -108,6 +108,7 @@ export default function ProfileScreen() {
     try {
       await devApi.seed();
       showAlert(t('profile.loadDemoSuccess'), t('profile.loadDemoSuccessMsg'));
+      router.replace('/(tabs)/' as any);
     } catch {
       showAlert(t('common.error'), t('profile.loadDemoFailed'));
     } finally {
