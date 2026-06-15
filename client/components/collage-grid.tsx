@@ -1,4 +1,12 @@
-import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useState } from 'react';
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
@@ -21,10 +29,46 @@ interface Props {
   onPhotoPress?: (slot: ChallengeActivitySlot, photoUrl: string, completionId: string) => void;
 }
 
+// Each card is inset 3px per side inside its grid cell so that corner bleed
+// from rotation stays within the cell's bounds (math: slotSize * sin(1.6°) ≈ 3px).
+const CARD_INSET = 3;
+
+// Deterministic rotation per grid position: cycles through ±1.6° values.
+function slotRotation(gridPosition: number): string {
+  const steps = [-1.6, 1.2, -0.8, 1.6, -1.2, 0.8, -0.4];
+  return `${steps[gridPosition % steps.length]}deg`;
+}
+
+// RGB lerp: warm sand #E8C99A (0%) → salmon #F4845F (100%).
+// Both colors are already in the app palette, so the bar reads as "on-brand"
+// at every fill level rather than using a traffic-light hue shift.
+function progressFillColor(ratio: number): string {
+  const r = Math.round(232 + (244 - 232) * ratio); // 232 → 244
+  const g = Math.round(201 + (132 - 201) * ratio); // 201 → 132
+  const b = Math.round(154 + (95  - 154) * ratio); // 154 → 95
+  return `rgb(${r},${g},${b})`;
+}
+
+// Thin pill bar that scales continuously — works for 3 or 30 families.
+function ProgressBar({ filled, total }: { filled: number; total: number }) {
+  const ratio = total > 0 ? Math.min(filled / total, 1) : 0;
+  return (
+    <View style={barStyles.track}>
+      {ratio > 0 && (
+        <View
+          style={[
+            barStyles.fill,
+            { width: `${ratio * 100}%` as any, backgroundColor: progressFillColor(ratio) },
+          ]}
+        />
+      )}
+    </View>
+  );
+}
+
 export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const numColumns = 3;
-  // Start with a best-guess width; replaced on first layout with the real container width.
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - Spacing.screenHorizontal * 2
   );
@@ -42,6 +86,8 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     const isProcessing = effectiveStatus === 'processing';
     const isSelfReported = effectiveStatus === 'self_reported';
     const isReady = effectiveStatus === 'ready';
+    const isCompleted = !isEmpty;
+    const hasGroupBar = groupFamiliesCount != null && groupFamiliesCount > 0;
 
     function handlePress() {
       if (isEmpty) { onSlotPress?.(item); return; }
@@ -50,73 +96,91 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
       }
     }
 
+    const rotation = slotRotation(item.grid_position);
+
     return (
-      <Pressable
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
-        style={[
-          styles.slot,
-          {
-            width: slotSize,
-            height: slotSize,
-            backgroundColor: isEmpty ? colors.surface : colors.accent + '22',
-            borderColor: isEmpty ? colors.border : colors.accent,
-            overflow: 'hidden',
-          },
-        ]}
-      >
-        {isReady && effectivePhotoUrl && effectiveCompletionId ? (
-          <>
-            <ImageWithFallback
-              uri={effectivePhotoUrl}
-              completionId={effectiveCompletionId}
-              style={{ width: slotSize, height: slotSize, position: 'absolute', top: 0, left: 0 }}
-              resizeMode="cover"
-              accessibilityLabel={item.activity.title}
+      // Outer cell: owns the grid dimensions and stays overflow-visible so
+      // the rotated card's corners and shadow can bleed into the gap space.
+      <View style={{ width: slotSize, height: slotSize, overflow: 'visible' }}>
+        <Pressable
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
+          style={[
+            styles.card,
+            {
+              // 3px inset per side: card fits the rotated visual within the cell.
+              position: 'absolute',
+              top: CARD_INSET,
+              bottom: CARD_INSET,
+              left: CARD_INSET,
+              right: CARD_INSET,
+              backgroundColor: isCompleted ? '#F0E8DC' : colors.surface,
+              borderColor: isCompleted ? '#D4C0A8' : colors.border,
+              transform: [{ rotate: rotation }],
+              shadowColor: '#6B3A2A',
+              shadowOpacity: isCompleted ? 0.14 : 0.08,
+              shadowRadius: isCompleted ? 6 : 4,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: isCompleted ? 4 : 2,
+              // Reserve space for the bar only on non-photo cards (photo fills the card).
+              paddingBottom: (hasGroupBar && !(isReady && effectivePhotoUrl)) ? 22 : Spacing.sm,
+            },
+          ]}
+        >
+          {/* Bar first so text always paints above it. Hidden for photo cards — the
+              viewer modal shows title + progress when the user taps the photo. */}
+          {hasGroupBar && !(isReady && effectivePhotoUrl) && (
+            <ProgressBar
+              filled={item.families_completed_count ?? 0}
+              total={groupFamiliesCount!}
             />
-            <View style={styles.photoOverlay}>
-              <ThemedText style={styles.photoTitle} numberOfLines={2}>
+          )}
+
+          {isReady && effectivePhotoUrl && effectiveCompletionId ? (
+            // Photo fills the card cleanly — no title overlay, no progress bar.
+            // Tap opens the viewer which shows both.
+            <View style={[StyleSheet.absoluteFillObject, styles.photoClip]}>
+              <ImageWithFallback
+                uri={effectivePhotoUrl}
+                completionId={effectiveCompletionId}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+                accessibilityLabel={item.activity.title}
+              />
+            </View>
+          ) : isProcessing ? (
+            <>
+              <ActivityIndicator color={colors.primary} />
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.muted }]} numberOfLines={2}>
                 {item.activity.title}
               </ThemedText>
-            </View>
-          </>
-        ) : isProcessing ? (
-          <>
-            <ActivityIndicator color={colors.primary} />
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.muted }]} numberOfLines={2}>
+            </>
+          ) : isSelfReported ? (
+            <>
+              <View style={[styles.stampCircle, { borderColor: colors.primary }]}>
+                <ThemedText style={[styles.stampCheck, { color: colors.primary }]}>✓</ThemedText>
+              </View>
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+                {item.activity.title}
+              </ThemedText>
+            </>
+          ) : isReady ? (
+            // ready but photo URL still loading
+            <>
+              <ActivityIndicator color={colors.accent} />
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+                {item.activity.title}
+              </ThemedText>
+            </>
+          ) : (
+            <ThemedText style={[styles.slotTitle, { color: colors.muted }]} numberOfLines={3}>
               {item.activity.title}
             </ThemedText>
-          </>
-        ) : isSelfReported ? (
-          <>
-            <ThemedText style={[styles.checkmark, { color: colors.accent }]}>✓</ThemedText>
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
-              {item.activity.title}
-            </ThemedText>
-          </>
-        ) : isReady ? (
-          // ready but no URL yet (still fetching)
-          <>
-            <ActivityIndicator color={colors.accent} />
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
-              {item.activity.title}
-            </ThemedText>
-          </>
-        ) : (
-          <ThemedText style={[styles.slotTitle, { color: colors.muted }]} numberOfLines={3}>
-            {item.activity.title}
-          </ThemedText>
-        )}
+          )}
 
-        {groupFamiliesCount != null && (
-          <View style={[styles.progressBadge, { backgroundColor: colors.border }]}>
-            <ThemedText style={[styles.progressText, { color: colors.muted }]}>
-              {item.families_completed_count ?? 0}/{groupFamiliesCount}
-            </ThemedText>
-          </View>
-        )}
-      </Pressable>
+        </Pressable>
+      </View>
     );
   }
 
@@ -137,36 +201,51 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
 }
 
 const styles = StyleSheet.create({
-  grid: { gap: Spacing.xs },
+  grid: { gap: Spacing.sm },
   row: { gap: Spacing.xs },
-  slot: {
+  card: {
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.sm,
     gap: Spacing.xs,
-    position: 'relative',
+    // overflow:visible so the card's shadow isn't clipped; photo has its own
+    // overflow:hidden layer (photoClip) to stay within the rounded corners.
+    overflow: 'visible',
+  },
+  photoClip: {
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   slotTitle: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
   slotTitleSmall: { fontSize: 10, textAlign: 'center', lineHeight: 13 },
-  checkmark: { fontSize: 22, fontWeight: '700' },
-  photoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: 4,
+  stampCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  photoTitle: { fontSize: 9, color: '#fff', textAlign: 'center', lineHeight: 13 },
-  progressBadge: {
+  stampCheck: { fontSize: 16, fontWeight: '800', lineHeight: 20 },
+});
+
+const barStyles = StyleSheet.create({
+  // Sits at the bottom of the card, inset from the edges so it clears the
+  // border-radius corners and reads as a deliberate design element.
+  track: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    bottom: 6,
+    left: 7,
+    right: 7,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#E8DDD3',
+    overflow: 'hidden',
   },
-  progressText: { fontSize: 9, fontWeight: '600' },
+  fill: {
+    height: 3,
+    borderRadius: 2,
+  },
 });

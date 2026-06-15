@@ -21,8 +21,18 @@ interface Props {
   photoUrl: string | null;
   completionId: string | null;
   activityTitle: string;
+  familiesCompletedCount?: number | null;
+  groupFamiliesCount?: number | null;
   onClose: () => void;
   onDeleted: (completionId: string) => void;
+}
+
+// Same lerp as in collage-grid: sand #E8C99A → salmon #F4845F
+function progressColor(ratio: number): string {
+  const r = Math.round(232 + (244 - 232) * ratio);
+  const g = Math.round(201 + (132 - 201) * ratio);
+  const b = Math.round(154 + (95  - 154) * ratio);
+  return `rgb(${r},${g},${b})`;
 }
 
 async function downloadPhoto(url: string, filename: string) {
@@ -38,7 +48,7 @@ async function downloadPhoto(url: string, filename: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
-export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, onClose, onDeleted }: Props) {
+export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, onClose, onDeleted }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const { t } = useTranslation();
   const { width } = Dimensions.get('window');
@@ -109,11 +119,32 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
             </Pressable>
           </View>
 
-          {/* Title + buttons */}
+          {/* Title + group progress + buttons */}
           <View style={styles.body}>
             <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
               {activityTitle}
             </ThemedText>
+
+            {groupFamiliesCount != null && groupFamiliesCount > 0 && familiesCompletedCount != null && (
+              <View style={styles.progressSection}>
+                <View style={styles.progressTrack}>
+                  {familiesCompletedCount > 0 && (
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.min(familiesCompletedCount / groupFamiliesCount, 1) * 100}%` as any,
+                          backgroundColor: progressColor(familiesCompletedCount / groupFamiliesCount),
+                        },
+                      ]}
+                    />
+                  )}
+                </View>
+                <ThemedText style={[styles.progressLabel, { color: colors.muted }]}>
+                  {familiesCompletedCount} / {groupFamiliesCount} Familien
+                </ThemedText>
+              </View>
+            )}
 
             <Pressable
               style={[styles.actionButton, { borderColor: colors.primary }]}
@@ -173,6 +204,15 @@ const styles = StyleSheet.create({
   closeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   body: { padding: Spacing.md, gap: Spacing.sm },
   title: { fontSize: 15, fontWeight: '600' },
+  progressSection: { gap: 6 },
+  progressTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E8DDD3',
+    overflow: 'hidden',
+  },
+  progressFill: { height: 5, borderRadius: 3 },
+  progressLabel: { fontSize: 12 },
   actionButton: {
     height: 48,
     borderRadius: 10,

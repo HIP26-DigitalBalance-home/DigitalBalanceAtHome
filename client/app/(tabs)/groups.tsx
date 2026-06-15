@@ -281,12 +281,23 @@ const styles = StyleSheet.create({
   adminBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   joinButton: { alignItems: 'center', paddingVertical: Spacing.sm },
 
-  // Feed entries
-  feedCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginHorizontal: Spacing.md },
+  // Feed entries — polaroid style
+  feedCard: {
+    borderRadius: 4,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginHorizontal: Spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6B3A2A',
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
   feedPhoto: { width: '100%', aspectRatio: 4 / 3 },
   checkPlaceholder: { width: '100%', height: 80, alignItems: 'center', justifyContent: 'center' },
   checkIcon: { fontSize: 32, fontWeight: '700' },
-  feedCardContent: { padding: Spacing.md, gap: 4 },
+  feedCardContent: { paddingHorizontal: Spacing.md, paddingTop: 14, paddingBottom: Spacing.lg, gap: 4 },
   attribution: { fontSize: 12 },
   activityTitle: { fontSize: 15, fontWeight: '600' },
   caption: { fontSize: 14, marginTop: 4 },

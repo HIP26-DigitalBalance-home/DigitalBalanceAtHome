@@ -130,13 +130,18 @@ export default function CollageBuilderScreen() {
             width: slotSize,
             height: slotSize,
             backgroundColor: colors.surface,
-            borderColor: filled ? colors.accent : colors.border,
+            borderColor: filled ? colors.primary : colors.border,
             borderStyle: filled ? 'solid' : 'dashed',
           },
         ]}
       >
         {filled ? (
-          <ThemedText style={[styles.slotTitle, { color: colors.onSurface }]} numberOfLines={2}>
+          <ThemedText
+            style={[styles.slotTitle, { color: colors.onSurface }]}
+            numberOfLines={3}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
             {item!.title}
           </ThemedText>
         ) : (
@@ -194,6 +199,7 @@ export default function CollageBuilderScreen() {
 
       <ActivityPickerModal
         visible={pickerOpen}
+        selectedId={editingSlot !== null ? (slots[editingSlot]?.id ?? undefined) : undefined}
         onSelect={handleSelect}
         onClose={handleClosePicker}
         onCreateNew={handleCreateNew}

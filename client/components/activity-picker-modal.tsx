@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,11 +19,14 @@ interface Props {
   // Delegated to the parent so it can close this modal before navigating away
   // (a visible RN Modal would otherwise overlay the create-activity screen).
   onCreateNew: () => void;
+  // When set, the matching activity floats to the top of the list so the user
+  // can see (and re-read) their current selection without scrolling.
+  selectedId?: string;
 }
 
 type ChipGroup = { label: string; value: string | undefined };
 
-export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }: Props) {
+export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, selectedId }: Props) {
   const colors = Colors[useColorScheme() ?? 'light'];
   const { t } = useTranslation();
 
@@ -46,6 +49,16 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
   const [error, setError] = useState<string | null>(null);
   const [season, setSeason] = useState<string | undefined>(undefined);
   const [cost, setCost] = useState<string | undefined>(undefined);
+
+  // Float the selected activity to position 0 so the user can read it without scrolling.
+  const sortedActivities = useMemo(() => {
+    if (!selectedId) return activities;
+    const idx = activities.findIndex((a) => a.id === selectedId);
+    if (idx <= 0) return activities;
+    const copy = [...activities];
+    copy.unshift(copy.splice(idx, 1)[0]);
+    return copy;
+  }, [activities, selectedId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,15 +124,20 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
           </View>
         ) : (
           <FlatList
-            data={activities}
+            data={sortedActivities}
             keyExtractor={(a) => a.id}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
               <EmptyState icon="🌱" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
             }
-            renderItem={({ item }) => (
+            renderItem={({ item }) => {
+              const isSelected = item.id === selectedId;
+              return (
               <Pressable
-                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.card, {
+                  backgroundColor: isSelected ? colors.primary + '12' : colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                }]}
                 onPress={() => onSelect(item)}
               >
                 <View style={{ flex: 1 }}>
@@ -130,7 +148,8 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew }:
                   {item.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
                 </ThemedText>
               </Pressable>
-            )}
+              );
+            }}
           />
         )}
       </SafeAreaView>
