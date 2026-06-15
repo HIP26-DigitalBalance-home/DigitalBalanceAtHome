@@ -123,13 +123,14 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               shadowRadius: isCompleted ? 6 : 4,
               shadowOffset: { width: 0, height: 2 },
               elevation: isCompleted ? 4 : 2,
-              // Reserve space at the bottom so text never sits behind the progress bar.
-              paddingBottom: hasGroupBar ? 22 : Spacing.sm,
+              // Reserve space for the bar only on non-photo cards (photo fills the card).
+              paddingBottom: (hasGroupBar && !(isReady && effectivePhotoUrl)) ? 22 : Spacing.sm,
             },
           ]}
         >
-          {/* Bar is painted first so all text content sits above it in z-order. */}
-          {hasGroupBar && (
+          {/* Bar first so text always paints above it. Hidden for photo cards — the
+              viewer modal shows title + progress when the user taps the photo. */}
+          {hasGroupBar && !(isReady && effectivePhotoUrl) && (
             <ProgressBar
               filled={item.families_completed_count ?? 0}
               total={groupFamiliesCount!}
@@ -137,24 +138,17 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
           )}
 
           {isReady && effectivePhotoUrl && effectiveCompletionId ? (
-            // Photo needs its own overflow:hidden layer to be clipped to the
-            // card's rounded corners — the outer card is overflow:visible for shadows.
-            <>
-              <View style={[StyleSheet.absoluteFillObject, styles.photoClip]}>
-                <ImageWithFallback
-                  uri={effectivePhotoUrl}
-                  completionId={effectiveCompletionId}
-                  style={StyleSheet.absoluteFillObject}
-                  resizeMode="cover"
-                  accessibilityLabel={item.activity.title}
-                />
-              </View>
-              <View style={styles.photoOverlay}>
-                <ThemedText style={styles.photoTitle} numberOfLines={2}>
-                  {item.activity.title}
-                </ThemedText>
-              </View>
-            </>
+            // Photo fills the card cleanly — no title overlay, no progress bar.
+            // Tap opens the viewer which shows both.
+            <View style={[StyleSheet.absoluteFillObject, styles.photoClip]}>
+              <ImageWithFallback
+                uri={effectivePhotoUrl}
+                completionId={effectiveCompletionId}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+                accessibilityLabel={item.activity.title}
+              />
+            </View>
           ) : isProcessing ? (
             <>
               <ActivityIndicator color={colors.primary} />
@@ -235,15 +229,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stampCheck: { fontSize: 16, fontWeight: '800', lineHeight: 20 },
-  photoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: 4,
-  },
-  photoTitle: { fontSize: 9, color: '#fff', textAlign: 'center', lineHeight: 13 },
 });
 
 const barStyles = StyleSheet.create({
