@@ -241,19 +241,19 @@ export default function HomeScreen() {
         {/* Active challenge collages */}
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <SkeletonList count={2} rowHeight={180} />
           </View>
         ) : challengeError ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
           </View>
         ) : challenges.length > 0 ? (
           challenges.map((challenge) => (
             <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
                   {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
                 </ThemedText>
                 <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
@@ -275,7 +275,7 @@ export default function HomeScreen() {
           ))
         ) : (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <EmptyState
               icon="🎯"
               title={t('home.emptyTitle')}
@@ -288,7 +288,7 @@ export default function HomeScreen() {
 
         {/* Suggestion card */}
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.todaysSuggestion')}</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.todaysSuggestion')}</ThemedText>
           {loadingChallenges ? (
             <SkeletonList count={1} rowHeight={80} />
           ) : suggestion ? (
