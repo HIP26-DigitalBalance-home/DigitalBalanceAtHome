@@ -124,10 +124,18 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               shadowOffset: { width: 0, height: 2 },
               elevation: isCompleted ? 4 : 2,
               // Reserve space at the bottom so text never sits behind the progress bar.
-              paddingBottom: hasGroupBar ? 18 : Spacing.sm,
+              paddingBottom: hasGroupBar ? 22 : Spacing.sm,
             },
           ]}
         >
+          {/* Bar is painted first so all text content sits above it in z-order. */}
+          {hasGroupBar && (
+            <ProgressBar
+              filled={item.families_completed_count ?? 0}
+              total={groupFamiliesCount!}
+            />
+          )}
+
           {isReady && effectivePhotoUrl && effectiveCompletionId ? (
             // Photo needs its own overflow:hidden layer to be clipped to the
             // card's rounded corners — the outer card is overflow:visible for shadows.
@@ -177,12 +185,6 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
             </ThemedText>
           )}
 
-          {hasGroupBar && (
-            <ProgressBar
-              filled={item.families_completed_count ?? 0}
-              total={groupFamiliesCount!}
-            />
-          )}
         </Pressable>
       </View>
     );
