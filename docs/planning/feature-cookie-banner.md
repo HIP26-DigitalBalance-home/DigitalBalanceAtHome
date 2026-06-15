@@ -152,6 +152,44 @@ Add a "Datenschutzerklärung" row in the privacy/legal section of the Profile sc
 
 No backend changes required.
 
+
+### 5. Cookie Banner Illustration
+
+Purpose
+
+Add a humorous visual element to the cookie banner that draws attention to the notice while reinforcing the fact that the app does not use advertising cookies or third-party tracking.
+
+Concept
+
+A disappointed blue cookie-loving monster peeks out from behind the cookie banner after discovering that there are no actual cookies to eat. The illustration plays on the familiar concept of a "cookie banner" while accurately reflecting the app's privacy model.
+
+Behaviour
+Decorative only; no interaction
+Always shown while the banner is visible
+Hidden permanently once the banner is dismissed
+Does not affect banner functionality or layout logic
+Layout
+Positioned on the right side of the banner
+Rendered with a transparent background
+Partially overlaps the banner boundary, with the head and one hand extending above the top edge
+Does not cover banner text or action buttons
+Uses pointerEvents="none" so all banner controls remain accessible
+Visual
+
+Character:
+
+Friendly blue cookie-loving monster
+Sad or confused expression
+Holding an empty plate
+
+Speech Bubble (optional):
+
+Keine Cookies?!
+
+Message
+
+The illustration visually communicates the same message as the banner text: despite the presence of a cookie banner, the app does not use advertising cookies, tracking cookies, analytics SDKs, or third-party advertising technologies. Only essential local storage and authentication mechanisms are used. The monster's disappointment serves as a lighthearted metaphor for the absence of cookies
+
 ---
 
 ## Open Decisions
