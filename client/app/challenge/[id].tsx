@@ -286,7 +286,7 @@ export default function ChallengeDetailScreen() {
                     <ThemedText style={[styles.activityProgressTitle, { color: colors.onSurface }]} numberOfLines={1}>
                       {slot.activity.title}
                     </ThemedText>
-                    <ThemedText style={[styles.activityProgressCount, { color: colors.accent }]}>
+                    <ThemedText style={[styles.activityProgressCount, { color: colors.muted }]}>
                       {slot.families_completed_count ?? 0}/{challenge.group_families_count}
                     </ThemedText>
                   </View>

@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   feedPhoto: { width: '100%', aspectRatio: 4 / 3 },
   checkPlaceholder: { width: '100%', height: 80, alignItems: 'center', justifyContent: 'center' },
   checkIcon: { fontSize: 32, fontWeight: '700' },
-  feedCardContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.lg, gap: 4 },
+  feedCardContent: { paddingHorizontal: Spacing.md, paddingTop: 14, paddingBottom: Spacing.lg, gap: 4 },
   attribution: { fontSize: 12 },
   activityTitle: { fontSize: 15, fontWeight: '600' },
   caption: { fontSize: 14, marginTop: 4 },
