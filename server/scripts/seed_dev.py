@@ -41,36 +41,46 @@ ADMIN_EMAIL = os.environ.get("SEED_ADMIN_EMAIL", "ignacio.garcian15@gmail.com")
 _SEED_PHOTOS_DIR = Path(__file__).parent / "seed_photos"
 
 _ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
-    ("bake", "baking.jpg"),
-    ("cookie", "baking.jpg"),
-    ("pancake", "baking.jpg"),
-    ("cook", "cooking.jpg"),
-    ("park", "park.jpg"),
-    ("playground", "park.jpg"),
-    ("scavenger", "park.jpg"),
-    ("catch", "park.jpg"),
+    # Baking
+    ("plätzchen", "baking.jpg"),       # Gemeinsam Plätzchen backen
+    ("pfannkuchen", "baking.jpg"),     # Pfannkuchen zum Frühstück backen
+    ("schokolade", "baking.jpg"),      # Heiße Schokolade selbst machen
+    ("backen", "baking.jpg"),
+    # Cooking
+    ("kochen", "cooking.jpg"),
+    # Park / outdoor
+    ("schnitzeljagd", "park.jpg"),
+    ("naturspaziergang", "park.jpg"),
+    ("fangen", "park.jpg"),
     ("frisbee", "park.jpg"),
-    ("nature walk", "park.jpg"),
-    ("pillow fort", "fort.jpg"),
-    ("blanket", "fort.jpg"),
-    ("draw", "drawing.jpg"),
-    ("paint", "drawing.jpg"),
+    ("schneemann", "park.jpg"),
+    ("sterne", "park.jpg"),
+    ("wolken", "park.jpg"),
+    ("fahrrad", "park.jpg"),
+    ("park", "park.jpg"),
+    # Fort
+    ("kissenburg", "fort.jpg"),
+    # Drawing / crafts
+    ("zeichnen", "drawing.jpg"),
+    ("malen", "drawing.jpg"),
     ("collage", "drawing.jpg"),
-    ("plant", "planting.jpg"),
-    ("garden", "planting.jpg"),
-    ("bird feeder", "planting.jpg"),
-    ("library", "library.jpg"),
-    ("book", "library.jpg"),
-    ("playdough", "playdough.jpg"),
-    ("dough", "playdough.jpg"),
-    ("board game", "board_game.jpg"),
-    ("jigsaw", "board_game.jpg"),
+    ("papierflieger", "planes.jpg"),   # Papierflieger basteln
+    # Planting
+    ("pflanzen", "planting.jpg"),
+    ("vogelhäuschen", "planting.jpg"),
+    # Library / reading
+    ("bücherei", "library.jpg"),
+    ("buch", "library.jpg"),
+    # Storytelling / shadow puppets
+    ("geschichte", "storytelling.jpg"),
+    ("schattentheater", "storytelling.jpg"),
+    # Playdough
+    ("knete", "playdough.jpg"),
+    # Board games
+    ("brettspiel", "board_game.jpg"),
     ("puzzle", "board_game.jpg"),
-    ("picnic", "picnic.jpg"),
-    ("snowman", "park.jpg"),
-    ("star gaz", "park.jpg"),
-    ("cloud", "park.jpg"),
-    ("bike", "park.jpg"),
+    # Picnic
+    ("picknick", "picnic.jpg"),
 ]
 
 
@@ -384,30 +394,52 @@ async def seed():
             # (family, user, slot, days_ago, shared, caption)
             # Shared completions automatically get a photo matched to the activity.
             completions_data = [
-                # Schmidt — active challenge
+                # ── Spring Outdoor Adventures (c1, slots 0-5) ───────────────
+                # Slot 0: Bake cookies
                 (schmidt, schmidt_user, c1_slots[0], 6.1, True, "Backen mit den Kindern 🍪"),
-                (schmidt, schmidt_user, c1_slots[1], 4.3, True, "Toller Nachmittag auf dem Spielplatz!"),
-                (schmidt, schmidt_user, c1_slots[2], 1.8, False, None),
-                # Müller — active challenge
-                (mueller, mueller_user, c1_slots[0], 5.2, False, None),
-                (mueller, mueller_user, c1_slots[3], 2.5, True, "Malerische Stunden mit Maxi!"),
-                # Bauer — active challenge
-                (bauer, bauer_user, c1_slots[1], 6.5, True, "Schöner Ausflug in den Park ☀️"),
-                (bauer, bauer_user, c1_slots[2], 4.9, True, "Unsere Burg war riesig! 🏰"),
-                (bauer, bauer_user, c1_slots[3], 2.2, True, "Wir haben Kunstwerke geschaffen 🎨"),
-                (bauer, bauer_user, c1_slots[4], 0.9, False, None),
-                # Koch — active challenge
+                (bauer, bauer_user, c1_slots[0], 5.8, True, "Backen ist das Beste! 🧁"),
                 (koch, koch_user, c1_slots[0], 3.7, True, "Die Kinder waren so begeistert!"),
-                # Admin family — active challenge
                 (admin_family, admin_user, c1_slots[0], 3.1, True, "Unsere besten Kekse! 🍪"),
-                (admin_family, admin_user, c1_slots[1], 0.5, False, None),
-                # Schmidt — completed winter challenge
-                (schmidt, schmidt_user, c3_slots[0], 35.0, True, "Bücherei-Besuch — Maxi liebt Bücher! 📚"),
-                (schmidt, schmidt_user, c3_slots[1], 29.0, False, None),
-                # Bauer — completed winter challenge
-                (bauer, bauer_user, c3_slots[0], 38.0, True, "So viele tolle Bücher entdeckt!"),
-                (bauer, bauer_user, c3_slots[2], 31.5, True, "Kneten macht so viel Spaß! 🎨"),
-                (bauer, bauer_user, c3_slots[3], 24.0, False, None),
+                # Slot 1: Go to the park
+                (schmidt, schmidt_user, c1_slots[1], 4.3, True, "Toller Nachmittag auf dem Spielplatz!"),
+                (mueller, mueller_user, c1_slots[1], 3.9, True, "Wir haben so viel Spaß gehabt!"),
+                (bauer, bauer_user, c1_slots[1], 6.5, True, "Schöner Ausflug in den Park ☀️"),
+                # Slot 2: Build a pillow fort
+                (schmidt, schmidt_user, c1_slots[2], 1.8, False, None),
+                (mueller, mueller_user, c1_slots[2], 2.6, True, "Unsere Burg war uneinnehmbar! 🏰"),
+                (bauer, bauer_user, c1_slots[2], 4.9, True, "Unsere Burg war riesig! 🏰"),
+                (admin_family, admin_user, c1_slots[2], 1.2, True, "Bestes Fort aller Zeiten!"),
+                # Slot 3: Draw and paint
+                (mueller, mueller_user, c1_slots[3], 2.5, True, "Malerische Stunden mit Maxi!"),
+                (bauer, bauer_user, c1_slots[3], 2.2, True, "Wir haben Kunstwerke geschaffen 🎨"),
+                (admin_family, admin_user, c1_slots[3], 0.7, True, "Maxi malt wie ein Profi 🎨"),
+                # Slot 4: Plant something
+                (bauer, bauer_user, c1_slots[4], 0.9, True, "Unsere Pflanzen wachsen! 🌱"),
+                (mueller, mueller_user, c1_slots[4], 2.1, True, "Miniatur-Garten auf dem Balkon!"),
+                (admin_family, admin_user, c1_slots[4], 1.5, True, "Maxi's kleiner Garten 🌱"),
+                # Slot 5: Make paper planes
+                (schmidt, schmidt_user, c1_slots[5], 3.2, True, "Papierflugzeuge im Garten ✈️"),
+                (bauer, bauer_user, c1_slots[5], 2.8, True, "Rekordwurf heute!"),
+                (admin_family, admin_user, c1_slots[5], 0.6, True, "Wer fliegt am weitesten? ✈️"),
+                # ── Winter Warmth Challenge (c3, slots 0-5) ─────────────────
+                # Slot 0: Make hot chocolate
+                (schmidt, schmidt_user, c3_slots[0], 35.0, True, "Heiße Schokolade selbst gemacht ☕"),
+                (bauer, bauer_user, c3_slots[0], 38.0, True, "So lecker und warm!"),
+                (admin_family, admin_user, c3_slots[0], 32.0, True, "Maxi's Lieblingsgetränk ☕"),
+                # Slot 1: Star gazing
+                (schmidt, schmidt_user, c3_slots[1], 29.0, True, "Sterne gucken im Garten ⭐"),
+                (mueller, mueller_user, c3_slots[1], 27.0, True, "Wir haben neue Sternbilder erfunden!"),
+                # Slot 2: Make a bird feeder
+                (bauer, bauer_user, c3_slots[2], 31.5, True, "Vogelhaus für unseren Garten 🐦"),
+                (admin_family, admin_user, c3_slots[2], 28.0, True, "Die Vögel lieben es!"),
+                # Slot 3: Scavenger hunt
+                (bauer, bauer_user, c3_slots[3], 24.0, True, "Schnitzeljagd im Park! 🗺️"),
+                (schmidt, schmidt_user, c3_slots[3], 22.0, True, "Alles gefunden! 🏆"),
+                # Slot 4: Shadow puppet theatre
+                (koch, koch_user, c3_slots[4], 20.0, True, "Schattentheater für die ganze Familie!"),
+                # Slot 5: Read a chapter book
+                (mueller, mueller_user, c3_slots[5], 18.0, True, "Vorgelesen bis Maxi eingeschlafen ist 📚"),
+                (bauer, bauer_user, c3_slots[5], 15.0, True, "Kapitel für Kapitel zusammen gelesen"),
             ]
 
             photo_count = 0

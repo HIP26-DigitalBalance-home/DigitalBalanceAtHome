@@ -212,6 +212,76 @@ Current stage: **active development prototype** (M9 of 13 complete). Wiki depth 
 - **GDPR by design** — right to erasure within 30 days; data export; consent stored with timestamp + policy version; no precise GPS; no third-party analytics SDKs in the client
 - **Socioeconomic accessibility** — activities must be free or low-cost
 
+## Admin Commands
+
+### Wipe object storage (Hetzner S3)
+Deletes every object in the bucket permanently. Run this before re-seeding to avoid stale/orphaned photos from previous runs.
+
+```bash
+# Inside Docker Compose (recommended — picks up env vars automatically):
+docker compose -f server/docker-compose.yml exec api \
+  sh -c "PYTHONPATH=/app python /app/scripts/clear_object_storage.py"
+
+# Local (reads env vars from server/.env):
+set -a && source server/.env && set +a
+PYTHONPATH=server python server/scripts/clear_object_storage.py
+```
+
+### Refresh seed photos
+Downloads 12 high-quality Unsplash photos (1200×900) to `server/scripts/seed_photos/`. Re-run any time you want fresh images.
+
+```bash
+bash server/scripts/download_seed_photos.sh
+```
+
+### Re-seed demo data
+After wiping S3 and refreshing photos, re-seed:
+
+```bash
+docker compose -f server/docker-compose.yml exec api \
+  sh -c "PYTHONPATH=/app python /app/scripts/seed_dev.py"
+# or trigger via the app: POST /dev/seed
+```
+
+### Reset demo database (production server — run yourself over SSH)
+
+**Option A — script** (requires the image to have been built after `reset_demo_data.py` was added):
+```bash
+# SSH into the server, then:
+docker compose exec api sh -c "PYTHONPATH=/app python /app/scripts/reset_demo_data.py"
+```
+
+**Option B — direct SQL** (works on any deployed version, no rebuild needed):
+```bash
+# SSH into the server, then:
+docker compose exec db psql -U postgres digitalbalance
+```
+Paste this inside psql — deletes all demo data, keeps real user accounts:
+```sql
+BEGIN;
+DELETE FROM completions;
+DELETE FROM challenge_activities;
+DELETE FROM challenges;
+DELETE FROM group_admins;
+DELETE FROM group_memberships;
+DELETE FROM groups;
+DELETE FROM child_profiles;
+DELETE FROM family_memberships;
+DELETE FROM families;
+DELETE FROM users WHERE google_sub LIKE 'mock_%';
+DELETE FROM consent_records;
+COMMIT;
+```
+
+**Full nuke** (wipes everything including your own account — you'll onboard fresh next login):
+```sql
+TRUNCATE completions, challenge_activities, challenges,
+         group_admins, group_memberships, groups,
+         child_profiles, family_memberships, families,
+         consent_records, users
+CASCADE;
+```
+
 ## Implementation Plan
 
 `docs/implementation-plan.md` — 13 milestones (M0–M12). Each milestone ships both backend routes and frontend screens together. Start with **Milestone 0: Server Skeleton**.

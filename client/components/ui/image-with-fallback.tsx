@@ -24,33 +24,32 @@ export function ImageWithFallback({
   const [currentUri, setCurrentUri] = useState(initialUri);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Tracks whether we've already tried refreshing the URL once. Prevents the
+  // component from hammering GET /photos/{id}/url in a loop when the image
+  // keeps failing (e.g. CORS, network issue, or missing S3 object).
+  const [hasRefreshed, setHasRefreshed] = useState(false);
   const { colors, radii } = useAppTheme();
 
   // Sync when uri prop changes externally
   useEffect(() => {
     setCurrentUri(initialUri);
     setFailed(false);
+    setHasRefreshed(false);
   }, [initialUri]);
 
   async function handleError() {
-    if (refreshing || failed) return;
-    let cancelled = false;
+    if (refreshing || failed || hasRefreshed) return;
+    setHasRefreshed(true);
     setRefreshing(true);
     try {
       const res = await photosApi.getUrl(completionId);
-      if (!cancelled) {
-        setCurrentUri(res.data.url);
-        setFailed(false);
-      }
+      setCurrentUri(res.data.url);
     } catch {
-      if (!cancelled) {
-        setFailed(true);
-        onPermanentError?.();
-      }
+      setFailed(true);
+      onPermanentError?.();
     } finally {
-      if (!cancelled) setRefreshing(false);
+      setRefreshing(false);
     }
-    return () => { cancelled = true; };
   }
 
   if (refreshing) {
