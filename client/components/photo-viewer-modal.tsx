@@ -12,8 +12,8 @@ import {
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { completionsApi } from '@/lib/api';
 
 interface Props {
@@ -49,7 +49,7 @@ async function downloadPhoto(url: string, filename: string) {
 }
 
 export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, onClose, onDeleted }: Props) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { width } = Dimensions.get('window');
   const [deleting, setDeleting] = useState(false);

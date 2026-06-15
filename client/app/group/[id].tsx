@@ -9,9 +9,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { challengesApi, groupsApi, type ChallengeSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -40,7 +41,7 @@ interface GroupDetail {
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const isOnline = useNetworkStatus();
   const { currentUser } = useAuth();
@@ -279,12 +280,12 @@ const styles = StyleSheet.create({
   adminBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   list: { padding: Spacing.md, gap: Spacing.sm },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginBottom: Spacing.sm },
-  adminPanel: { padding: Spacing.md, borderRadius: 12, borderWidth: 1, marginBottom: Spacing.sm },
-  adminButton: { height: 44, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  feedButton: { height: 48, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  challengesPanel: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm, marginTop: Spacing.sm },
-  challengeRow: { borderRadius: 8, borderWidth: 1, padding: Spacing.sm, gap: 2 },
-  familyCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  adminPanel: { padding: Spacing.md, borderRadius: DEFAULT_RADII.card, borderWidth: 1, marginBottom: Spacing.sm },
+  adminButton: { height: 44, borderRadius: DEFAULT_RADII.button, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  feedButton: { height: 48, borderRadius: DEFAULT_RADII.button, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  challengesPanel: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm, marginTop: Spacing.sm },
+  challengeRow: { borderRadius: DEFAULT_RADII.sm, borderWidth: 1, padding: Spacing.sm, gap: 2 },
+  familyCard: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, overflow: 'hidden' },
   familyHeader: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md },
   familyTitleRow: { flex: 1 },
   familyName: { fontSize: 15, fontWeight: '600' },
@@ -293,6 +294,6 @@ const styles = StyleSheet.create({
   parentsList: { borderTopWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   parentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: Spacing.sm },
   parentName: { flex: 1, fontSize: 14 },
-  parentAdminBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  parentAdminBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: DEFAULT_RADII.badge },
   parentAdminText: { color: '#fff', fontSize: 11, fontWeight: '600' },
 });

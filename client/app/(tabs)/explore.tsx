@@ -8,8 +8,9 @@ import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { collagePresetsApi, type CollagePreset } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
@@ -23,7 +24,7 @@ type ExploreCard =
 const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 
 export default function ExploreScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
 
   function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   card: {
     width: '48%',
     minHeight: 150,
-    borderRadius: 16,
+    borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
     padding: Spacing.md,
     marginBottom: Spacing.md,

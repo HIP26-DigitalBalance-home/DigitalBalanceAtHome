@@ -7,8 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityPickerModal } from '@/components/activity-picker-modal';
 import { ErrorState } from '@/components/ui/error-state';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { activitiesApi, type ActivityItem, type CollagePreset } from '@/lib/api';
 import { pendingActivity } from '@/lib/pending-activity';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -28,7 +29,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function CollageBuilderScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { mode, preset: presetParam } = useLocalSearchParams<{ mode: string; preset?: string }>();
 
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
   grid: { gap: Spacing.xs },
   row: { gap: Spacing.xs },
   slot: {
-    borderRadius: 10,
+    borderRadius: DEFAULT_RADII.sm,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -235,6 +236,6 @@ const styles = StyleSheet.create({
   plus: { fontSize: 28, fontWeight: '300' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
   footer: { padding: Spacing.screenHorizontal, borderTopWidth: 1 },
-  continueButton: { height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  continueButton: { height: 50, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
   continueText: { fontSize: 16, fontWeight: '600' },
 });

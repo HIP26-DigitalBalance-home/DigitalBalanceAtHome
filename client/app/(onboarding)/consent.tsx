@@ -6,12 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConsentCheckbox } from '@/components/onboarding/ConsentCheckbox';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { onboardingApi } from '@/lib/api';
 
 export default function ConsentScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const [dataStorage, setDataStorage] = useState(false);
   const [photoProcessing, setPhotoProcessing] = useState(false);

@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useSegments } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 
@@ -25,7 +25,7 @@ export function CookieBanner() {
   const onboardingComplete = useOnboardingStatus(isAuthenticated);
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const router = useRouter();
 
   useEffect(() => {

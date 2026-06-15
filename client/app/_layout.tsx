@@ -7,7 +7,6 @@ import 'react-native-reanimated';
 import '@/assets/styles/global.css';
 import '@/lib/i18n';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -16,6 +15,9 @@ import { CookieBanner } from '@/components/ui/cookie-banner';
 import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
+import { AppThemeProvider, useAppTheme } from '@/lib/app-theme-context';
+// Side-effect: fires AsyncStorage read immediately at bundle evaluation time.
+import '@/lib/theme-preloader';
 
 // Must run before routing resolves so the popup callback is processed
 // even if the route guard would otherwise redirect away from sign-in.
@@ -91,21 +93,30 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+// Inner component — lives inside AppThemeProvider so it can read effectiveScheme.
+function ThemedApp() {
+  const { effectiveScheme } = useAppTheme();
 
   return (
+    <ThemeProvider value={effectiveScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <StandardProvider>
+        <AuthProvider>
+          <RouteGuard>
+            <RootLayoutNav />
+            <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
+          </RouteGuard>
+        </AuthProvider>
+      </StandardProvider>
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <ErrorBoundary>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <StandardProvider>
-          <AuthProvider>
-            <RouteGuard>
-              <RootLayoutNav />
-              <StatusBar style="auto" />
-            </RouteGuard>
-          </AuthProvider>
-        </StandardProvider>
-      </ThemeProvider>
+      <AppThemeProvider>
+        <ThemedApp />
+      </AppThemeProvider>
     </ErrorBoundary>
   );
 }

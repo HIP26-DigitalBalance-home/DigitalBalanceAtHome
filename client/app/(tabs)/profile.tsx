@@ -2,16 +2,17 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 import { ErrorState } from '@/components/ui/error-state';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII, THEMES, type ColorMode } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { onboardingApi, devApi, usersApi, apiClient } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -45,9 +46,10 @@ function ageFromDob(dob: string): number {
 }
 
 export default function ProfileScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { currentUser, logout, updateCurrentUser } = useAuth();
+  const { themeId, setTheme, colorMode, setColorMode } = useAppTheme();
   const router = useRouter();
   const isOnline = useNetworkStatus();
   const [family, setFamily] = useState<FamilyData | null>(null);
@@ -330,6 +332,74 @@ export default function ProfileScreen() {
               </>
             )}
 
+            {/* Darstellung */}
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>Darstellung</ThemedText>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+
+              {/* Color mode segmented control — one border on the container, hairlines inside */}
+              <View style={[styles.modeToggle, { borderColor: colors.border }]}>
+                {(['light', 'system', 'dark'] as ColorMode[]).map((mode, idx, arr) => {
+                  const labels: Record<ColorMode, string> = { light: 'Hell', system: 'Auto', dark: 'Dunkel' };
+                  const isActive = mode === colorMode;
+                  const isLast = idx === arr.length - 1;
+                  return (
+                    <Pressable
+                      key={mode}
+                      style={[
+                        styles.modeOption,
+                        { backgroundColor: isActive ? colors.primary + '14' : 'transparent' },
+                        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                      ]}
+                      onPress={() => setColorMode(mode)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${labels[mode]}${isActive ? ', aktiv' : ''}`}
+                    >
+                      <ThemedText style={[
+                        styles.modeChipText,
+                        { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.55 },
+                      ]}>
+                        {labels[mode]}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Divider */}
+              <View style={[styles.modeDivider, { backgroundColor: colors.border }]} />
+
+              {/* Theme swatches — horizontal scroll so they never overflow */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.themeRow}
+              >
+                {Object.values(THEMES).map((th) => {
+                  const isActive = th.id === themeId;
+                  return (
+                    <Pressable
+                      key={th.id}
+                      style={styles.themeSwatch}
+                      onPress={() => setTheme(th.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Theme ${th.label}${isActive ? ', aktiv' : ''}`}
+                    >
+                      {/* borderWidth is always 3 — only color changes, no layout shift */}
+                      <View style={[
+                        styles.swatchCircle,
+                        { backgroundColor: th.preview.bg, borderColor: isActive ? th.preview.primary : th.preview.border },
+                      ]}>
+                        <View style={[styles.swatchDot, { backgroundColor: th.preview.primary }]} />
+                      </View>
+                      <ThemedText style={[styles.swatchLabel, { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.6 }]}>
+                        {th.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
             {/* Sign out */}
             <Pressable
               style={styles.destructiveLink}
@@ -371,8 +441,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28 },
   content: { padding: Spacing.md, gap: Spacing.md },
-  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginTop: Spacing.sm },
-  card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
+  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase', marginTop: Spacing.sm },
+  card: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
   cardLabel: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
   cardValue: { fontSize: 16, fontWeight: '600' },
   cardSub: { fontSize: 13 },
@@ -388,10 +458,10 @@ const styles = StyleSheet.create({
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingTop: Spacing.sm, borderTopWidth: 1, marginTop: Spacing.sm },
   memberName: { flex: 1, fontSize: 15 },
   memberRole: { fontSize: 13 },
-  cityInput: { height: 44, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: Spacing.md, fontSize: 15, marginTop: Spacing.xs },
+  cityInput: { height: 44, borderWidth: 1.5, borderRadius: DEFAULT_RADII.input, paddingHorizontal: Spacing.md, fontSize: 15, marginTop: Spacing.xs },
   outlineButton: {
     height: 44,
-    borderRadius: 10,
+    borderRadius: DEFAULT_RADII.button,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -405,4 +475,28 @@ const styles = StyleSheet.create({
   },
   debugToggle: { alignItems: 'center', paddingVertical: Spacing.sm },
   debugToggleText: { fontSize: 11, letterSpacing: 0.5 },
+  modeToggle: {
+    borderWidth: 1,
+    borderRadius: DEFAULT_RADII.button,
+    overflow: 'hidden',
+  },
+  modeOption: {
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeChipText: { fontSize: 14, fontWeight: '700' },
+  modeDivider: { height: 1, marginHorizontal: -Spacing.md, marginTop: Spacing.xs },
+  themeRow: { flexDirection: 'row', gap: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
+  themeSwatch: { alignItems: 'center', gap: Spacing.xs },
+  swatchCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,            // always 3 — active state changes color only, never width
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swatchDot: { width: 20, height: 20, borderRadius: 10 },
+  swatchLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
 });

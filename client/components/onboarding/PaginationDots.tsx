@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/lib/app-theme-context';
+
 
 interface PaginationDotsProps {
   count: number;
@@ -9,7 +9,7 @@ interface PaginationDotsProps {
 }
 
 export function PaginationDots({ count, activeIndex }: PaginationDotsProps) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   return (
     <View style={styles.row}>
       {Array.from({ length: count }).map((_, i) => (

@@ -35,6 +35,12 @@ const MAPPING = {
   'lock.shield.fill': 'security',
   'star.fill': 'star',
 
+  // Seasons
+  'leaf.fill': 'eco',
+  'sun.max.fill': 'wb-sunny',
+  'wind': 'air',
+  'snowflake': 'ac-unit',
+
   // Contacts & Communication
   'person.circle.fill': 'account-circle',
   'phone.fill': 'phone',

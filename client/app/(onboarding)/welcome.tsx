@@ -7,11 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FeatureCard } from '@/components/onboarding/FeatureCard';
 import { PaginationDots } from '@/components/onboarding/PaginationDots';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 
 export default function WelcomeScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const SLIDES = [
     { icon: '🌿', title: t('welcome.slide1Title'), body: t('welcome.slide1Body') },

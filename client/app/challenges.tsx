@@ -7,8 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, type ChallengeSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
@@ -21,7 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ChallengesScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,13 +153,13 @@ const styles = StyleSheet.create({
   skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },
   chipText: { fontSize: 13, fontWeight: '500' },
   list: { padding: Spacing.screenHorizontal, gap: Spacing.sm },
-  card: { borderRadius: 12, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
+  card: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   cardTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
-  statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
+  statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   dates: { fontSize: 12 },
   desc: { fontSize: 13 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  createBtn: { height: 44, paddingHorizontal: Spacing.xl, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  createBtn: { height: 44, paddingHorizontal: Spacing.xl, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
 });

@@ -5,12 +5,12 @@ import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/lib/app-theme-context';
 import { onboardingApi } from '@/lib/api';
 
 export default function JoinFamilyScreen() {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
   const [token, setToken] = useState(tokenParam ?? '');

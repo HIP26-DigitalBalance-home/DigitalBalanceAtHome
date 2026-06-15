@@ -11,8 +11,9 @@ import { useState } from 'react';
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { DEFAULT_RADII } from '@/constants/themes';
+import { useAppTheme } from '@/lib/app-theme-context';
 import type { ChallengeActivitySlot } from '@/lib/api';
 
 export interface LocalCompletion {
@@ -50,10 +51,10 @@ function progressFillColor(ratio: number): string {
 }
 
 // Thin pill bar that scales continuously — works for 3 or 30 families.
-function ProgressBar({ filled, total }: { filled: number; total: number }) {
+function ProgressBar({ filled, total, trackColor }: { filled: number; total: number; trackColor: string }) {
   const ratio = total > 0 ? Math.min(filled / total, 1) : 0;
   return (
-    <View style={barStyles.track}>
+    <View style={[barStyles.track, { backgroundColor: trackColor }]}>
       {ratio > 0 && (
         <View
           style={[
@@ -67,7 +68,7 @@ function ProgressBar({ filled, total }: { filled: number; total: number }) {
 }
 
 export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
-  const colors = Colors[useColorScheme() ?? 'light'];
+  const { colors, radii, theme, effectiveScheme } = useAppTheme();
   const numColumns = 3;
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - Spacing.screenHorizontal * 2
@@ -115,14 +116,19 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               bottom: CARD_INSET,
               left: CARD_INSET,
               right: CARD_INSET,
-              backgroundColor: isCompleted ? '#F0E8DC' : colors.surface,
+              backgroundColor: isCompleted
+                ? (effectiveScheme === 'light'
+                    ? (theme.completedSlotBg ?? '#E8DCC8')
+                    : colors.primary + '28')   // dark mode: primary tint over dark surface
+                : colors.surface,
               borderWidth: 0,
+              borderRadius: radii.sm,
               transform: [{ rotate: rotation }],
-              shadowColor: '#2B1F1A',
-              shadowOpacity: 0.10,
+              shadowColor: theme.cardShadowColor ?? '#1C1208',
+              shadowOpacity: theme.cardShadowOpacity ?? 0.12,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
-              elevation: 3,
+              elevation: (theme.cardShadowOpacity ?? 0.12) > 0 ? 3 : 0,
               // Reserve space for the bar only on non-photo cards (photo fills the card).
               paddingBottom: (hasGroupBar && !(isReady && effectivePhotoUrl)) ? 22 : Spacing.sm,
             },
@@ -134,13 +140,14 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
             <ProgressBar
               filled={item.families_completed_count ?? 0}
               total={groupFamiliesCount!}
+              trackColor={colors.border}
             />
           )}
 
           {isReady && effectivePhotoUrl && effectiveCompletionId ? (
             // Photo fills the card cleanly — no title overlay, no progress bar.
             // Tap opens the viewer which shows both.
-            <View style={[StyleSheet.absoluteFillObject, styles.photoClip]}>
+            <View style={[StyleSheet.absoluteFillObject, styles.photoClip, { borderRadius: radii.sm }]}>
               <ImageWithFallback
                 uri={effectivePhotoUrl}
                 completionId={effectiveCompletionId}
@@ -204,8 +211,8 @@ const styles = StyleSheet.create({
   grid: { gap: Spacing.sm },
   row: { gap: Spacing.xs },
   card: {
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: DEFAULT_RADII.sm,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.sm,
@@ -215,7 +222,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   photoClip: {
-    borderRadius: 10,
+    borderRadius: DEFAULT_RADII.sm,
     overflow: 'hidden',
   },
   slotTitle: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
@@ -241,7 +248,6 @@ const barStyles = StyleSheet.create({
     right: 7,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#E8DDD3',
     overflow: 'hidden',
   },
   fill: {
