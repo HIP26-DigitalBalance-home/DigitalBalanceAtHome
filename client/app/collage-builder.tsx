@@ -130,8 +130,8 @@ export default function CollageBuilderScreen() {
             width: slotSize,
             height: slotSize,
             backgroundColor: colors.surface,
-            borderColor: filled ? colors.primary : colors.border,
-            borderStyle: filled ? 'solid' : 'dashed',
+            borderColor: filled ? colors.primary : 'rgb(200, 195, 190)',
+            borderWidth: filled ? 1.5 : 1,
           },
         ]}
       >

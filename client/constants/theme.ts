@@ -14,6 +14,7 @@ const palette = {
   warmBorderDark: '#3D3530',
   offWhite: '#F5F0EB',
   red: '#DC2626',
+  brickMuted: '#8C3A2A',
   white: '#FFFFFF',
 };
 
@@ -27,6 +28,7 @@ export const Colors = {
     onSurface: palette.warmDark,
     muted: palette.warmGray,         // darkened for AA on cream
     destructive: palette.red,
+    destructiveMuted: palette.brickMuted,
     // legacy keys kept for template component compatibility
     text: palette.warmDark,
     background: palette.cream,
@@ -47,6 +49,7 @@ export const Colors = {
     onSurface: palette.offWhite,
     muted: palette.warmGray,
     destructive: palette.red,
+    destructiveMuted: palette.brickMuted,
     // legacy keys
     text: palette.offWhite,
     background: palette.warmDark,

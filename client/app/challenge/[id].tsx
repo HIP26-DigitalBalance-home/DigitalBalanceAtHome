@@ -317,13 +317,13 @@ export default function ChallengeDetailScreen() {
 
           {/* Delete challenge */}
           <Pressable
-            style={[styles.deleteButton, { borderColor: colors.destructive }]}
+            style={styles.deleteButton}
             onPress={handleDeleteChallenge}
             disabled={deleting}
           >
             {deleting
-              ? <ActivityIndicator color={colors.destructive} />
-              : <ThemedText style={[styles.deleteText, { color: colors.destructive }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
+              ? <ActivityIndicator color={colors.destructiveMuted} />
+              : <ThemedText style={[styles.deleteText, { color: colors.destructiveMuted }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
           </Pressable>
         </ScrollView>
       ) : null}
@@ -398,12 +398,10 @@ const styles = StyleSheet.create({
   groupLinkLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
   groupLinkName: { flex: 1, fontSize: 15, fontWeight: '600' },
   deleteButton: {
-    height: 48,
-    borderRadius: 10,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  deleteText: { fontSize: 15, fontWeight: '600' },
+  deleteText: { fontSize: 13 },
 });

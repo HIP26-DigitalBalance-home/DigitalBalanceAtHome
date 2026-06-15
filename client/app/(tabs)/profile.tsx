@@ -285,13 +285,13 @@ export default function ProfileScreen() {
                 </Pressable>
 
                 <Pressable
-                  style={[styles.outlineButton, { borderColor: colors.destructive, opacity: (leaving || !isOnline) ? 0.6 : 1 }]}
+                  style={[styles.destructiveLink, { opacity: (leaving || !isOnline) ? 0.5 : 1 }]}
                   onPress={handleLeaveFamily}
                   disabled={leaving || !isOnline}>
                   {leaving ? (
-                    <ActivityIndicator color={colors.destructive} size="small" />
+                    <ActivityIndicator color={colors.destructiveMuted} size="small" />
                   ) : (
-                    <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>
+                    <ThemedText style={{ color: colors.destructiveMuted, fontSize: 13 }}>
                       {t('profile.leaveFamily')}
                     </ThemedText>
                   )}
@@ -332,9 +332,9 @@ export default function ProfileScreen() {
 
             {/* Sign out */}
             <Pressable
-              style={[styles.signOutButton, { borderColor: colors.destructive }]}
+              style={styles.destructiveLink}
               onPress={logout}>
-              <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>{t('profile.signOut')}</ThemedText>
+              <ThemedText style={{ color: colors.destructiveMuted, fontSize: 13 }}>{t('profile.signOut')}</ThemedText>
             </Pressable>
 
             {/* Debug section — collapsed by default */}
@@ -397,13 +397,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Spacing.sm,
   },
-  signOutButton: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1.5,
+  destructiveLink: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   debugToggle: { alignItems: 'center', paddingVertical: Spacing.sm },
   debugToggleText: { fontSize: 11, letterSpacing: 0.5 },

@@ -31,6 +31,7 @@ const MAPPING = {
   'chart.line.uptrend.xyaxis': 'trending-up',
   'bell.badge.fill': 'notifications',
   'sparkles': 'auto-awesome',
+  'dice.fill': 'casino',
   'lock.shield.fill': 'security',
   'star.fill': 'star',
 

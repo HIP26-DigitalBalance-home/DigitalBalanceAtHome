@@ -230,9 +230,9 @@ export default function GroupDetailScreen() {
               </View>
               {isAdmin && !isOwnFamily && (
                 <Pressable
-                  style={[styles.removeButton, { borderColor: colors.destructive }]}
+                  style={styles.removeButton}
                   onPress={() => handleRemoveFamily(item.family_id, item.family_name)}>
-                  <ThemedText style={{ color: colors.destructive, fontSize: 13 }}>{t('groupDetail.remove')}</ThemedText>
+                  <ThemedText style={{ color: colors.destructiveMuted, fontSize: 12 }}>{t('groupDetail.remove')}</ThemedText>
                 </Pressable>
               )}
             </View>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   familyTitleRow: { flex: 1 },
   familyName: { fontSize: 15, fontWeight: '600' },
   joinedAt: { fontSize: 12, marginTop: 2 },
-  removeButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  removeButton: { paddingHorizontal: 8, paddingVertical: 4 },
   parentsList: { borderTopWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   parentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: Spacing.sm },
   parentName: { flex: 1, fontSize: 14 },

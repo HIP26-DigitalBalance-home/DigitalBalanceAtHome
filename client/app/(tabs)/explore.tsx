@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
@@ -25,14 +26,14 @@ export default function ExploreScreen() {
   const colors = Colors[useColorScheme() ?? 'light'];
   const { t } = useTranslation();
 
-  function cardCopy(card: ExploreCard): { name: string; description: string; emoji: string } {
+  function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
     if (card.kind === 'custom') {
-      return { name: t('explore.customName'), description: t('explore.customDesc'), emoji: '✨' };
+      return { name: t('explore.customName'), description: t('explore.customDesc'), icon: 'sparkles' };
     }
     if (card.kind === 'random') {
-      return { name: t('explore.randomName'), description: t('explore.randomDesc'), emoji: '🎲' };
+      return { name: t('explore.randomName'), description: t('explore.randomDesc'), icon: 'dice.fill' };
     }
-    return { name: card.preset.name, description: card.preset.description, emoji: '' };
+    return { name: card.preset.name, description: card.preset.description, icon: null };
   }
 
   const [presets, setPresets] = useState<CollagePreset[]>([]);
@@ -81,7 +82,7 @@ export default function ExploreScreen() {
   const data: ExploreCard[] = [...LOCAL_CARDS, ...presets.map((preset) => ({ kind: 'preset' as const, preset }))];
 
   function renderCard({ item }: { item: ExploreCard }) {
-    const { name, description, emoji } = cardCopy(item);
+    const { name, description, icon } = cardCopy(item);
     return (
       <Pressable
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -89,7 +90,7 @@ export default function ExploreScreen() {
         accessibilityRole="button"
         accessibilityLabel={`${name} – Collage starten`}
       >
-        {emoji ? <ThemedText style={styles.cardEmoji}>{emoji}</ThemedText> : null}
+        {icon ? <IconSymbol name={icon} size={24} color={colors.primary} /> : null}
         <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={2}>
           {name}
         </ThemedText>
@@ -155,7 +156,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     gap: Spacing.xs,
   },
-  cardEmoji: { fontSize: 28 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
   cardDesc: { fontSize: 13, lineHeight: 18 },
   errorFooter: { paddingVertical: Spacing.lg },
