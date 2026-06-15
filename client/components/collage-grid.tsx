@@ -39,16 +39,29 @@ function slotRotation(gridPosition: number): string {
   return `${steps[gridPosition % steps.length]}deg`;
 }
 
-// Progress dots: up to 5 filled/empty circles.
-function ProgressDots({ filled, total, color }: { filled: number; total: number; color: string }) {
-  const cap = Math.min(total, 5);
+// RGB lerp: warm sand #E8C99A (0%) → salmon #F4845F (100%).
+// Both colors are already in the app palette, so the bar reads as "on-brand"
+// at every fill level rather than using a traffic-light hue shift.
+function progressFillColor(ratio: number): string {
+  const r = Math.round(232 + (244 - 232) * ratio); // 232 → 244
+  const g = Math.round(201 + (132 - 201) * ratio); // 201 → 132
+  const b = Math.round(154 + (95  - 154) * ratio); // 154 → 95
+  return `rgb(${r},${g},${b})`;
+}
+
+// Thin pill bar that scales continuously — works for 3 or 30 families.
+function ProgressBar({ filled, total }: { filled: number; total: number }) {
+  const ratio = total > 0 ? Math.min(filled / total, 1) : 0;
   return (
-    <View style={dotStyles.row}>
-      {Array.from({ length: cap }).map((_, i) => (
-        <ThemedText key={i} style={[dotStyles.dot, { color: i < filled ? color : color + '40' }]}>
-          {i < filled ? '●' : '○'}
-        </ThemedText>
-      ))}
+    <View style={barStyles.track}>
+      {ratio > 0 && (
+        <View
+          style={[
+            barStyles.fill,
+            { width: `${ratio * 100}%` as any, backgroundColor: progressFillColor(ratio) },
+          ]}
+        />
+      )}
     </View>
   );
 }
@@ -74,6 +87,7 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     const isSelfReported = effectiveStatus === 'self_reported';
     const isReady = effectiveStatus === 'ready';
     const isCompleted = !isEmpty;
+    const hasGroupBar = groupFamiliesCount != null && groupFamiliesCount > 0;
 
     function handlePress() {
       if (isEmpty) { onSlotPress?.(item); return; }
@@ -109,8 +123,8 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               shadowRadius: isCompleted ? 6 : 4,
               shadowOffset: { width: 0, height: 2 },
               elevation: isCompleted ? 4 : 2,
-              // Extra bottom padding reserves space for the dot indicator row.
-              paddingBottom: groupFamiliesCount != null && groupFamiliesCount > 0 ? 18 : Spacing.sm,
+              // Reserve space at the bottom so text never sits behind the progress bar.
+              paddingBottom: hasGroupBar ? 18 : Spacing.sm,
             },
           ]}
         >
@@ -163,14 +177,11 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
             </ThemedText>
           )}
 
-          {groupFamiliesCount != null && groupFamiliesCount > 0 && (
-            <View style={styles.dotsContainer}>
-              <ProgressDots
-                filled={item.families_completed_count ?? 0}
-                total={groupFamiliesCount}
-                color={colors.primary}
-              />
-            </View>
+          {hasGroupBar && (
+            <ProgressBar
+              filled={item.families_completed_count ?? 0}
+              total={groupFamiliesCount!}
+            />
           )}
         </Pressable>
       </View>
@@ -231,14 +242,23 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   photoTitle: { fontSize: 9, color: '#fff', textAlign: 'center', lineHeight: 13 },
-  dotsContainer: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-  },
 });
 
-const dotStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 1 },
-  dot: { fontSize: 7, lineHeight: 9 },
+const barStyles = StyleSheet.create({
+  // Sits at the bottom of the card, inset from the edges so it clears the
+  // border-radius corners and reads as a deliberate design element.
+  track: {
+    position: 'absolute',
+    bottom: 6,
+    left: 7,
+    right: 7,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#E8DDD3',
+    overflow: 'hidden',
+  },
+  fill: {
+    height: 3,
+    borderRadius: 2,
+  },
 });
