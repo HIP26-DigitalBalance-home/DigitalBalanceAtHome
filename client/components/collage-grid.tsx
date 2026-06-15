@@ -1,4 +1,12 @@
-import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useState } from 'react';
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
@@ -21,13 +29,17 @@ interface Props {
   onPhotoPress?: (slot: ChallengeActivitySlot, photoUrl: string, completionId: string) => void;
 }
 
-// Deterministic rotation per grid position: cycles through ±1.6° values
+// Each card is inset 3px per side inside its grid cell so that corner bleed
+// from rotation stays within the cell's bounds (math: slotSize * sin(1.6°) ≈ 3px).
+const CARD_INSET = 3;
+
+// Deterministic rotation per grid position: cycles through ±1.6° values.
 function slotRotation(gridPosition: number): string {
   const steps = [-1.6, 1.2, -0.8, 1.6, -1.2, 0.8, -0.4];
   return `${steps[gridPosition % steps.length]}deg`;
 }
 
-// Progress dots: up to 5 filled/empty circles
+// Progress dots: up to 5 filled/empty circles.
 function ProgressDots({ filled, total, color }: { filled: number; total: number; color: string }) {
   const cap = Math.min(total, 5);
   return (
@@ -73,82 +85,93 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     const rotation = slotRotation(item.grid_position);
 
     return (
-      <Pressable
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
-        style={[
-          styles.slot,
-          {
-            width: slotSize,
-            height: slotSize,
-            backgroundColor: isCompleted ? '#FFF3E0' : colors.surface,
-            borderColor: isCompleted ? '#E8C99A' : colors.border,
-            overflow: 'hidden',
-            transform: [{ rotate: rotation }],
-            shadowColor: '#6B3A2A',
-            shadowOpacity: isCompleted ? 0.14 : 0.08,
-            shadowRadius: isCompleted ? 6 : 4,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: isCompleted ? 4 : 2,
-          },
-        ]}
-      >
-        {isReady && effectivePhotoUrl && effectiveCompletionId ? (
-          <>
-            <ImageWithFallback
-              uri={effectivePhotoUrl}
-              completionId={effectiveCompletionId}
-              style={{ width: slotSize, height: slotSize, position: 'absolute', top: 0, left: 0 }}
-              resizeMode="cover"
-              accessibilityLabel={item.activity.title}
-            />
-            <View style={styles.photoOverlay}>
-              <ThemedText style={styles.photoTitle} numberOfLines={2}>
+      // Outer cell: owns the grid dimensions and stays overflow-visible so
+      // the rotated card's corners and shadow can bleed into the gap space.
+      <View style={{ width: slotSize, height: slotSize, overflow: 'visible' }}>
+        <Pressable
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
+          style={[
+            styles.card,
+            {
+              // 3px inset per side: card fits the rotated visual within the cell.
+              position: 'absolute',
+              top: CARD_INSET,
+              bottom: CARD_INSET,
+              left: CARD_INSET,
+              right: CARD_INSET,
+              backgroundColor: isCompleted ? '#FFF3E0' : colors.surface,
+              borderColor: isCompleted ? '#E8C99A' : colors.border,
+              transform: [{ rotate: rotation }],
+              shadowColor: '#6B3A2A',
+              shadowOpacity: isCompleted ? 0.14 : 0.08,
+              shadowRadius: isCompleted ? 6 : 4,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: isCompleted ? 4 : 2,
+            },
+          ]}
+        >
+          {isReady && effectivePhotoUrl && effectiveCompletionId ? (
+            // Photo needs its own overflow:hidden layer to be clipped to the
+            // card's rounded corners — the outer card is overflow:visible for shadows.
+            <>
+              <View style={[StyleSheet.absoluteFillObject, styles.photoClip]}>
+                <ImageWithFallback
+                  uri={effectivePhotoUrl}
+                  completionId={effectiveCompletionId}
+                  style={StyleSheet.absoluteFillObject}
+                  resizeMode="cover"
+                  accessibilityLabel={item.activity.title}
+                />
+              </View>
+              <View style={styles.photoOverlay}>
+                <ThemedText style={styles.photoTitle} numberOfLines={2}>
+                  {item.activity.title}
+                </ThemedText>
+              </View>
+            </>
+          ) : isProcessing ? (
+            <>
+              <ActivityIndicator color={colors.primary} />
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.muted }]} numberOfLines={2}>
                 {item.activity.title}
               </ThemedText>
-            </View>
-          </>
-        ) : isProcessing ? (
-          <>
-            <ActivityIndicator color={colors.primary} />
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.muted }]} numberOfLines={2}>
+            </>
+          ) : isSelfReported ? (
+            <>
+              <View style={[styles.stampCircle, { borderColor: colors.primary }]}>
+                <ThemedText style={[styles.stampCheck, { color: colors.primary }]}>✓</ThemedText>
+              </View>
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+                {item.activity.title}
+              </ThemedText>
+            </>
+          ) : isReady ? (
+            // ready but photo URL still loading
+            <>
+              <ActivityIndicator color={colors.accent} />
+              <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
+                {item.activity.title}
+              </ThemedText>
+            </>
+          ) : (
+            <ThemedText style={[styles.slotTitle, { color: colors.muted }]} numberOfLines={3}>
               {item.activity.title}
             </ThemedText>
-          </>
-        ) : isSelfReported ? (
-          <>
-            <View style={[styles.stampCircle, { borderColor: colors.primary }]}>
-              <ThemedText style={[styles.stampCheck, { color: colors.primary }]}>✓</ThemedText>
-            </View>
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
-              {item.activity.title}
-            </ThemedText>
-          </>
-        ) : isReady ? (
-          // ready but photo URL still loading
-          <>
-            <ActivityIndicator color={colors.accent} />
-            <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
-              {item.activity.title}
-            </ThemedText>
-          </>
-        ) : (
-          <ThemedText style={[styles.slotTitle, { color: colors.muted }]} numberOfLines={3}>
-            {item.activity.title}
-          </ThemedText>
-        )}
+          )}
 
-        {groupFamiliesCount != null && groupFamiliesCount > 0 && (
-          <View style={styles.dotsContainer}>
-            <ProgressDots
-              filled={item.families_completed_count ?? 0}
-              total={groupFamiliesCount}
-              color={colors.primary}
-            />
-          </View>
-        )}
-      </Pressable>
+          {groupFamiliesCount != null && groupFamiliesCount > 0 && (
+            <View style={styles.dotsContainer}>
+              <ProgressDots
+                filled={item.families_completed_count ?? 0}
+                total={groupFamiliesCount}
+                color={colors.primary}
+              />
+            </View>
+          )}
+        </Pressable>
+      </View>
     );
   }
 
@@ -170,15 +193,21 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
 
 const styles = StyleSheet.create({
   grid: { gap: Spacing.sm },
-  row: { gap: Spacing.sm },
-  slot: {
+  row: { gap: Spacing.xs },
+  card: {
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.sm,
     gap: Spacing.xs,
-    position: 'relative',
+    // overflow:visible so the card's shadow isn't clipped; photo has its own
+    // overflow:hidden layer (photoClip) to stay within the rounded corners.
+    overflow: 'visible',
+  },
+  photoClip: {
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   slotTitle: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
   slotTitleSmall: { fontSize: 10, textAlign: 'center', lineHeight: 13 },
