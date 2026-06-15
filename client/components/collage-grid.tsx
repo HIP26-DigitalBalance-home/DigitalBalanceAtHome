@@ -109,6 +109,8 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               shadowRadius: isCompleted ? 6 : 4,
               shadowOffset: { width: 0, height: 2 },
               elevation: isCompleted ? 4 : 2,
+              // Extra bottom padding reserves space for the dot indicator row.
+              paddingBottom: groupFamiliesCount != null && groupFamiliesCount > 0 ? 18 : Spacing.sm,
             },
           ]}
         >
