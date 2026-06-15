@@ -12,6 +12,7 @@ import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/ui/offline-banner';
+import { CookieBanner } from '@/components/ui/cookie-banner';
 import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
@@ -81,9 +82,11 @@ function RootLayoutNav() {
         <Stack.Screen name="challenge/[id]" />
         <Stack.Screen name="celebration" />
         <Stack.Screen name="group-feed/[id]" />
+        <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
       </Stack>
       <OfflineBanner />
+      <CookieBanner />
     </>
   );
 }
