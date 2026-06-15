@@ -54,7 +54,7 @@ export default function ChallengeDetailScreen() {
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
-  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string; familiesCompletedCount: number | null; groupFamiliesCount: number | null } | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
@@ -172,8 +172,14 @@ export default function ChallengeDetailScreen() {
     }
   }
 
-  function handlePhotoPress(_slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
-    setViewerPhoto({ url: photoUrl, completionId, title: _slot.activity.title });
+  function handlePhotoPress(slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
+    setViewerPhoto({
+      url: photoUrl,
+      completionId,
+      title: slot.activity.title,
+      familiesCompletedCount: slot.families_completed_count ?? null,
+      groupFamiliesCount: challenge?.group_families_count ?? null,
+    });
   }
 
   function handlePhotoDeleted(completionId: string) {
@@ -286,7 +292,7 @@ export default function ChallengeDetailScreen() {
                     <ThemedText style={[styles.activityProgressTitle, { color: colors.onSurface }]} numberOfLines={1}>
                       {slot.activity.title}
                     </ThemedText>
-                    <ThemedText style={[styles.activityProgressCount, { color: colors.accent }]}>
+                    <ThemedText style={[styles.activityProgressCount, { color: colors.muted }]}>
                       {slot.families_completed_count ?? 0}/{challenge.group_families_count}
                     </ThemedText>
                   </View>
@@ -336,6 +342,8 @@ export default function ChallengeDetailScreen() {
         photoUrl={viewerPhoto?.url ?? null}
         completionId={viewerPhoto?.completionId ?? null}
         activityTitle={viewerPhoto?.title ?? ''}
+        familiesCompletedCount={viewerPhoto?.familiesCompletedCount ?? null}
+        groupFamiliesCount={viewerPhoto?.groupFamiliesCount ?? null}
         onClose={() => setViewerPhoto(null)}
         onDeleted={handlePhotoDeleted}
       />

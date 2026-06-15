@@ -32,7 +32,7 @@ export default function ExploreScreen() {
     if (card.kind === 'random') {
       return { name: t('explore.randomName'), description: t('explore.randomDesc'), emoji: '🎲' };
     }
-    return { name: card.preset.name, description: card.preset.description, emoji: '🧩' };
+    return { name: card.preset.name, description: card.preset.description, emoji: '' };
   }
 
   const [presets, setPresets] = useState<CollagePreset[]>([]);
@@ -89,7 +89,7 @@ export default function ExploreScreen() {
         accessibilityRole="button"
         accessibilityLabel={`${name} – Collage starten`}
       >
-        <ThemedText style={styles.cardEmoji}>{emoji}</ThemedText>
+        {emoji ? <ThemedText style={styles.cardEmoji}>{emoji}</ThemedText> : null}
         <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={2}>
           {name}
         </ThemedText>

@@ -59,6 +59,7 @@ export default function ProfileScreen() {
   const [locationConsent, setLocationConsent] = useState(false);
   const [city, setCity] = useState('');
   const [seeding, setSeeding] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const fetchData = useCallback(async () => {
     setFetchError(null);
@@ -218,7 +219,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* Children */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.myChildren')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('profile.myChildren')}</ThemedText>
             {children.length === 0 ? (
               <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
                 {t('profile.noChildren')}
@@ -253,7 +254,7 @@ export default function ProfileScreen() {
             )}
 
             {/* My Family */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.myFamily')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('profile.myFamily')}</ThemedText>
 
             {loading ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.lg }} />
@@ -305,7 +306,7 @@ export default function ProfileScreen() {
             {/* Location / city preference */}
             {locationConsent && (
               <>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.activitySuggestions')}</ThemedText>
+                <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('profile.activitySuggestions')}</ThemedText>
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   <ThemedText style={styles.cardLabel}>{t('profile.yourCity')}</ThemedText>
                   <ThemedText style={[styles.cardSub, { color: colors.muted }]}>
@@ -329,25 +330,31 @@ export default function ProfileScreen() {
               </>
             )}
 
-            {/* Demo data */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('profile.demo')}</ThemedText>
-            <Pressable
-              style={[styles.outlineButton, { borderColor: colors.accent, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
-              onPress={handleSeedDemo}
-              disabled={seeding || !isOnline}>
-              {seeding ? (
-                <ActivityIndicator color={colors.accent} size="small" />
-              ) : (
-                <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>{t('profile.loadDemo')}</ThemedText>
-              )}
-            </Pressable>
-
             {/* Sign out */}
             <Pressable
               style={[styles.signOutButton, { borderColor: colors.destructive }]}
               onPress={logout}>
               <ThemedText style={{ color: colors.destructive, fontWeight: '600' }}>{t('profile.signOut')}</ThemedText>
             </Pressable>
+
+            {/* Debug section — collapsed by default */}
+            <Pressable onPress={() => setShowDebug((v) => !v)} style={styles.debugToggle}>
+              <ThemedText style={[styles.debugToggleText, { color: colors.muted }]}>
+                {showDebug ? '▴ debug' : '▾ debug'}
+              </ThemedText>
+            </Pressable>
+            {showDebug && (
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.border, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
+                onPress={handleSeedDemo}
+                disabled={seeding || !isOnline}>
+                {seeding ? (
+                  <ActivityIndicator color={colors.muted} size="small" />
+                ) : (
+                  <ThemedText style={{ color: colors.muted, fontWeight: '500' }}>{t('profile.loadDemo')}</ThemedText>
+                )}
+              </Pressable>
+            )}
           </>
         }
       />
@@ -398,4 +405,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Spacing.md,
   },
+  debugToggle: { alignItems: 'center', paddingVertical: Spacing.sm },
+  debugToggleText: { fontSize: 11, letterSpacing: 0.5 },
 });

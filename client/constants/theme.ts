@@ -7,7 +7,7 @@ const palette = {
   green: '#4CAF82',
   greenDark: '#2E7D57',   // darkened from #367A5C — passes AA (4.7:1) on cream for text use
   cream: '#FFFBF5',
-  warmDark: '#1C1917',
+  warmDark: '#2B1F1A',
   warmMid: '#292524',
   warmGray: '#6B6460',    // darkened from #78716C — passes AA (4.6:1) on cream for body text
   warmBorder: '#E7E0D6',

@@ -54,7 +54,7 @@ export default function HomeScreen() {
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
-  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string } | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string; familiesCompletedCount: number | null; groupFamiliesCount: number | null } | null>(null);
 
   // Refs to avoid stale closures in polling/async callbacks
   const challengesRef = useRef<ChallengeWithProgress[]>([]);
@@ -171,8 +171,16 @@ export default function HomeScreen() {
     setActiveSlot(slot);
   }
 
-  function handlePhotoPress(_slot: ChallengeActivitySlot, photoUrl: string, completionId: string) {
-    setViewerPhoto({ url: photoUrl, completionId, title: _slot.activity.title });
+  function makePhotoHandler(groupFamiliesCount: number | null) {
+    return (slot: ChallengeActivitySlot, photoUrl: string, completionId: string) => {
+      setViewerPhoto({
+        url: photoUrl,
+        completionId,
+        title: slot.activity.title,
+        familiesCompletedCount: slot.families_completed_count ?? null,
+        groupFamiliesCount,
+      });
+    };
   }
 
   function handlePhotoDeleted(completionId: string) {
@@ -241,19 +249,19 @@ export default function HomeScreen() {
         {/* Active challenge collages */}
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <SkeletonList count={2} rowHeight={180} />
           </View>
         ) : challengeError ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
           </View>
         ) : challenges.length > 0 ? (
           challenges.map((challenge) => (
             <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>
-                <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
                   {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
                 </ThemedText>
                 <Pressable onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}>
@@ -269,13 +277,13 @@ export default function HomeScreen() {
                 groupFamiliesCount={challenge.group_families_count}
                 localCompletions={localCompletions}
                 onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
-                onPhotoPress={handlePhotoPress}
+                onPhotoPress={makePhotoHandler(challenge.group_families_count ?? null)}
               />
             </View>
           ))
         ) : (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.yourCollages')}</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <EmptyState
               icon="🎯"
               title={t('home.emptyTitle')}
@@ -288,7 +296,7 @@ export default function HomeScreen() {
 
         {/* Suggestion card */}
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('home.todaysSuggestion')}</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.todaysSuggestion')}</ThemedText>
           {loadingChallenges ? (
             <SkeletonList count={1} rowHeight={80} />
           ) : suggestion ? (
@@ -327,6 +335,8 @@ export default function HomeScreen() {
         photoUrl={viewerPhoto?.url ?? null}
         completionId={viewerPhoto?.completionId ?? null}
         activityTitle={viewerPhoto?.title ?? ''}
+        familiesCompletedCount={viewerPhoto?.familiesCompletedCount ?? null}
+        groupFamiliesCount={viewerPhoto?.groupFamiliesCount ?? null}
         onClose={() => setViewerPhoto(null)}
         onDeleted={handlePhotoDeleted}
       />
