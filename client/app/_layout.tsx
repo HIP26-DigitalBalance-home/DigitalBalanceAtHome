@@ -27,7 +27,7 @@ export const unstable_settings = {
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const onboardingComplete = useOnboardingStatus();
+  const onboardingComplete = useOnboardingStatus(isAuthenticated);
   const segments = useSegments();
   const { token } = useLocalSearchParams<{ token?: string }>();
 

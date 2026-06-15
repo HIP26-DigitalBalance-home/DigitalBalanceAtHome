@@ -22,7 +22,7 @@ const MONSTER_TOP_OFFSET = -122; // lifts claws clear of the text area
 export function CookieBanner() {
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const { isAuthenticated } = useAuth();
-  const onboardingComplete = useOnboardingStatus();
+  const onboardingComplete = useOnboardingStatus(isAuthenticated);
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const colors = Colors[useColorScheme() ?? 'light'];
