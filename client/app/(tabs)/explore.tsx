@@ -7,9 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { collagePresetsApi, type CollagePreset } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -24,7 +24,7 @@ type ExploreCard =
 const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 
 export default function ExploreScreen() {
-  const { colors, radii } = useAppTheme();
+  const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
 
   function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
@@ -83,21 +83,25 @@ export default function ExploreScreen() {
   const data: ExploreCard[] = [...LOCAL_CARDS, ...presets.map((preset) => ({ kind: 'preset' as const, preset }))];
 
   function renderCard({ item }: { item: ExploreCard }) {
-    const { name, description, icon } = cardCopy(item);
+    const { name, icon } = cardCopy(item);
     return (
       <Pressable
-        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={styles.card}
         onPress={() => openBuilder(item)}
         accessibilityRole="button"
         accessibilityLabel={`${name} – Collage starten`}
       >
-        {icon ? <IconSymbol name={icon} size={24} color={colors.primary} /> : null}
-        <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={2}>
-          {name}
-        </ThemedText>
-        <ThemedText style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={3}>
-          {description}
-        </ThemedText>
+        <StampFrame
+          fill={colors.surface}
+          stroke={colors.border}
+          style={styles.stamp}
+          contentStyle={styles.stampContent}
+        >
+          {icon ? <IconSymbol name={icon} size={24} color={colors.primary} /> : null}
+          <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={3}>
+            {name}
+          </ThemedText>
+        </StampFrame>
       </Pressable>
     );
   }
@@ -150,14 +154,10 @@ const styles = StyleSheet.create({
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
     width: '48%',
-    minHeight: 150,
-    borderRadius: DEFAULT_RADII.card,
-    borderWidth: 1,
-    padding: Spacing.md,
     marginBottom: Spacing.md,
-    gap: Spacing.xs,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700' },
-  cardDesc: { fontSize: 13, lineHeight: 18 },
+  stamp: { flex: 1, minHeight: 150 },
+  stampContent: { flex: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  cardTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   errorFooter: { paddingVertical: Spacing.lg },
 });
