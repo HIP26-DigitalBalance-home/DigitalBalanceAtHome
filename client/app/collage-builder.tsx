@@ -124,7 +124,7 @@ export default function CollageBuilderScreen() {
       <Pressable
         onPress={() => openPicker(index)}
         accessibilityRole="button"
-        accessibilityLabel={filled ? `${item!.title} – ändern` : 'Leeres Feld – Aktivität wählen'}
+        accessibilityLabel={filled ? t('builder.slotChange', { title: item!.title }) : t('builder.slotEmpty')}
         style={[
           styles.slot,
           {

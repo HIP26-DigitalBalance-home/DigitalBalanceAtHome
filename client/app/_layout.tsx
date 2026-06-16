@@ -16,6 +16,7 @@ import { StandardProvider } from '@/lib/services/standard-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
 import { AppThemeProvider, useAppTheme } from '@/lib/app-theme-context';
+import { LanguageProvider, useLanguage } from '@/lib/i18n/language-context';
 // Side-effect: fires AsyncStorage read immediately at bundle evaluation time.
 import '@/lib/theme-preloader';
 
@@ -29,6 +30,7 @@ export const unstable_settings = {
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { chosen: languageChosen } = useLanguage();
   const onboardingComplete = useOnboardingStatus(isAuthenticated);
   const segments = useSegments();
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -36,6 +38,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
   const segment = segments[0] as string;
   const onSignIn = segment === 'sign-in';
   const onOnboarding = segment === '(onboarding)';
+  const onChooseLanguage = segment === 'choose-language';
 
   // Store pending invite tokens before redirecting unauthenticated users
   useEffect(() => {
@@ -49,7 +52,15 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
     return <LoadingScreen />;
   }
 
-  if (!isAuthenticated && !onSignIn) {
+  // Language choice gates everything else — a fresh install lands here first.
+  if (!languageChosen && !onChooseLanguage) {
+    return <Redirect href={'/choose-language' as any} />;
+  }
+  if (languageChosen && onChooseLanguage) {
+    return <Redirect href={(isAuthenticated ? '/(tabs)' : '/sign-in') as any} />;
+  }
+
+  if (!isAuthenticated && !onSignIn && !onChooseLanguage) {
     return <Redirect href={'/sign-in' as any} />;
   }
   if (isAuthenticated && onSignIn) {
@@ -70,6 +81,7 @@ function RootLayoutNav() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="choose-language" />
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="create-group" />
@@ -114,9 +126,11 @@ function ThemedApp() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <AppThemeProvider>
-        <ThemedApp />
-      </AppThemeProvider>
+      <LanguageProvider>
+        <AppThemeProvider>
+          <ThemedApp />
+        </AppThemeProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

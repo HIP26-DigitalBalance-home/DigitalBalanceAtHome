@@ -104,7 +104,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
                 completionId={completionId}
                 style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
-                accessibilityLabel={`Foto: ${activityTitle}`}
+                accessibilityLabel={t('photoViewer.photoOf', { title: activityTitle })}
               />
             ) : (
               <ActivityIndicator color={colors.primary} />
@@ -113,7 +113,7 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
               style={styles.closeButton}
               onPress={onClose}
               accessibilityRole="button"
-              accessibilityLabel="Schließen"
+              accessibilityLabel={t('common.close')}
             >
               <ThemedText style={styles.closeText}>✕</ThemedText>
             </Pressable>
