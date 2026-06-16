@@ -12,6 +12,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII, THEMES, type ColorMode, type ThemeId } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
+import { useLanguage } from '@/lib/i18n/language-context';
+import type { AppLanguage } from '@/lib/i18n/language-preloader';
 import { useAuth } from '@/lib/auth';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { onboardingApi, devApi, usersApi, apiClient } from '@/lib/api';
@@ -50,6 +52,7 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { currentUser, logout, updateCurrentUser } = useAuth();
   const { themeId, setTheme, colorMode, setColorMode } = useAppTheme();
+  const { language, setLanguage } = useLanguage();
   const router = useRouter();
   const isOnline = useNetworkStatus();
   const [family, setFamily] = useState<FamilyData | null>(null);
@@ -399,6 +402,38 @@ export default function ProfileScreen() {
                   );
                 })}
               </ScrollView>
+            </View>
+
+            {/* Language / Sprache */}
+            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('profile.languageSection')}</ThemedText>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.modeToggle, { borderColor: colors.border }]}>
+                {(['de', 'en'] as AppLanguage[]).map((lng, idx, arr) => {
+                  const labels: Record<AppLanguage, string> = { de: t('language.german'), en: t('language.english') };
+                  const isActive = lng === language;
+                  const isLast = idx === arr.length - 1;
+                  return (
+                    <Pressable
+                      key={lng}
+                      style={[
+                        styles.modeOption,
+                        { backgroundColor: isActive ? colors.primary + '14' : 'transparent' },
+                        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                      ]}
+                      onPress={() => setLanguage(lng)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${labels[lng]}${isActive ? `, ${t('themes.colorMode.active')}` : ''}`}
+                    >
+                      <Text style={[
+                        styles.modeChipText,
+                        { color: isActive ? colors.primary : colors.muted, opacity: isActive ? 1 : 0.55 },
+                      ]}>
+                        {labels[lng]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             {/* Sign out */}

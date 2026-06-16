@@ -1,5 +1,7 @@
 import { AxiosError } from 'axios';
 
+import i18n from '@/lib/i18n';
+
 function getErrorCode(error: unknown): string | undefined {
   if (error instanceof AxiosError) {
     return (error.response?.data as Record<string, unknown> | undefined)?.code as string | undefined;
@@ -18,28 +20,32 @@ export function isOfflineError(error: unknown): boolean {
   return false;
 }
 
+// Localised via i18n (key group `errors`). Name kept for back-compat with the
+// many call sites; the returned message follows the active app language.
 export function getGermanErrorMessage(error: unknown): string {
+  const t = i18n.t.bind(i18n);
+
   if (!(error instanceof AxiosError)) {
-    return 'Ein unbekannter Fehler ist aufgetreten.';
+    return t('errors.unknown');
   }
 
   if (error.code === 'ECONNABORTED') {
-    return 'Zeitüberschreitung. Bitte Verbindung prüfen.';
+    return t('errors.timeout');
   }
 
   if (!error.response) {
-    return 'Keine Verbindung zum Server. Bitte Internetverbindung prüfen.';
+    return t('errors.noServer');
   }
 
   const status = error.response.status;
   const code = getErrorCode(error);
 
-  if (status === 401) return 'Bitte erneut anmelden.';
-  if (status === 403 && code === 'consent_version_mismatch') return 'Bitte Datenschutzerklärung erneut bestätigen.';
-  if (status === 403) return 'Keine Berechtigung für diese Aktion.';
-  if (status === 404) return 'Inhalt nicht gefunden.';
-  if (status === 429) return 'Zu viele Anfragen. Bitte kurz warten.';
-  if (status === 500) return 'Serverfehler. Bitte später erneut versuchen.';
+  if (status === 401) return t('errors.unauthorized');
+  if (status === 403 && code === 'consent_version_mismatch') return t('errors.consentMismatch');
+  if (status === 403) return t('errors.forbidden');
+  if (status === 404) return t('errors.notFound');
+  if (status === 429) return t('errors.tooManyRequests');
+  if (status === 500) return t('errors.server');
 
-  return 'Ein unbekannter Fehler ist aufgetreten.';
+  return t('errors.unknown');
 }
