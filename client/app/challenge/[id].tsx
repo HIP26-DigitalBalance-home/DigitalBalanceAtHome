@@ -37,7 +37,7 @@ export default function ChallengeDetailScreen() {
   const { colors, radii } = useAppTheme();
   const statusColor = (s: string) =>
     s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
   const statusLabels: Record<string, string> = {
@@ -89,7 +89,7 @@ export default function ChallengeDetailScreen() {
       .catch((e) => { if (!cancelled) setError(getGermanErrorMessage(e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, i18n.language]);
 
   function checkCelebration(updatedLocal: Record<string, LocalCompletion>) {
     const c = challengeRef.current;

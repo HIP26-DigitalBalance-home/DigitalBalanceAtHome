@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
+from app.dependencies.language import get_request_language
 from app.models.user import User
 from app.repositories.group import GroupRepository
 from app.schemas.generated import (
@@ -189,5 +190,6 @@ async def get_group_feed(
     offset: int = 0,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> list[dict]:
-    return await completion_service.get_group_feed(session, current_user.id, group_id, limit, offset)
+    return await completion_service.get_group_feed(session, current_user.id, group_id, limit, offset, language)

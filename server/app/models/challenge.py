@@ -13,6 +13,10 @@ class Challenge(Base, TimestampMixin):
 
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
+    # English translations of seeded/demo content. NULL for user-created
+    # challenges, which fall back to the base title/description.
+    title_en: Mapped[str | None] = mapped_column(String, nullable=True)
+    description_en: Mapped[str | None] = mapped_column(String, nullable=True)
     group_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("groups.id", ondelete="SET NULL"), nullable=True
     )

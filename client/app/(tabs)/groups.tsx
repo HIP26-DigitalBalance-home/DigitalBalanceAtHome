@@ -26,7 +26,7 @@ import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 export default function GroupsScreen() {
   const { colors, radii, theme } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
@@ -57,7 +57,7 @@ export default function GroupsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [i18n.language]);
 
   useFocusEffect(useCallback(() => { fetchAll(); }, [fetchAll]));
 
@@ -134,7 +134,7 @@ export default function GroupsScreen() {
             source={{ uri: item.photo_url }}
             style={styles.feedPhoto}
             resizeMode="cover"
-            accessibilityLabel={`Foto: ${item.activity_title}`}
+            accessibilityLabel={t('photoViewer.photoOf', { title: item.activity_title })}
           />
         ) : (
           <View style={[styles.checkPlaceholder, { backgroundColor: colors.accent + '22' }]}>

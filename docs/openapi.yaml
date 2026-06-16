@@ -625,6 +625,7 @@ paths:
       tags: [Groups]
       summary: Get shared completions for the group (opt-in only)
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - $ref: "#/components/parameters/GroupId"
         - name: limit
           in: query
@@ -661,6 +662,7 @@ paths:
         Returns global (curated) activities plus any activities created by the
         caller's own family. Requires authentication.
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - name: age
           in: query
           description: Child age in years (filters by age_min/age_max)
@@ -751,6 +753,7 @@ paths:
       tags: [Activities]
       summary: Get a single activity suggestion for the family
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - name: child_id
           in: query
           description: Derive age and interests from this child profile
@@ -779,6 +782,8 @@ paths:
       operationId: createChallenge
       tags: [Challenges]
       summary: Create a challenge (group or personal)
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
       requestBody:
         required: true
         content:
@@ -804,6 +809,8 @@ paths:
       operationId: getActiveChallenges
       tags: [Challenges]
       summary: Get all of the family's currently active challenges with completion state
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
       responses:
         "200":
           description: Active challenges with family completions (empty list if none)
@@ -822,6 +829,7 @@ paths:
       tags: [Challenges]
       summary: List all challenges the family participates in
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - name: status
           in: query
           schema:
@@ -845,6 +853,7 @@ paths:
       tags: [Challenges]
       summary: Get a challenge with group aggregate and family's own completions
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - $ref: "#/components/parameters/ChallengeId"
       responses:
         "200":
@@ -950,6 +959,7 @@ paths:
       tags: [Completions]
       summary: Get the family's completion history across all challenges
       parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
         - name: limit
           in: query
           schema:
@@ -1090,6 +1100,18 @@ components:
       schema:
         type: string
         format: uuid
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: |
+        Preferred content language for curated activity and challenge text.
+        Recognises "de" and "en" (default "de"). When "en" is requested, curated
+        content is returned in English where a translation exists; otherwise the
+        original/German text is returned. Does not affect user-created content.
+      schema:
+        type: string
+        example: en
 
   # ── Common Responses ────────────────────────────────────────
 

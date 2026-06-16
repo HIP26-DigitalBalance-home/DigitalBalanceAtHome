@@ -17,13 +17,14 @@ from app.services.exceptions import (
     NotGroupMember,
 )
 from app.services.family import get_user_family
+from app.services.localization import pick
 
 
-def _activity_dict(a: Activity) -> dict:
+def _activity_dict(a: Activity, language: str = "de") -> dict:
     return {
         "id": a.id,
-        "title": a.title,
-        "description": a.description,
+        "title": pick(a.title, a.title_en, language),
+        "description": pick(a.description, a.description_en, language),
         "estimated_duration_minutes": a.estimated_duration_minutes,
         "age_min": a.age_min,
         "age_max": a.age_max,
@@ -56,7 +57,7 @@ def _completion_dict(c: Completion) -> dict:
     }
 
 
-def _challenge_summary_dict(c: Challenge, today: date, all_slots_filled: bool = False) -> dict:
+def _challenge_summary_dict(c: Challenge, today: date, all_slots_filled: bool = False, language: str = "de") -> dict:
     if all_slots_filled:
         status = "completed"
     elif c.start_date > today:
@@ -65,8 +66,8 @@ def _challenge_summary_dict(c: Challenge, today: date, all_slots_filled: bool = 
         status = "active"
     return {
         "id": c.id,
-        "title": c.title,
-        "description": c.description,
+        "title": pick(c.title, c.title_en, language),
+        "description": pick(c.description, c.description_en, language),
         "group_id": c.group_id,
         "start_date": c.start_date.isoformat(),
         "end_date": c.end_date.isoformat(),
@@ -80,6 +81,7 @@ async def _build_challenge_with_progress(
     repo: ChallengeRepository,
     challenge: Challenge,
     family_id: uuid.UUID,
+    language: str = "de",
 ) -> dict:
     today = date.today()
     ca_list = await repo.get_challenge_activities(challenge.id)
@@ -105,7 +107,7 @@ async def _build_challenge_with_progress(
         slot: dict = {
             "id": ca.id,
             "activity_id": ca.activity_id,
-            "activity": _activity_dict(activity) if activity else {},
+            "activity": _activity_dict(activity, language) if activity else {},
             "grid_position": ca.grid_position,
             "completion": _completion_dict(completion) if completion else None,
             "families_completed_count": count_map.get(ca.id, 0) if challenge.group_id else None,
@@ -115,13 +117,15 @@ async def _build_challenge_with_progress(
     all_slots_filled = len(ca_list) > 0 and all(ca.id in completion_map for ca in ca_list)
 
     return {
-        **_challenge_summary_dict(challenge, today, all_slots_filled=all_slots_filled),
+        **_challenge_summary_dict(challenge, today, all_slots_filled=all_slots_filled, language=language),
         "activities": slots,
         "group_families_count": group_families_count,
     }
 
 
-async def create_challenge(session: AsyncSession, user_id: uuid.UUID, req: CreateChallengeRequest) -> dict:
+async def create_challenge(
+    session: AsyncSession, user_id: uuid.UUID, req: CreateChallengeRequest, language: str = "de"
+) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must create or join a family before creating a challenge")
@@ -160,20 +164,22 @@ async def create_challenge(session: AsyncSession, user_id: uuid.UUID, req: Creat
     await session.commit()
     await session.refresh(challenge)
 
-    return await _build_challenge_with_progress(repo, challenge, fm.family_id)
+    return await _build_challenge_with_progress(repo, challenge, fm.family_id, language)
 
 
-async def get_active_challenges(session: AsyncSession, user_id: uuid.UUID) -> list[dict]:
+async def get_active_challenges(session: AsyncSession, user_id: uuid.UUID, language: str = "de") -> list[dict]:
     fm = await get_user_family(session, user_id)
     if not fm:
         return []
 
     repo = ChallengeRepository(session)
     challenges = await repo.get_all_for_family(fm.family_id, "active")
-    return [await _build_challenge_with_progress(repo, c, fm.family_id) for c in challenges]
+    return [await _build_challenge_with_progress(repo, c, fm.family_id, language) for c in challenges]
 
 
-async def get_my_challenges(session: AsyncSession, user_id: uuid.UUID, status_filter: str | None) -> list[dict]:
+async def get_my_challenges(
+    session: AsyncSession, user_id: uuid.UUID, status_filter: str | None, language: str = "de"
+) -> list[dict]:
     fm = await get_user_family(session, user_id)
     if not fm:
         return []
@@ -184,7 +190,7 @@ async def get_my_challenges(session: AsyncSession, user_id: uuid.UUID, status_fi
     result = []
     for c in challenges:
         all_filled = await repo.is_fully_completed_by_family(c.id, fm.family_id)
-        summary = _challenge_summary_dict(c, today, all_slots_filled=all_filled)
+        summary = _challenge_summary_dict(c, today, all_slots_filled=all_filled, language=language)
         if status_filter in ("active", "completed") and summary["status"] != status_filter:
             continue
         result.append(summary)
@@ -209,7 +215,9 @@ async def delete_challenge(session: AsyncSession, user_id: uuid.UUID, challenge_
     await session.commit()
 
 
-async def get_challenge(session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID) -> dict:
+async def get_challenge(
+    session: AsyncSession, user_id: uuid.UUID, challenge_id: uuid.UUID, language: str = "de"
+) -> dict:
     fm = await get_user_family(session, user_id)
     if not fm:
         raise ChallengeNotFound("Challenge not found")
@@ -223,4 +231,4 @@ async def get_challenge(session: AsyncSession, user_id: uuid.UUID, challenge_id:
     if not accessible:
         raise ChallengeNotFound("Challenge not found")
 
-    return await _build_challenge_with_progress(repo, challenge, fm.family_id)
+    return await _build_challenge_with_progress(repo, challenge, fm.family_id, language)

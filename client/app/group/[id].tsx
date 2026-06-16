@@ -42,7 +42,7 @@ interface GroupDetail {
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
   const { currentUser } = useAuth();
   const [group, setGroup] = useState<GroupDetail | null>(null);
@@ -74,7 +74,7 @@ export default function GroupDetailScreen() {
         setGroupChallenges(forThisGroup);
       })
       .catch(() => {});
-  }, [id]);
+  }, [id, i18n.language]);
 
   async function handleGenerateInvite() {
     if (!id) return;

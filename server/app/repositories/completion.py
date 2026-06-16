@@ -62,10 +62,10 @@ class CompletionRepository:
 
     async def get_by_family(
         self, family_id: uuid.UUID, limit: int = 20, offset: int = 0
-    ) -> list[tuple["Completion", str, str]]:
-        """Return (Completion, activity_title, challenge_title) for a family's history."""
+    ) -> list[tuple["Completion", str, str | None, str, str | None]]:
+        """Return (Completion, activity_title, activity_title_en, challenge_title, challenge_title_en)."""
         stmt = (
-            select(Completion, Activity.title, Challenge.title)
+            select(Completion, Activity.title, Activity.title_en, Challenge.title, Challenge.title_en)
             .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
             .join(Challenge, ChallengeActivity.challenge_id == Challenge.id)
             .join(Activity, ChallengeActivity.activity_id == Activity.id)
@@ -79,10 +79,10 @@ class CompletionRepository:
 
     async def get_group_feed(
         self, group_id: uuid.UUID, limit: int = 20, offset: int = 0
-    ) -> list[tuple[Completion, str, str | None]]:
-        """Return (Completion, activity_title, family_name) for shared feed entries in a group."""
+    ) -> list[tuple[Completion, str, str | None, str | None]]:
+        """Return (Completion, activity_title, activity_title_en, family_name) for shared feed entries."""
         stmt = (
-            select(Completion, Activity.title, Family.name)
+            select(Completion, Activity.title, Activity.title_en, Family.name)
             .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
             .join(Challenge, ChallengeActivity.challenge_id == Challenge.id)
             .join(Activity, ChallengeActivity.activity_id == Activity.id)

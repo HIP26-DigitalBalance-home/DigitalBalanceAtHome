@@ -320,10 +320,14 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         await session.flush()
         return ch
 
-    def _ch(title, desc, group_id, start_offset, end_offset) -> Challenge:
+    def _ch(title, desc, group_id, start_offset, end_offset, title_en=None, desc_en=None) -> Challenge:
+        # Base columns hold German; *_en hold English so content negotiation can
+        # serve either language (see app/services/localization.py).
         return Challenge(
             title=title,
             description=desc,
+            title_en=title_en,
+            description_en=desc_en,
             group_id=group_id,
             created_by_family_id=family.id,
             start_date=today + timedelta(days=start_offset),
@@ -333,20 +337,38 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
 
     c1 = await _add_challenge(
         _ch(
-            "Spring Outdoor Adventures",
-            "Explore nature and spend quality time together this spring!",
+            "Frühlingsabenteuer im Freien",
+            "Entdeckt die Natur und verbringt diesen Frühling bewusst Zeit miteinander!",
             group.id,
             -7,
             14,
+            title_en="Spring Outdoor Adventures",
+            desc_en="Explore nature and spend quality time together this spring!",
         ),
         activities[:9],
     )
     await _add_challenge(
-        _ch("Summer Family Challenge", "Get ready for summer with these fun activities!", None, 3, 24),
+        _ch(
+            "Sommer-Familienchallenge",
+            "Macht euch bereit für den Sommer mit diesen spaßigen Aktivitäten!",
+            None,
+            3,
+            24,
+            title_en="Summer Family Challenge",
+            desc_en="Get ready for summer with these fun activities!",
+        ),
         activities[9:18],
     )
     c3 = await _add_challenge(
-        _ch("Winter Warmth Challenge", "Cozy indoor activities to brighten the cold months.", group.id, -40, -10),
+        _ch(
+            "Winterwärme-Challenge",
+            "Gemütliche Indoor-Aktivitäten für die kalten Monate.",
+            group.id,
+            -40,
+            -10,
+            title_en="Winter Warmth Challenge",
+            desc_en="Cozy indoor activities to brighten the cold months.",
+        ),
         activities[18:27],
     )
 

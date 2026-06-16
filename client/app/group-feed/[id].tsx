@@ -18,7 +18,7 @@ const PAGE_SIZE = 20;
 export default function GroupFeedScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export default function GroupFeedScreen() {
       .catch((e) => { if (!cancelled) setError(getGermanErrorMessage(e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [id]));
+  }, [id, i18n.language]));
 
   function loadMore() {
     if (!id || loadingMore || !hasMore) return;
@@ -62,7 +62,7 @@ export default function GroupFeedScreen() {
             source={{ uri: item.photo_url }}
             style={styles.photo}
             resizeMode="cover"
-            accessibilityLabel={`Foto: ${item.activity_title}`}
+            accessibilityLabel={t('photoViewer.photoOf', { title: item.activity_title })}
           />
         ) : (
           <View style={[styles.checkPlaceholder, { backgroundColor: colors.accent + '22' }]}>

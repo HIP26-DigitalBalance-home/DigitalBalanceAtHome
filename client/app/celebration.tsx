@@ -14,7 +14,7 @@ import { showAlert } from '@/lib/utils/alert';
 
 export default function CelebrationScreen() {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export default function CelebrationScreen() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [challengeId]);
+  }, [challengeId, i18n.language]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;

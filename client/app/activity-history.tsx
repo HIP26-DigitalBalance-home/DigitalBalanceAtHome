@@ -17,7 +17,7 @@ const PAGE_SIZE = 20;
 
 export default function ActivityHistoryScreen() {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
 
   const [items, setItems] = useState<CompletionHistoryItem[]>([]);
@@ -46,7 +46,7 @@ export default function ActivityHistoryScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [i18n.language]);
 
   useEffect(() => { load(true); }, [load]);
 

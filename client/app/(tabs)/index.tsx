@@ -46,7 +46,7 @@ function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): Acti
 
 export default function HomeScreen() {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
@@ -96,7 +96,7 @@ export default function HomeScreen() {
 
     loadChallenges();
     return () => { cancelled = true; };
-  }, []));
+  }, [i18n.language]));
 
   // Fallback suggestion when all challenge slots are completed
   useEffect(() => {

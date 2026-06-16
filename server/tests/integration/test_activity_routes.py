@@ -9,6 +9,8 @@ def _fake_activity(family_id: uuid.UUID | None = None) -> MagicMock:
     a.id = uuid.uuid4()
     a.title = "Build a kite"
     a.description = "Make and fly a paper kite together."
+    a.title_en = None
+    a.description_en = None
     a.estimated_duration_minutes = 30
     a.age_min = 0
     a.age_max = 18
@@ -35,6 +37,43 @@ class TestListActivities:
 
         assert response.status_code == 200
         assert len(response.json()) == 2
+
+
+class TestActivityLocalization:
+    async def test_english_requested_returns_english(self, auth_client, mocker):
+        a = _fake_activity()
+        a.title = "Drachen bauen"
+        a.description = "Einen Papierdrachen bauen und steigen lassen."
+        a.title_en = "Build a kite"
+        a.description_en = "Make and fly a paper kite together."
+        mocker.patch("app.api.activities.activity_service.list_activities", return_value=[a])
+
+        response = await auth_client.get("/activities", headers={"Accept-Language": "en"})
+
+        assert response.status_code == 200
+        item = response.json()[0]
+        assert item["title"] == "Build a kite"
+        assert item["description"] == "Make and fly a paper kite together."
+
+    async def test_default_is_german_base(self, auth_client, mocker):
+        a = _fake_activity()
+        a.title = "Drachen bauen"
+        a.title_en = "Build a kite"
+        mocker.patch("app.api.activities.activity_service.list_activities", return_value=[a])
+
+        response = await auth_client.get("/activities")  # no Accept-Language
+
+        assert response.json()[0]["title"] == "Drachen bauen"
+
+    async def test_english_falls_back_when_untranslated(self, auth_client, mocker):
+        a = _fake_activity()
+        a.title = "Selbst erstellte Aktivität"
+        a.title_en = None  # user-created content has no English translation
+        mocker.patch("app.api.activities.activity_service.list_activities", return_value=[a])
+
+        response = await auth_client.get("/activities", headers={"Accept-Language": "en"})
+
+        assert response.json()[0]["title"] == "Selbst erstellte Aktivität"
 
 
 class TestCreateActivity:

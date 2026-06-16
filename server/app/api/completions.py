@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user, get_current_user_with_consent_check
 from app.dependencies.database import get_db
+from app.dependencies.language import get_request_language
 from app.models.user import User
 from app.schemas.generated import Completion, CompletionHistoryItem, CreateCompletionRequest
 from app.services import completion as completion_service
@@ -42,8 +43,9 @@ async def get_my_completions(
     offset: int = 0,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> list[dict]:
-    return await completion_service.get_my_history(session, current_user.id, limit, offset)
+    return await completion_service.get_my_history(session, current_user.id, limit, offset, language)
 
 
 @router.get("/{completion_id}", response_model=Completion)

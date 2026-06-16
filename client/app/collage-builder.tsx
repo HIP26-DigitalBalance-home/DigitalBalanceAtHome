@@ -30,7 +30,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export default function CollageBuilderScreen() {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { mode, preset: presetParam } = useLocalSearchParams<{ mode: string; preset?: string }>();
 
   const [slots, setSlots] = useState<Slot[]>(() => Array(SLOT_COUNT).fill(null));
@@ -69,7 +69,7 @@ export default function CollageBuilderScreen() {
     } finally {
       setLoading(false);
     }
-  }, [mode, presetParam]);
+  }, [mode, presetParam, i18n.language]);
 
   useEffect(() => {
     resolveSlots();

@@ -19,7 +19,7 @@ export default function ChallengesScreen() {
   const { colors, radii } = useAppTheme();
   const statusColor = (s: string) =>
     s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function ChallengesScreen() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, i18n.language]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 

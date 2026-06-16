@@ -21,6 +21,7 @@ from app.services.exceptions import (
     PhotoLimitReached,
 )
 from app.services.family import get_user_family
+from app.services.localization import pick
 
 
 def _completion_dict(c: Completion) -> dict:
@@ -102,6 +103,7 @@ async def get_group_feed(
     group_id: uuid.UUID,
     limit: int = 20,
     offset: int = 0,
+    language: str = "de",
 ) -> list[dict]:
     from app.repositories.group import GroupRepository
 
@@ -121,7 +123,7 @@ async def get_group_feed(
     repo = CompletionRepository(session)
     rows = await repo.get_group_feed(group_id, limit, offset)
     entries = []
-    for completion, activity_title, family_name in rows:
+    for completion, activity_title, activity_title_en, family_name in rows:
         photo_url = None
         if completion.status == "ready" and completion.photo_key:
             try:
@@ -133,7 +135,7 @@ async def get_group_feed(
                 "id": completion.id,
                 "family_id": completion.family_id,
                 "family_name": family_name,
-                "activity_title": activity_title,
+                "activity_title": pick(activity_title, activity_title_en, language),
                 "photo_url": photo_url,
                 "caption": completion.caption,
                 "completed_at": completion.completed_at,
@@ -219,7 +221,9 @@ async def delete_completion(session: AsyncSession, user_id: uuid.UUID, completio
             pass
 
 
-async def get_my_history(session: AsyncSession, user_id: uuid.UUID, limit: int = 20, offset: int = 0) -> list[dict]:
+async def get_my_history(
+    session: AsyncSession, user_id: uuid.UUID, limit: int = 20, offset: int = 0, language: str = "de"
+) -> list[dict]:
     fm = await get_user_family(session, user_id)
     if not fm:
         return []
@@ -228,7 +232,7 @@ async def get_my_history(session: AsyncSession, user_id: uuid.UUID, limit: int =
     rows = await repo.get_by_family(fm.family_id, limit, offset)
 
     result = []
-    for completion, activity_title, challenge_title in rows:
+    for completion, activity_title, activity_title_en, challenge_title, challenge_title_en in rows:
         photo_url = None
         if completion.status == "ready" and completion.photo_key:
             try:
@@ -238,8 +242,8 @@ async def get_my_history(session: AsyncSession, user_id: uuid.UUID, limit: int =
         result.append(
             {
                 "id": completion.id,
-                "activity_title": activity_title,
-                "challenge_title": challenge_title,
+                "activity_title": pick(activity_title, activity_title_en, language),
+                "challenge_title": pick(challenge_title, challenge_title_en, language),
                 "status": completion.status,
                 "photo_url": photo_url,
                 "caption": completion.caption,

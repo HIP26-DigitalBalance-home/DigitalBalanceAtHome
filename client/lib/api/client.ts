@@ -1,6 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 
+import i18n from '@/lib/i18n';
+
 const API_URL =
   (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
   process.env.EXPO_PUBLIC_API_URL ??
@@ -30,12 +32,14 @@ export function registerAuthHandlers(handlers: {
   onConsentMismatch = handlers.onConsentMismatch ?? null;
 }
 
-// Attach Authorization header
+// Attach Authorization header + preferred content language
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getAccessToken?.();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Curated activity/challenge text is served in this language when available.
+  config.headers['Accept-Language'] = i18n.language;
   return config;
 });
 

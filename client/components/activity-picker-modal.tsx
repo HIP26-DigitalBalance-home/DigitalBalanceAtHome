@@ -29,7 +29,7 @@ type ChipGroup = { label: string; value: string | undefined; icon?: IconSymbolNa
 
 export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, selectedId }: Props) {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const COST_CHIPS: ChipGroup[] = [
     { label: t('common.all'), value: undefined },
@@ -73,7 +73,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
     } finally {
       setLoading(false);
     }
-  }, [season, cost]);
+  }, [season, cost, i18n.language]);
 
   useEffect(() => {
     if (visible) load();

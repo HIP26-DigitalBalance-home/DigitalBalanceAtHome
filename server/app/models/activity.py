@@ -12,6 +12,10 @@ class Activity(Base, TimestampMixin):
 
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
+    # English translations of curated content. NULL for user-created activities,
+    # which fall back to the base title/description regardless of requested language.
+    title_en: Mapped[str | None] = mapped_column(String, nullable=True)
+    description_en: Mapped[str | None] = mapped_column(String, nullable=True)
     estimated_duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     age_min: Mapped[int] = mapped_column(Integer, nullable=False)
     age_max: Mapped[int] = mapped_column(Integer, nullable=False)
