@@ -8,6 +8,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
@@ -69,6 +70,7 @@ function ProgressBar({ filled, total, trackColor }: { filled: number; total: num
 
 export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlotPress, onPhotoPress }: Props) {
   const { colors, radii, theme, effectiveScheme } = useAppTheme();
+  const { t } = useTranslation();
   const numColumns = 3;
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - Spacing.screenHorizontal * 2
@@ -106,7 +108,7 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
         <Pressable
           onPress={handlePress}
           accessibilityRole="button"
-          accessibilityLabel={isEmpty ? `${item.activity.title} – ausfüllen` : `${item.activity.title} – abgeschlossen`}
+          accessibilityLabel={isEmpty ? t('collage.slotFill', { title: item.activity.title }) : t('collage.slotDone', { title: item.activity.title })}
           style={[
             styles.card,
             {

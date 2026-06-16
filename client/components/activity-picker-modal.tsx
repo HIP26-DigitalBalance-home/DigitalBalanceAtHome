@@ -98,7 +98,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <ThemedText style={styles.title}>{t('picker.title')}</ThemedText>
-          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Schließen" hitSlop={8}>
+          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={8}>
             <ThemedText style={[styles.close, { color: colors.primary }]}>✕</ThemedText>
           </Pressable>
         </View>

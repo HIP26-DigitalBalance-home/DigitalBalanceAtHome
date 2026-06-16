@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ export function OfflineBanner() {
   const isOnline = useNetworkStatus();
   const insets = useSafeAreaInsets();
   const { colors, radii } = useAppTheme();
+  const { t } = useTranslation();
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-60);
@@ -32,7 +34,7 @@ export function OfflineBanner() {
       accessibilityLiveRegion="polite"
       pointerEvents="none"
     >
-      <Text style={styles.text}>Keine Internetverbindung</Text>
+      <Text style={styles.text}>{t('common.noConnection')}</Text>
     </Animated.View>
   );
 }

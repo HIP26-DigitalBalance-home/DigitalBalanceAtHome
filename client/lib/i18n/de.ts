@@ -192,6 +192,8 @@ export const de = {
     title: 'Collage gestalten',
     hint: 'Tippe auf ein Feld, um eine Aktivität zu wählen oder zu ändern.',
     continue: 'Weiter →',
+    slotChange: '{{title}} – ändern',
+    slotEmpty: 'Leeres Feld – Aktivität wählen',
   },
   picker: {
     title: 'Aktivität wählen',
@@ -312,6 +314,7 @@ export const de = {
     loadDemoSuccessMsg: 'Ziehe auf der Start- und Gruppenregisterkarte zum Aktualisieren nach unten.',
     loadDemoFailed: 'Demodaten konnten nicht geladen werden. Stelle sicher, dass der Server SEED_ENABLED=true hat.',
     displaySection: 'Darstellung',
+    languageSection: 'Sprache',
     privacyPolicy: 'Datenschutzerklärung',
     signOut: 'Abmelden',
   },
@@ -351,6 +354,11 @@ export const de = {
     deleteConfirm: 'Dieses Foto löschen? Das kann nicht rückgängig gemacht werden.',
     deleteFailed: 'Löschen fehlgeschlagen. Bitte versuche es erneut.',
     downloadFailed: 'Download fehlgeschlagen. Bitte versuche es erneut.',
+    photoOf: 'Foto: {{title}}',
+  },
+  collage: {
+    slotFill: '{{title}} – ausfüllen',
+    slotDone: '{{title}} – abgeschlossen',
   },
   errorBoundary: {
     title: 'Etwas ist schiefgelaufen',
@@ -378,5 +386,27 @@ export const de = {
     endAfterStart: 'Das Enddatum muss am oder nach dem Startdatum liegen.',
     endNotPast: 'Das Enddatum darf nicht in der Vergangenheit liegen.',
     createFailed: 'Herausforderung konnte nicht erstellt werden. Bitte versuche es erneut.',
+  },
+  cookieBanner: {
+    text: 'Diese App speichert Daten lokal und auf unseren EU-Servern, um dich angemeldet zu halten und Aktivitäten zu synchronisieren. Wir verwenden keine Werbe-Cookies oder Drittanbieter-Tracking.',
+    privacyPolicy: 'Datenschutzerklärung',
+    openPrivacyPolicy: 'Datenschutzerklärung öffnen',
+    gotIt: 'Verstanden',
+    dismiss: 'Hinweis schließen',
+  },
+  language: {
+    german: 'Deutsch',
+    english: 'English',
+  },
+  errors: {
+    unknown: 'Ein unbekannter Fehler ist aufgetreten.',
+    timeout: 'Zeitüberschreitung. Bitte Verbindung prüfen.',
+    noServer: 'Keine Verbindung zum Server. Bitte Internetverbindung prüfen.',
+    unauthorized: 'Bitte erneut anmelden.',
+    consentMismatch: 'Bitte Datenschutzerklärung erneut bestätigen.',
+    forbidden: 'Keine Berechtigung für diese Aktion.',
+    notFound: 'Inhalt nicht gefunden.',
+    tooManyRequests: 'Zu viele Anfragen. Bitte kurz warten.',
+    server: 'Serverfehler. Bitte später erneut versuchen.',
   },
 } as const;

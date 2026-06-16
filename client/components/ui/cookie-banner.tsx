@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +27,7 @@ export function CookieBanner() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { colors, radii } = useAppTheme();
+  const { t } = useTranslation();
   const router = useRouter();
 
   useEffect(() => {
@@ -63,28 +65,26 @@ export function CookieBanner() {
         accessibilityRole="alert"
       >
         <ThemedText style={styles.text}>
-          Diese App speichert Daten lokal und auf unseren EU-Servern, um dich angemeldet zu halten
-          und Aktivitäten zu synchronisieren. Wir verwenden keine Werbe-Cookies oder
-          Drittanbieter-Tracking.
+          {t('cookieBanner.text')}
         </ThemedText>
         <View style={styles.actions}>
           <Pressable
             onPress={() => router.push('/privacy-policy' as any)}
             accessibilityRole="link"
-            accessibilityLabel="Datenschutzerklärung öffnen"
+            accessibilityLabel={t('cookieBanner.openPrivacyPolicy')}
           >
             <ThemedText style={[styles.link, { color: colors.primary }]}>
-              Datenschutzerklärung
+              {t('cookieBanner.privacyPolicy')}
             </ThemedText>
           </Pressable>
           <Pressable
             onPress={handleDismiss}
             style={[styles.button, { backgroundColor: colors.buttonBackground }]}
             accessibilityRole="button"
-            accessibilityLabel="Hinweis schließen"
+            accessibilityLabel={t('cookieBanner.dismiss')}
           >
             <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
-              Verstanden
+              {t('cookieBanner.gotIt')}
             </ThemedText>
           </Pressable>
         </View>
