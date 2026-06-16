@@ -735,6 +735,8 @@ paths:
       description: |
         Returns all curated collage presets ordered by sort_order. Each preset
         references exactly nine activities by id, ordered by grid position 0–8.
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
       responses:
         "200":
           description: Collage presets

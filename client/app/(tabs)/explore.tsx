@@ -25,7 +25,7 @@ const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 
 export default function ExploreScreen() {
   const { colors, radii } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
     if (card.kind === 'custom') {
@@ -67,7 +67,7 @@ export default function ExploreScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [i18n.language]);
 
   function openBuilder(card: ExploreCard) {
     if (card.kind === 'preset') {
