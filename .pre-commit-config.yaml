@@ -1,45 +1,25 @@
+# Runs the GitHub Actions CI jobs locally, in Docker, before each commit, so a
+# commit can't pass locally yet fail in CI. Client checks use node:20 and server
+# checks use python:3.12 to match the CI runners exactly (a node/npm version
+# mismatch is what previously let a package-lock drift reach CI undetected).
+#
+# Hooks are path-gated: a commit only runs the job(s) for the area it touches.
+# Setup (once per clone):  pre-commit install
+# Emergency bypass:        git commit --no-verify   (CI will still enforce these)
 repos:
   - repo: local
     hooks:
-      # Server — ruff lint (with autofix)
-      - id: ruff
-        name: ruff (server)
-        entry: bash -c 'cd server && python3 -m ruff check --fix app/ tests/'
-        language: system
-        types: [python]
-        files: ^server/(app|tests)/
+      - id: client-ci
+        name: client CI (node:20 · npm ci · tsc · expo lint)
+        entry: scripts/precommit-client-ci.sh
+        language: script
+        files: ^client/
+        exclude: ^client/(\.expo|node_modules)/
         pass_filenames: false
 
-      # Server — ruff format
-      - id: ruff-format
-        name: ruff-format (server)
-        entry: bash -c 'cd server && python3 -m ruff format app/ tests/'
-        language: system
-        types: [python]
-        files: ^server/(app|tests)/
-        pass_filenames: false
-
-      # Server — mypy static type check
-      - id: mypy
-        name: mypy (server)
-        entry: bash -c 'cd server && python3 -m mypy app/'
-        language: system
-        types: [python]
-        files: ^server/app/
-        pass_filenames: false
-
-      # Client — TypeScript
-      - id: tsc
-        name: tsc (client)
-        entry: bash -c 'cd client && npx tsc --noEmit'
-        language: system
-        files: ^client/.*\.(ts|tsx)$
-        pass_filenames: false
-
-      # Client — ESLint via expo lint
-      - id: expo-lint
-        name: expo lint (client)
-        entry: bash -c 'cd client && npx expo lint'
-        language: system
-        files: ^client/.*\.(ts|tsx|js|jsx)$
+      - id: server-ci
+        name: server CI (python:3.12 · ruff · mypy · pytest)
+        entry: scripts/precommit-server-ci.sh
+        language: script
+        files: ^server/
         pass_filenames: false
