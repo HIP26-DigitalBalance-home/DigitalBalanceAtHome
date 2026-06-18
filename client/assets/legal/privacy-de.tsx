@@ -7,11 +7,14 @@ import type { ThemeColors } from '@/constants/themes';
 export default function PrivacyDe({ colors }: { colors: ThemeColors }) {
   return (
     <>
+      <ThemedText style={[styles.section, { color: colors.muted }]}>
+        Diese App ist ein Forschungsprototyp und nicht für den produktiven Einsatz bestimmt.
+      </ThemedText>
       <ThemedText style={[styles.section, { color: colors.muted }]}>Stand: Juni 2026 · Version 1.0</ThemedText>
 
       <ThemedText style={styles.heading}>Verantwortliche Stelle</ThemedText>
       <ThemedText style={styles.body}>
-        Stiftung Kindergesundheit / TUM Healthcare Innovation Program{'\n'}
+        DigitalBalance @home — Studentisches Projektteam, TUM Healthcare Innovation Program (Challenge #6, SoSe 2026){'\n'}
         Kontakt: digital-health-at-home@proton.me
       </ThemedText>
 
