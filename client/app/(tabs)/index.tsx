@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
+import { useTabBar } from '@/lib/tab-bar-context';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
@@ -49,8 +50,8 @@ export default function HomeScreen() {
   const { colors, radii } = useAppTheme();
   const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { setHidden } = useTabBar();
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
@@ -64,8 +65,8 @@ export default function HomeScreen() {
   // Hide the tab bar while any action modal is open
   const anyModalOpen = activeSlot !== null || viewerPhoto !== null;
   useEffect(() => {
-    navigation.setOptions({ tabBarStyle: anyModalOpen ? { display: 'none' } : undefined });
-  }, [anyModalOpen, navigation]);
+    setHidden(anyModalOpen);
+  }, [anyModalOpen, setHidden]);
 
   // Refs to avoid stale closures in polling/async callbacks
   const challengesRef = useRef<ChallengeWithProgress[]>([]);

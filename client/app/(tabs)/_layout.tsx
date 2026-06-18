@@ -7,11 +7,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TabBarBackground } from '@/components/ui/tab-bar-background';
 import { useAppTheme } from '@/lib/app-theme-context';
+import { useTabBar } from '@/lib/tab-bar-context';
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { hidden } = useTabBar();
 
   return (
     <Tabs
@@ -21,22 +23,21 @@ export default function TabLayout() {
         tabBarBackground: () => <TabBarBackground />,
         tabBarItemStyle: {
           borderRadius: 999,
-          marginVertical: 10,
+          marginVertical: 4,
           marginHorizontal: 4,
-          paddingVertical: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          marginBottom: 0,
+          fontSize: 10,
+          marginTop: 2,
         },
-        tabBarStyle: {
+        tabBarStyle: hidden ? { display: 'none' } : {
           position: 'absolute',
           left: 16,
           right: 16,
           bottom: insets.bottom > 0 ? insets.bottom : 16,
           height: 72,
-          paddingTop: 8,
-          paddingBottom: 8,
+          paddingTop: 6,
+          paddingBottom: 6,
           paddingHorizontal: 8,
           borderRadius: 999,
           borderTopWidth: 0,

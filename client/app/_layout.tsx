@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pending-invite';
 import { AppThemeProvider, useAppTheme } from '@/lib/app-theme-context';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/language-context';
+import { TabBarProvider } from '@/lib/tab-bar-context';
 // Side-effect: fires AsyncStorage read immediately at bundle evaluation time.
 import '@/lib/theme-preloader';
 
@@ -111,14 +112,16 @@ function ThemedApp() {
 
   return (
     <ThemeProvider value={effectiveScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StandardProvider>
-        <AuthProvider>
-          <RouteGuard>
-            <RootLayoutNav />
-            <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
-          </RouteGuard>
-        </AuthProvider>
-      </StandardProvider>
+      <TabBarProvider>
+        <StandardProvider>
+          <AuthProvider>
+            <RouteGuard>
+              <RootLayoutNav />
+              <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
+            </RouteGuard>
+          </AuthProvider>
+        </StandardProvider>
+      </TabBarProvider>
     </ThemeProvider>
   );
 }
