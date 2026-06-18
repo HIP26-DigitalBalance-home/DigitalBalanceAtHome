@@ -11,7 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -19,6 +19,7 @@ import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
+import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { groupsApi, type FeedEntry, type GroupSummary } from '@/lib/api';
@@ -28,6 +29,7 @@ export default function GroupsScreen() {
   const { colors, radii, theme } = useAppTheme();
   const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
+  const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,7 +218,7 @@ export default function GroupsScreen() {
           renderItem={renderFeedEntry}
           ListHeaderComponent={renderAccordion}
           ListEmptyComponent={renderFeedEmpty}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} />
           }
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
   emptyActions: { width: '100%', gap: Spacing.sm, marginTop: Spacing.md },
   ctaButton: { height: 52, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 16, fontWeight: '600' },
-  list: { paddingBottom: 96, gap: Spacing.sm },
+  list: { gap: Spacing.sm },
 
   // Accordion
   accordion: { borderBottomWidth: 1, marginBottom: Spacing.md },

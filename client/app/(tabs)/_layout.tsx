@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { TabBarBackground } from '@/components/ui/tab-bar-background';
 import { useAppTheme } from '@/lib/app-theme-context';
 
 export default function TabLayout() {
@@ -17,6 +18,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.tabIconSelected,
         tabBarInactiveTintColor: colors.tabIconDefault,
+        tabBarBackground: () => <TabBarBackground />,
         tabBarItemStyle: {
           borderRadius: 999,
           marginVertical: 10,
@@ -38,13 +40,14 @@ export default function TabLayout() {
           paddingHorizontal: 8,
           borderRadius: 999,
           borderTopWidth: 0,
-          backgroundColor: colors.background,
-          borderWidth: 1.5,
+          backgroundColor: 'transparent',
+          borderWidth: 0.5,
           borderColor: colors.border,
+          overflow: 'hidden',
           shadowColor: '#1C1208',
           shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
+          shadowOpacity: 0.09,
+          shadowRadius: 20,
           elevation: 8,
         },
         headerShown: false,

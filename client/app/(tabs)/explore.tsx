@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { collagePresetsApi, type CollagePreset } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -26,6 +27,7 @@ const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
     if (card.kind === 'custom') {
@@ -129,7 +131,7 @@ export default function ExploreScreen() {
           keyExtractor={(item, i) => (item.kind === 'preset' ? item.preset.id : `${item.kind}-${i}`)}
           numColumns={2}
           columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.gridContent}
+          contentContainerStyle={[styles.gridContent, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
           renderItem={renderCard}
           ListFooterComponent={
             error ? (
@@ -149,7 +151,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.md, borderBottomWidth: 1, gap: 4 },
   title: { fontSize: 28 },
   subtitle: { fontSize: 13, lineHeight: 18 },
-  gridContent: { padding: Spacing.md, paddingBottom: 96 },
+  gridContent: { padding: Spacing.md },
   row: { justifyContent: 'space-between' },
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {

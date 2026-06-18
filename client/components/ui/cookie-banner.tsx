@@ -10,9 +10,9 @@ import { ThemedText } from '@/components/themed-text';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useAuth } from '@/lib/auth';
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
+import { NAV_HEIGHT, NAV_MIN_BOTTOM } from '@/constants/nav';
 
 const COOKIE_KEY = '@dba_cookie_dismissed';
-const TAB_BAR_HEIGHT = 49;
 
 // Monster display size and offset so its "ledge" aligns with the banner's top edge.
 // Image is 400×309 (landscape); ledge sits at ~75% from the top.
@@ -47,7 +47,7 @@ export function CookieBanner() {
 
   return (
     <View
-      style={[styles.wrapper, { bottom: insets.bottom + TAB_BAR_HEIGHT }]}
+      style={[styles.wrapper, { bottom: (insets.bottom > 0 ? insets.bottom : NAV_MIN_BOTTOM) + NAV_HEIGHT }]}
       pointerEvents="box-none"
     >
       {/* Decorative monster — pokes its head above the banner, non-interactive */}

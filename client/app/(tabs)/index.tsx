@@ -1,8 +1,8 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
@@ -14,6 +14,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
+import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
@@ -48,6 +49,8 @@ export default function HomeScreen() {
   const { colors, radii } = useAppTheme();
   const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
@@ -57,6 +60,12 @@ export default function HomeScreen() {
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
   const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string; familiesCompletedCount: number | null; groupFamiliesCount: number | null } | null>(null);
+
+  // Hide the tab bar while any action modal is open
+  const anyModalOpen = activeSlot !== null || viewerPhoto !== null;
+  useEffect(() => {
+    navigation.setOptions({ tabBarStyle: anyModalOpen ? { display: 'none' } : undefined });
+  }, [anyModalOpen, navigation]);
 
   // Refs to avoid stale closures in polling/async callbacks
   const challengesRef = useRef<ChallengeWithProgress[]>([]);
@@ -240,7 +249,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}>
         <View style={styles.titleRow}>
           <ThemedText type="title">Bond</ThemedText>
           <Pressable onPress={() => router.push('/challenges' as any)}>
@@ -353,7 +362,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: 96 },
+  content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

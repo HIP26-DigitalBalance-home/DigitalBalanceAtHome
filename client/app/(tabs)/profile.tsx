@@ -3,7 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII, THEMES, type ColorMode, type ThemeId } from '@/constants/themes';
+import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useLanguage } from '@/lib/i18n/language-context';
 import type { AppLanguage } from '@/lib/i18n/language-preloader';
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
   const { currentUser, logout, updateCurrentUser } = useAuth();
   const { themeId, setTheme, colorMode, setColorMode } = useAppTheme();
   const { language, setLanguage } = useLanguage();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const isOnline = useNetworkStatus();
   const [family, setFamily] = useState<FamilyData | null>(null);
@@ -171,7 +173,7 @@ export default function ProfileScreen() {
       <FlatList
         data={[]}
         renderItem={null}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
         ListHeaderComponent={
           <>
             {fetchError ? <ErrorState message={fetchError} onRetry={fetchData} /> : null}
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   title: { fontSize: 28 },
-  content: { padding: Spacing.md, gap: Spacing.md, paddingBottom: 96 },
+  content: { padding: Spacing.md, gap: Spacing.md },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase', marginTop: Spacing.sm },
   card: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
   cardLabel: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
