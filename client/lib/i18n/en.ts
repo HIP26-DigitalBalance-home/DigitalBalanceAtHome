@@ -35,6 +35,8 @@ export const en = {
     riso: 'Riso Print',
     cork: 'Pinboard',
     gartenlaube: 'Garden',
+    sage: 'Sage',
+    sunset: 'Sunset',
     colorMode: {
       light: 'Light',
       system: 'Auto',

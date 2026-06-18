@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export type ThemeId = 'salmon' | 'inkwell' | 'riso' | 'cork' | 'gartenlaube';
+export type ThemeId = 'salmon' | 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage' | 'sunset';
 export type ColorMode = 'light' | 'dark' | 'system';
 export const DEFAULT_COLOR_MODE: ColorMode = 'system';
 
@@ -322,6 +322,111 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
         border: '#3A2840',
         buttonBackground: '#A878B0',
         buttonText: '#FFFFFF',
+      },
+    },
+  },
+
+  // Bond palettes — navy/cream base with a [coral, orange, yellow, teal]
+  // accent set. Light mode rests on Bond cream (#FEFAF1); dark mode on the
+  // signature Bond navy (#003364) with raised navy-card surfaces (#0A3F73).
+  // "Sage" is the soft/muted accent set (first Bond palette).
+  sage: {
+    id: 'sage',
+    titleFont: systemFont,
+    preview: { bg: '#FEFAF1', primary: '#E47A5C', border: '#E7E0D6' },
+    radii: { card: 18, button: 14, input: 12, badge: 999, sm: 10 },
+    cardShadowColor: '#001A33',
+    cardShadowOpacity: 0.18,
+    completedSlotBg: '#DCEDE4',
+    colors: {
+      light: {
+        primary: '#E47A5C',
+        primaryDark: '#B0502F',
+        accent: '#2C7D67',          // sage teal, 4.76:1 on cream ✓
+        surface: '#FFFFFF',
+        onSurface: '#1A1A1A',
+        muted: '#6B6460',
+        destructive: '#DC2626',
+        destructiveMuted: '#8C3A2A',
+        text: '#1A1A1A',
+        background: '#FEFAF1',      // Bond cream
+        tint: '#E47A5C',
+        icon: '#6B6460',            // 5.57:1 on cream ✓
+        tabIconDefault: '#6B6460',  // same
+        tabIconSelected: '#B0502F', // soft coral #E47A5C is low-contrast; primaryDark passes 5.00:1
+        border: '#E7E0D6',
+        buttonBackground: '#B0502F',
+        buttonText: '#FFFFFF',      // 5.21:1 on button ✓
+      },
+      dark: {
+        primary: '#EA8366',
+        primaryDark: '#D26A4E',
+        accent: '#7FD0B3',          // sage teal, 6.98:1 on navy ✓
+        surface: '#0A3F73',         // Bond navy-card
+        onSurface: '#FEFEFE',       // 10.56:1 on surface ✓
+        muted: '#93A6BD',           // 5.09:1 on navy ✓
+        destructive: '#E04040',
+        destructiveMuted: '#B85040',
+        text: '#FEFEFE',
+        background: '#003364',      // Bond navy
+        tint: '#EA8366',
+        icon: '#9DB0C8',            // 5.72:1 on navy ✓
+        tabIconDefault: '#9DB0C8',  // same
+        tabIconSelected: '#EA8366', // 4.79:1 on navy ✓
+        border: '#18497B',
+        buttonBackground: '#EA8366',
+        buttonText: '#06243F',      // deep navy, 5.96:1 on coral button ✓
+      },
+    },
+  },
+
+  // "Sunset" is the vivid/saturated accent set (last Bond palette).
+  sunset: {
+    id: 'sunset',
+    titleFont: systemFont,
+    preview: { bg: '#FEFAF1', primary: '#F2685C', border: '#E7E0D6' },
+    radii: { card: 18, button: 14, input: 12, badge: 999, sm: 10 },
+    cardShadowColor: '#001A33',
+    cardShadowOpacity: 0.18,
+    completedSlotBg: '#FBE2DC',
+    colors: {
+      light: {
+        primary: '#F2685C',
+        primaryDark: '#C23B30',
+        accent: '#0A7682',          // deep sunset teal, 5.13:1 on cream ✓
+        surface: '#FFFFFF',
+        onSurface: '#1A1A1A',
+        muted: '#6B6460',
+        destructive: '#DC2626',
+        destructiveMuted: '#8C3A2A',
+        text: '#1A1A1A',
+        background: '#FEFAF1',      // Bond cream
+        tint: '#F2685C',
+        icon: '#6B6460',            // 5.57:1 on cream ✓
+        tabIconDefault: '#6B6460',  // same
+        tabIconSelected: '#C23B30', // vivid coral #F2685C is low-contrast; primaryDark passes 5.09:1
+        border: '#E7E0D6',
+        buttonBackground: '#C23B30',
+        buttonText: '#FFFFFF',      // 5.30:1 on button ✓
+      },
+      dark: {
+        primary: '#F58172',
+        primaryDark: '#E25A4D',
+        accent: '#15C4D6',          // vivid teal, 5.97:1 on navy ✓
+        surface: '#0A3F73',         // Bond navy-card
+        onSurface: '#FEFEFE',
+        muted: '#93A6BD',           // 5.09:1 on navy ✓
+        destructive: '#E04040',
+        destructiveMuted: '#B85040',
+        text: '#FEFEFE',
+        background: '#003364',      // Bond navy
+        tint: '#F58172',
+        icon: '#9DB0C8',            // 5.72:1 on navy ✓
+        tabIconDefault: '#9DB0C8',  // same
+        tabIconSelected: '#F58172', // 4.99:1 on navy ✓
+        border: '#18497B',
+        buttonBackground: '#F58172',
+        buttonText: '#06243F',      // deep navy, 6.21:1 on coral button ✓
       },
     },
   },

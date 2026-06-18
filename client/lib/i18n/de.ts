@@ -35,6 +35,8 @@ export const de = {
     riso: 'Riso-Druck',
     cork: 'Pinnwand',
     gartenlaube: 'Gartenlaube',
+    sage: 'Salbei',
+    sunset: 'Sonnenuntergang',
     colorMode: {
       light: 'Hell',
       system: 'Auto',
