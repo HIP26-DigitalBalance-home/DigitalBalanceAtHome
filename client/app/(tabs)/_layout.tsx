@@ -17,8 +17,6 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.tabIconSelected,
         tabBarInactiveTintColor: colors.tabIconDefault,
-        tabBarActiveBackgroundColor: colors.tabIconSelected + '15',
-        tabBarInactiveBackgroundColor: 'transparent',
         tabBarItemStyle: {
           borderRadius: 999,
           marginVertical: 10,
