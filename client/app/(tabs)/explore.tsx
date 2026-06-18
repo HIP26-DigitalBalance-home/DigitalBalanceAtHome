@@ -154,10 +154,11 @@ const styles = StyleSheet.create({
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
     width: '48%',
+    aspectRatio: 4 / 5,
     marginBottom: Spacing.md,
   },
-  stamp: { flex: 1, minHeight: 150 },
-  stampContent: { flex: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  stamp: { flex: 1 },
+  stampContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   cardTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   errorFooter: { paddingVertical: Spacing.lg },
 });
