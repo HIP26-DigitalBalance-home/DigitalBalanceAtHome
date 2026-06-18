@@ -353,7 +353,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
+  content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: 96 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

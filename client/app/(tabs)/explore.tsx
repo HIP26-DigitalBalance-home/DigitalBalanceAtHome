@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.md, borderBottomWidth: 1, gap: 4 },
   title: { fontSize: 28 },
   subtitle: { fontSize: 13, lineHeight: 18 },
-  gridContent: { padding: Spacing.md },
+  gridContent: { padding: Spacing.md, paddingBottom: 96 },
   row: { justifyContent: 'space-between' },
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {

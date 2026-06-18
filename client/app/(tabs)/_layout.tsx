@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -9,6 +10,7 @@ import { useAppTheme } from '@/lib/app-theme-context';
 export default function TabLayout() {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -17,10 +19,28 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarActiveBackgroundColor: colors.tabIconSelected + '15',
         tabBarInactiveBackgroundColor: 'transparent',
+        tabBarItemStyle: {
+          borderRadius: 999,
+          marginVertical: 8,
+          marginHorizontal: 4,
+        },
         tabBarStyle: {
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: insets.bottom > 0 ? insets.bottom : 16,
+          height: 64,
+          paddingHorizontal: 8,
+          borderRadius: 999,
+          borderTopWidth: 0,
           backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 1.5,
+          borderWidth: 1.5,
+          borderColor: colors.border,
+          shadowColor: '#1C1208',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.12,
+          shadowRadius: 16,
+          elevation: 8,
         },
         headerShown: false,
         tabBarButton: HapticTab,

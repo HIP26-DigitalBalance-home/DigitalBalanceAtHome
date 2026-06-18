@@ -233,10 +233,6 @@ export default function ChallengeDetailScreen() {
             {challenge.start_date} → {challenge.end_date}
           </ThemedText>
 
-          {challenge.description ? (
-            <ThemedText style={[styles.description, { color: colors.onSurface }]}>{challenge.description}</ThemedText>
-          ) : null}
-
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('challengeDetail.yourCollage')}</ThemedText>
           <CollageGrid
             slots={challenge.activities}
@@ -367,7 +363,6 @@ const styles = StyleSheet.create({
   statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   dates: { fontSize: 13, marginTop: -Spacing.sm },
-  description: { fontSize: 15, lineHeight: 22 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
   exportRow: { flexDirection: 'row', gap: Spacing.sm },
   exportButton: {

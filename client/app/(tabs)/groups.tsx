@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   emptyActions: { width: '100%', gap: Spacing.sm, marginTop: Spacing.md },
   ctaButton: { height: 52, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 16, fontWeight: '600' },
-  list: { paddingBottom: Spacing.md, gap: Spacing.sm },
+  list: { paddingBottom: 96, gap: Spacing.sm },
 
   // Accordion
   accordion: { borderBottomWidth: 1, marginBottom: Spacing.md },
