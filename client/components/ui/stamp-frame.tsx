@@ -54,9 +54,9 @@ function buildStampPath(width: number, height: number, r: number, gapTarget: num
 interface StampFrameProps {
   fill: string;
   stroke: string;
-  /** Radius of each half-circle bump in px. Default 8. */
+  /** Radius of each half-circle bump in px. Default 5. */
   bumpRadius?: number;
-  /** Target straight-segment length between bumps in px. Default 10. */
+  /** Target straight-segment length between bumps in px. Default 18. */
   bumpGap?: number;
   strokeWidth?: number;
   /** Inset for children so content clears the perforated edge. Default = bumpRadius + 8. */
@@ -70,8 +70,8 @@ interface StampFrameProps {
 export function StampFrame({
   fill,
   stroke,
-  bumpRadius = 8,
-  bumpGap = 10,
+  bumpRadius = 5,
+  bumpGap = 18,
   strokeWidth = 1.5,
   contentInset,
   style,
