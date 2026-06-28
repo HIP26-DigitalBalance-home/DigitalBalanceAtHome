@@ -30,13 +30,11 @@ export const de = {
     completed: 'Abgeschlossen',
   },
   themes: {
-    salmon: 'Sonnenschein',
     inkwell: 'Tintenfass',
     riso: 'Riso-Druck',
     cork: 'Pinnwand',
     gartenlaube: 'Gartenlaube',
     sage: 'Salbei',
-    sunset: 'Sonnenuntergang',
     colorMode: {
       light: 'Hell',
       system: 'Auto',

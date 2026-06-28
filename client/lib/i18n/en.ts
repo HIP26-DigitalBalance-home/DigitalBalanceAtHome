@@ -30,13 +30,11 @@ export const en = {
     completed: 'Completed',
   },
   themes: {
-    salmon: 'Sunshine',
     inkwell: 'Inkwell',
     riso: 'Riso Print',
     cork: 'Pinboard',
     gartenlaube: 'Garden',
     sage: 'Sage',
-    sunset: 'Sunset',
     colorMode: {
       light: 'Light',
       system: 'Auto',

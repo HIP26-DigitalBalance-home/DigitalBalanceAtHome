@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export type ThemeId = 'salmon' | 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage' | 'sunset';
+export type ThemeId = 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage';
 export type ColorMode = 'light' | 'dark' | 'system';
 export const DEFAULT_COLOR_MODE: ColorMode = 'system';
 
@@ -81,53 +81,6 @@ const scriptFont = Platform.select({
 }) as string;
 
 export const THEMES: Record<ThemeId, AppThemeDef> = {
-  salmon: {
-    id: 'salmon',
-    titleFont: systemFont,
-    preview: { bg: '#FFFBF5', primary: '#F4845F', border: '#E7E0D6' },
-    radii: { card: 12, button: 10, input: 10, badge: 20, sm: 8 },
-    colors: {
-      light: {
-        primary: '#F4845F',
-        primaryDark: '#B84E3C',
-        accent: '#2E7D57',
-        surface: '#FFFBF5',
-        onSurface: '#2B1F1A',
-        muted: '#6B6460',
-        destructive: '#DC2626',
-        destructiveMuted: '#8C3A2A',
-        text: '#2B1F1A',
-        background: '#FFFBF5',
-        tint: '#F4845F',
-        icon: '#6B6460',
-        tabIconDefault: '#6B6460',
-        tabIconSelected: '#B84E3C',  // coral #F4845F → 2.45:1 on cream; primaryDark passes 4.86:1
-        border: '#E7E0D6',
-        buttonBackground: '#B84E3C',
-        buttonText: '#FFFFFF',
-      },
-      dark: {
-        primary: '#F4845F',
-        primaryDark: '#B84E3C',
-        accent: '#4CAF82',
-        surface: '#292524',
-        onSurface: '#F5F0EB',
-        muted: '#6B6460',
-        destructive: '#DC2626',
-        destructiveMuted: '#8C3A2A',
-        text: '#F5F0EB',
-        background: '#2B1F1A',
-        tint: '#F4845F',
-        icon: '#9A8A82',            // stone #6B6460 → 2.75:1 on dark bg; #9A8A82 passes 4.82:1
-        tabIconDefault: '#9A8A82',  // same
-        tabIconSelected: '#F4845F',
-        border: '#3D3530',
-        buttonBackground: '#F4845F',
-        buttonText: '#FFFFFF',
-      },
-    },
-  },
-
   inkwell: {
     id: 'inkwell',
     titleFont: serifFont,
@@ -380,60 +333,10 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
     },
   },
 
-  // "Sunset" is the vivid/saturated accent set (last Bond palette).
-  sunset: {
-    id: 'sunset',
-    titleFont: systemFont,
-    preview: { bg: '#FEFAF1', primary: '#F2685C', border: '#E7E0D6' },
-    radii: { card: 18, button: 14, input: 12, badge: 999, sm: 10 },
-    cardShadowColor: '#001A33',
-    cardShadowOpacity: 0.18,
-    completedSlotBg: '#FBE2DC',
-    colors: {
-      light: {
-        primary: '#F2685C',
-        primaryDark: '#C23B30',
-        accent: '#0A7682',          // deep sunset teal, 5.13:1 on cream ✓
-        surface: '#FFFFFF',
-        onSurface: '#1A1A1A',
-        muted: '#6B6460',
-        destructive: '#DC2626',
-        destructiveMuted: '#8C3A2A',
-        text: '#1A1A1A',
-        background: '#FEFAF1',      // Bond cream
-        tint: '#F2685C',
-        icon: '#6B6460',            // 5.57:1 on cream ✓
-        tabIconDefault: '#6B6460',  // same
-        tabIconSelected: '#C23B30', // vivid coral #F2685C is low-contrast; primaryDark passes 5.09:1
-        border: '#E7E0D6',
-        buttonBackground: '#C23B30',
-        buttonText: '#FFFFFF',      // 5.30:1 on button ✓
-      },
-      dark: {
-        primary: '#F58172',
-        primaryDark: '#E25A4D',
-        accent: '#15C4D6',          // vivid teal, 5.97:1 on navy ✓
-        surface: '#0A3F73',         // Bond navy-card
-        onSurface: '#FEFEFE',
-        muted: '#93A6BD',           // 5.09:1 on navy ✓
-        destructive: '#E04040',
-        destructiveMuted: '#B85040',
-        text: '#FEFEFE',
-        background: '#003364',      // Bond navy
-        tint: '#F58172',
-        icon: '#9DB0C8',            // 5.72:1 on navy ✓
-        tabIconDefault: '#9DB0C8',  // same
-        tabIconSelected: '#F58172', // 4.99:1 on navy ✓
-        border: '#18497B',
-        buttonBackground: '#F58172',
-        buttonText: '#06243F',      // deep navy, 6.21:1 on coral button ✓
-      },
-    },
-  },
 };
 
-export const DEFAULT_THEME_ID: ThemeId = 'salmon';
+export const DEFAULT_THEME_ID: ThemeId = 'sage';
 
 // For use inside StyleSheet.create() which runs at module level (before any theme is known).
 // JSX inline styles should use `radii` from `useAppTheme()` for live theme switching.
-export const DEFAULT_RADII: ThemeRadii = THEMES.salmon.radii;
+export const DEFAULT_RADII: ThemeRadii = THEMES.sage.radii;
