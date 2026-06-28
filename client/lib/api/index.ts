@@ -14,3 +14,5 @@ export type { PhotoUrlResponse } from './completions';
 export { devApi } from './dev';
 export { usersApi } from './users';
 export type { CompletionHistoryItem } from './completions';
+export { progressApi } from './progress';
+export type { FamilyProgress, WeekStats, StreakStats, AllTimeStats, FamilySettingsUpdate } from './progress';

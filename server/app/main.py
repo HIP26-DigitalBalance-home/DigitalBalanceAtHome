@@ -1,5 +1,7 @@
+import asyncio
 import uuid as _uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request
@@ -19,9 +21,11 @@ from app.api import (
     groups,
     health,
     photos,
+    progress,
     users,
 )
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal
 from app.services.exceptions import DomainError
 
 logger = structlog.get_logger()
@@ -38,10 +42,39 @@ _STATUS_TO_CODE: dict[int, str] = {
 }
 
 
+async def _freeze_job_loop() -> None:
+    """Runs the streak auto-freeze job every Sunday at 21:00 UTC."""
+    from app.services.progress import run_freeze_job
+
+    while True:
+        now = datetime.now(timezone.utc)
+        # Sunday = weekday 6; target 21:00 UTC
+        days_until_sunday = (6 - now.weekday()) % 7
+        next_sunday = now.replace(hour=21, minute=0, second=0, microsecond=0)
+        if days_until_sunday > 0 or now.hour >= 21:
+            next_sunday = next_sunday.replace(day=now.day) if days_until_sunday == 0 else next_sunday
+            from datetime import timedelta
+
+            next_sunday += timedelta(days=days_until_sunday if days_until_sunday > 0 else 7)
+        wait_seconds = (next_sunday - now).total_seconds()
+        if wait_seconds < 0:
+            wait_seconds += 7 * 24 * 3600
+        logger.info("freeze_job_scheduled", next_run=next_sunday.isoformat())
+        await asyncio.sleep(wait_seconds)
+        try:
+            async with AsyncSessionLocal() as session:
+                await run_freeze_job(session)
+            logger.info("freeze_job_completed")
+        except Exception:
+            logger.exception("freeze_job_failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_freeze_job_loop())
     logger.info("startup")
     yield
+    task.cancel()
     logger.info("shutdown")
 
 
@@ -109,6 +142,7 @@ app.include_router(collage_presets.router, prefix="/collage-presets", tags=["col
 app.include_router(challenges.router, prefix="/challenges", tags=["challenges"])
 app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])
+app.include_router(progress.router, prefix="/families", tags=["families"])
 
 if settings.SEED_ENABLED:
     from app.api import dev

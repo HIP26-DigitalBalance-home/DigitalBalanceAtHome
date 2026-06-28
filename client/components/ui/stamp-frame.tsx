@@ -71,7 +71,7 @@ export function StampFrame({
   fill,
   stroke,
   bumpRadius = 5,
-  bumpGap = 18,
+  bumpGap = 9,
   strokeWidth = 1.5,
   contentInset,
   style,

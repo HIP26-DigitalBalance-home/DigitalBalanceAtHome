@@ -209,6 +209,12 @@ export default function ProfileScreen() {
 
               <Pressable
                 style={[styles.outlineButton, { borderColor: colors.border }]}
+                onPress={() => router.push('/progress' as any)}>
+                <ThemedText style={{ fontWeight: '600' }}>{t('progress.title')}</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.border }]}
                 onPress={() => router.push('/activity-history' as any)}>
                 <ThemedText style={{ fontWeight: '600' }}>{t('profile.activityHistory')}</ThemedText>
               </Pressable>

@@ -371,6 +371,52 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /families/{familyId}/progress:
+    get:
+      operationId: getFamilyProgress
+      tags: [Families]
+      summary: Get family progress stats (streak, weekly goal, all-time totals)
+      parameters:
+        - $ref: "#/components/parameters/FamilyId"
+      responses:
+        "200":
+          description: Family progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyProgress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /families/{familyId}/settings:
+    patch:
+      operationId: updateFamilySettings
+      tags: [Families]
+      summary: Update family settings (weekly goal)
+      parameters:
+        - $ref: "#/components/parameters/FamilyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FamilySettingsUpdate"
+      responses:
+        "204":
+          description: Settings updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ── Children ────────────────────────────────────────────────
 
   /children:
@@ -1933,3 +1979,77 @@ components:
         completed_at:
           type: string
           format: date-time
+
+    FamilyProgress:
+      type: object
+      required: [weekly_goal, this_week, streak, all_time]
+      properties:
+        weekly_goal:
+          type: integer
+          minimum: 1
+          description: Family's self-set weekly activity target
+          example: 2
+        this_week:
+          $ref: "#/components/schemas/WeekStats"
+        streak:
+          $ref: "#/components/schemas/StreakStats"
+        all_time:
+          $ref: "#/components/schemas/AllTimeStats"
+
+    WeekStats:
+      type: object
+      required: [activities, photos]
+      properties:
+        activities:
+          type: integer
+          minimum: 0
+          example: 1
+        photos:
+          type: integer
+          minimum: 0
+          example: 1
+
+    StreakStats:
+      type: object
+      required: [current_weeks, longest_weeks, frozen_this_week]
+      properties:
+        current_weeks:
+          type: integer
+          minimum: 0
+          example: 4
+        last_weeks:
+          type: integer
+          nullable: true
+          example: null
+        longest_weeks:
+          type: integer
+          minimum: 0
+          example: 6
+        frozen_this_week:
+          type: boolean
+          example: false
+
+    AllTimeStats:
+      type: object
+      required: [activities, photos, challenges]
+      properties:
+        activities:
+          type: integer
+          minimum: 0
+          example: 27
+        photos:
+          type: integer
+          minimum: 0
+          example: 24
+        challenges:
+          type: integer
+          minimum: 0
+          example: 5
+
+    FamilySettingsUpdate:
+      type: object
+      properties:
+        weekly_goal:
+          type: integer
+          minimum: 1
+          example: 3

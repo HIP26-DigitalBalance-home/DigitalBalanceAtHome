@@ -21,6 +21,11 @@ class FamilyRepository:
         result = await self.session.execute(select(Family).where(Family.id == family_id))
         return result.scalar_one_or_none()
 
+    async def get_by_id_with_lock(self, family_id: uuid.UUID) -> Family | None:
+        """SELECT FOR UPDATE — serialises concurrent streak writes by two parents."""
+        result = await self.session.execute(select(Family).where(Family.id == family_id).with_for_update())
+        return result.scalar_one_or_none()
+
     async def get_memberships_for_user(self, user_id: uuid.UUID) -> list[FamilyMembership]:
         result = await self.session.execute(select(FamilyMembership).where(FamilyMembership.user_id == user_id))
         return list(result.scalars().all())

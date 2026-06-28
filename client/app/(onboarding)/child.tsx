@@ -65,7 +65,7 @@ export default function ChildScreen() {
         await pendingInvite.clearFamilyToken();
       }
 
-      router.replace('/(tabs)');
+      router.replace('/(onboarding)/goal' as any);
     } catch {
       setStatus(i18n.t('childForm.saveFailed'));
       setSubmitting(false);

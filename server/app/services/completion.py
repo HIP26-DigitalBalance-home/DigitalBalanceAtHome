@@ -72,6 +72,8 @@ async def create_self_reported(
     caption: str | None,
     shared_to_feed: bool,
 ) -> dict:
+    from app.services.progress import update_streak_on_completion
+
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family to complete activities")
@@ -88,6 +90,7 @@ async def create_self_reported(
             caption=caption,
             shared_to_feed=shared_to_feed,
         )
+        await update_streak_on_completion(fm.family_id, session)
         await session.commit()
         await session.refresh(completion)
     except IntegrityError:
@@ -330,11 +333,14 @@ async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str
         async with async_session() as session:
             from sqlalchemy import select as sa_select
 
+            from app.services.progress import update_streak_on_completion
+
             result = await session.execute(sa_select(Completion).where(Completion.id == completion_id))
             completion = result.scalar_one_or_none()
             if completion:
                 completion.status = "ready"
                 completion.photo_key = final_key
+                await update_streak_on_completion(completion.family_id, session)
                 await session.commit()
         await engine.dispose()
 

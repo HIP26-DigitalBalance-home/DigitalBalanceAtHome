@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +12,14 @@ class Family(Base, TimestampMixin):
     __tablename__ = "families"
 
     name: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Progress tracking
+    weekly_goal: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    streak_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_streak_weeks: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    longest_streak_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_activity_iso_week: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    last_frozen_iso_week: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
 
 class FamilyMembership(Base):

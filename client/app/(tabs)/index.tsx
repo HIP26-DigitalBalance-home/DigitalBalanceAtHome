@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
+import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
@@ -24,9 +25,11 @@ import {
   completionsApi,
   onboardingApi,
   photosApi,
+  progressApi,
   type ActivityItem,
   type ChallengeActivitySlot,
   type ChallengeWithProgress,
+  type FamilyProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
@@ -57,6 +60,8 @@ export default function HomeScreen() {
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [challengeError, setChallengeError] = useState<string | null>(null);
   const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
+  const [familyProgress, setFamilyProgress] = useState<FamilyProgress | null>(null);
+  const [familyId, setFamilyId] = useState<string | null>(null);
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
@@ -87,16 +92,31 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // Reload challenges every time the Home tab gains focus; reset local state
+  // Reload challenges and progress every time the Home tab gains focus
   useFocusEffect(useCallback(() => {
     let cancelled = false;
     setLocalCompletions({});
 
-    async function loadChallenges() {
+    async function loadData() {
       setChallengeError(null);
       try {
-        const res = await challengesApi.getActive();
-        if (!cancelled) setChallenges(res.data);
+        const [challengesRes, familiesRes] = await Promise.all([
+          challengesApi.getActive(),
+          onboardingApi.getMyFamilies(),
+        ]);
+        if (!cancelled) {
+          setChallenges(challengesRes.data);
+          const fid = familiesRes.data[0]?.id ?? null;
+          setFamilyId(fid);
+          if (fid) {
+            try {
+              const progressRes = await progressApi.getProgress(fid);
+              if (!cancelled) setFamilyProgress(progressRes.data);
+            } catch {
+              // progress is non-critical; don't block the home screen
+            }
+          }
+        }
       } catch (e) {
         if (!cancelled) setChallengeError(getGermanErrorMessage(e));
       } finally {
@@ -104,7 +124,7 @@ export default function HomeScreen() {
       }
     }
 
-    loadChallenges();
+    loadData();
     return () => { cancelled = true; };
   }, [i18n.language]));
 
@@ -258,6 +278,32 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        {/* Progress widget: streak + goal ring */}
+        {familyProgress && (familyProgress.streak.current_weeks > 0 || familyProgress.this_week.activities > 0) && (
+          <Pressable
+            style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push('/progress' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t('progress.title')}
+          >
+            <View style={styles.progressRingBlock}>
+              <ProgressRing value={familyProgress.this_week.activities} goal={familyProgress.weekly_goal} size={52} />
+              <ThemedText style={[styles.progressRingLabel, { color: colors.muted }]}>
+                {t('progress.activitiesGoal', { value: familyProgress.this_week.activities, goal: familyProgress.weekly_goal })}
+              </ThemedText>
+            </View>
+            <View style={styles.progressStreakBlock}>
+              <ThemedText style={[styles.progressStreakCount, { color: colors.onSurface }]}>
+                🔥 {familyProgress.streak.current_weeks}
+              </ThemedText>
+              <ThemedText style={[styles.progressStreakLabel, { color: colors.muted }]}>
+                {familyProgress.streak.frozen_this_week ? '❄️' : t('progress.streakWeeks', { count: familyProgress.streak.current_weeks })}
+              </ThemedText>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </Pressable>
+        )}
+
         {/* Active challenge collages */}
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -378,4 +424,10 @@ const styles = StyleSheet.create({
   suggestionMeta: { fontSize: 13 },
   ctaButton: { height: 44, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
   ctaText: { fontSize: 15, fontWeight: '600' },
+  progressWidget: { flexDirection: 'row', alignItems: 'center', borderRadius: DEFAULT_RADII.card, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.lg },
+  progressRingBlock: { alignItems: 'center', gap: 2 },
+  progressRingLabel: { fontSize: 11 },
+  progressStreakBlock: { flex: 1, gap: 2 },
+  progressStreakCount: { fontSize: 22, fontWeight: '600' },
+  progressStreakLabel: { fontSize: 12 },
 });
