@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   ctaButton: { height: 44, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
   ctaText: { fontSize: 15, fontWeight: '600' },
   progressWidget: { flexDirection: 'row', alignItems: 'center', borderRadius: DEFAULT_RADII.card, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.lg },
-  progressRingBlock: { alignItems: 'center', gap: 2 },
+  progressRingBlock: { alignItems: 'center', gap: 2, paddingTop: Spacing.sm },
   progressRingLabel: { fontSize: 11 },
   progressStreakBlock: { flex: 1, gap: 2 },
   progressStreakCount: { fontSize: 22, fontWeight: '600' },
