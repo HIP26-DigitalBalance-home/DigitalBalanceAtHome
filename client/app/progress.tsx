@@ -70,7 +70,7 @@ export default function ProgressScreen() {
                 {t('progress.thisWeek')}
               </ThemedText>
               <View style={styles.weekRow}>
-                <ProgressRing value={progress.this_week.activities} goal={progress.weekly_goal} size={72} strokeWidth={6} />
+                <ProgressRing value={progress.this_week.activities} goal={progress.weekly_goal} size={72} strokeWidth={6} style={{ marginTop: 12 }} />
                 <View style={styles.weekStats}>
                   <ThemedText style={[styles.statValue, { color: colors.onSurface }]}>
                     {t('progress.activitiesOfGoal', { value: progress.this_week.activities, goal: progress.weekly_goal })}

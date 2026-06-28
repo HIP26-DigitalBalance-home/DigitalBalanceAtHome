@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
+import { InterestPicker } from '@/components/interest-picker';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -21,26 +22,22 @@ const schema = Yup.object({
     .matches(/^\d{4}-\d{2}-\d{2}$/, i18n.t('childForm.dobFormat'))
     .test('not-future', i18n.t('childForm.dobFuture'), (v) => !v || v <= today)
     .required(i18n.t('childForm.dobRequired')),
-  interests: Yup.string(),
+  interests: Yup.array().of(Yup.string()).optional(),
 });
 
 export default function ChildScreen() {
-  const { colors, radii } = useAppTheme();
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   async function handleSubmit(
-    values: { nickname: string; date_of_birth: string; interests: string },
+    values: { nickname: string; date_of_birth: string; interests: string[] },
     { setSubmitting, setStatus }: { setSubmitting: (b: boolean) => void; setStatus: (s: string) => void }
   ) {
     try {
-      const interests = values.interests
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
       await onboardingApi.postChild({
         nickname: values.nickname.trim(),
         date_of_birth: values.date_of_birth,
-        interests,
+        interests: values.interests,
       });
       await markOnboardingCompleted();
 
@@ -75,10 +72,10 @@ export default function ChildScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Formik
-        initialValues={{ nickname: '', date_of_birth: '', interests: '' }}
+        initialValues={{ nickname: '', date_of_birth: '', interests: [] as string[] }}
         validationSchema={schema}
         onSubmit={handleSubmit}>
-        {({ handleChange, handleBlur, handleSubmit: submit, values, errors, touched, isSubmitting, status }) => (
+        {({ handleChange, handleBlur, handleSubmit: submit, setFieldValue, values, errors, touched, isSubmitting, status }) => (
           <>
             <ScrollView contentContainerStyle={styles.content}>
               <ThemedText type="title">{t('childForm.title')}</ThemedText>
@@ -117,19 +114,10 @@ export default function ChildScreen() {
                 )}
               </View>
 
-              <View style={styles.field}>
-                <ThemedText style={styles.label}>{t('childForm.interests')}</ThemedText>
-                <TextInput
-                  style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
-                  placeholder={t('childForm.interestsPlaceholder')}
-                  placeholderTextColor={colors.muted}
-                  value={values.interests}
-                  onChangeText={handleChange('interests')}
-                />
-                <ThemedText style={[styles.hint, { color: colors.muted }]}>
-                  {t('childForm.interestsHint')}
-                </ThemedText>
-              </View>
+              <InterestPicker
+                value={values.interests}
+                onChange={(v) => setFieldValue('interests', v)}
+              />
 
               {status && (
                 <ThemedText style={{ color: colors.destructive, fontSize: 14 }}>{status}</ThemedText>
@@ -170,7 +158,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   error: { fontSize: 12 },
-  hint: { fontSize: 12, fontStyle: 'italic' },
   footer: { padding: Spacing.screenHorizontal, paddingBottom: Spacing.xl },
   button: {
     height: 52,

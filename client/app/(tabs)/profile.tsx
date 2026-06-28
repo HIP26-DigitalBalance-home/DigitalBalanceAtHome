@@ -18,6 +18,7 @@ import type { AppLanguage } from '@/lib/i18n/language-preloader';
 import { useAuth } from '@/lib/auth';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { onboardingApi, devApi, usersApi, apiClient } from '@/lib/api';
+import { resetOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
 import type { ChildProfile } from '@/lib/api/onboarding';
@@ -458,16 +459,26 @@ export default function ProfileScreen() {
               </ThemedText>
             </Pressable>
             {showDebug && (
-              <Pressable
-                style={[styles.outlineButton, { borderColor: colors.border, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
-                onPress={handleSeedDemo}
-                disabled={seeding || !isOnline}>
-                {seeding ? (
-                  <ActivityIndicator color={colors.muted} size="small" />
-                ) : (
-                  <ThemedText style={{ color: colors.muted, fontWeight: '500' }}>{t('profile.loadDemo')}</ThemedText>
-                )}
-              </Pressable>
+              <View style={styles.debugRow}>
+                <Pressable
+                  style={[styles.outlineButton, styles.debugRowItem, { borderColor: colors.border, opacity: (seeding || !isOnline) ? 0.6 : 1 }]}
+                  onPress={handleSeedDemo}
+                  disabled={seeding || !isOnline}>
+                  {seeding ? (
+                    <ActivityIndicator color={colors.muted} size="small" />
+                  ) : (
+                    <ThemedText style={{ color: colors.muted, fontWeight: '500' }}>{t('profile.loadDemo')}</ThemedText>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={[styles.outlineButton, styles.debugRowItem, { borderColor: colors.border }]}
+                  onPress={async () => {
+                    await resetOnboardingStatus();
+                    router.replace('/sign-in' as any);
+                  }}>
+                  <ThemedText style={{ color: colors.muted, fontWeight: '500' }}>reset onboarding</ThemedText>
+                </Pressable>
+              </View>
             )}
           </>
         }
@@ -519,6 +530,8 @@ const styles = StyleSheet.create({
   },
   debugToggle: { alignItems: 'center', paddingVertical: Spacing.sm },
   debugToggleText: { fontSize: 11, letterSpacing: 0.5 },
+  debugRow: { flexDirection: 'row', gap: Spacing.sm },
+  debugRowItem: { flex: 1, marginTop: 0 },
   modeToggle: {
     borderWidth: 1,
     borderRadius: DEFAULT_RADII.button,

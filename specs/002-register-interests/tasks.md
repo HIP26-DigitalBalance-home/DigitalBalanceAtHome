@@ -17,9 +17,9 @@
 
 **Purpose**: Constants and i18n strings that every subsequent task depends on.
 
-- [ ] T001 Create `client/constants/interest-categories.ts` — export `INTEREST_CATEGORIES` array (8 entries: key, icon name, i18n labelKey) and `CATEGORY_KEY_SET` as a `Set<string>`
-- [ ] T002 [P] Add `interests.*` keys to `client/lib/i18n/en.ts` — `outdoor`, `crafts`, `cooking`, `sports`, `music`, `reading`, `building`, `animals`, `sectionLabel`, `customLabel`, `customPlaceholder`, `addButton`, `charLimitError`, `capError`
-- [ ] T003 [P] Add `interests.*` keys to `client/lib/i18n/de.ts` — same keys, German strings
+- [x] T001 Create `client/constants/interest-categories.ts` — export `INTEREST_CATEGORIES` array (8 entries: key, icon name, i18n labelKey) and `CATEGORY_KEY_SET` as a `Set<string>`
+- [x] T002 [P] Add `interests.*` keys to `client/lib/i18n/en.ts` — `outdoor`, `crafts`, `cooking`, `sports`, `music`, `reading`, `building`, `animals`, `sectionLabel`, `customLabel`, `customPlaceholder`, `addButton`, `charLimitError`, `capError`
+- [x] T003 [P] Add `interests.*` keys to `client/lib/i18n/de.ts` — same keys, German strings
 
 **Checkpoint**: Constants and i18n in place; both locale files compile without errors.
 
@@ -31,10 +31,10 @@
 
 **⚠️ CRITICAL**: Must be complete before Phase 3 or Phase 4 can begin.
 
-- [ ] T004 Create `client/components/interest-picker.tsx` — scaffold controlled component with props `value: string[]` and `onChange: (v: string[]) => void`; import `INTEREST_CATEGORIES` and `CATEGORY_KEY_SET` from constants
-- [ ] T005 [P] Implement category grid inside `InterestPicker` — `View` with `flexWrap: 'wrap'`, one pressable card per category showing `MaterialIcons` icon + localized label; selected state derived from `CATEGORY_KEY_SET.has(v)` against `value`; tapping toggles the key in `value` and calls `onChange`
-- [ ] T006 [P] Implement custom tag section inside `InterestPicker` — `TextInput` + Add button; on confirm: reject if >60 chars (show inline `charLimitError`), reject if total interests ≥ 20 (show `capError`), silently ignore case-insensitive duplicates, otherwise append to `value` and call `onChange`; display existing custom tags (items in `value` not in `CATEGORY_KEY_SET`) as chip row with × remove button
-- [ ] T007 Wire `T005` and `T006` together inside the component; apply `useAppTheme()` colors and `Spacing` constants for cards, chips, and input styling; use `useTranslation()` for all user-visible strings
+- [x] T004 Create `client/components/interest-picker.tsx` — scaffold controlled component with props `value: string[]` and `onChange: (v: string[]) => void`; import `INTEREST_CATEGORIES` and `CATEGORY_KEY_SET` from constants
+- [x] T005 [P] Implement category grid inside `InterestPicker` — `View` with `flexWrap: 'wrap'`, one pressable card per category showing `MaterialIcons` icon + localized label; selected state derived from `CATEGORY_KEY_SET.has(v)` against `value`; tapping toggles the key in `value` and calls `onChange`
+- [x] T006 [P] Implement custom tag section inside `InterestPicker` — `TextInput` + Add button; on confirm: reject if >60 chars (show inline `charLimitError`), reject if total interests ≥ 20 (show `capError`), silently ignore case-insensitive duplicates, otherwise append to `value` and call `onChange`; display existing custom tags (items in `value` not in `CATEGORY_KEY_SET`) as chip row with × remove button
+- [x] T007 Wire `T005` and `T006` together inside the component; apply `useAppTheme()` colors and `Spacing` constants for cards, chips, and input styling; use `useTranslation()` for all user-visible strings
 
 **Checkpoint**: `InterestPicker` renders in isolation (can import it and pass dummy props); category toggles and custom tag add/remove behave correctly.
 
@@ -46,9 +46,9 @@
 
 **Independent Test** (from quickstart.md Scenarios 1 & 2): Go through onboarding, tap category cards and add a custom tag, submit, then verify the child's interests array on the Profile tab.
 
-- [ ] T008 [US1] In `client/app/(onboarding)/child.tsx` — change Formik `initialValues.interests` from `''` (string) to `[]` (string array); update Yup schema from `Yup.string()` to `Yup.array().of(Yup.string()).optional()`
-- [ ] T009 [US1] In `client/app/(onboarding)/child.tsx` — remove the interests `TextInput` block; replace with `<InterestPicker value={values.interests} onChange={(v) => setFieldValue('interests', v)} />`
-- [ ] T010 [US1] In `client/app/(onboarding)/child.tsx` — remove the comma-split transform in `handleSubmit`; pass `values.interests` (already `string[]`) directly to `onboardingApi.postChild`
+- [x] T008 [US1] In `client/app/(onboarding)/child.tsx` — change Formik `initialValues.interests` from `''` (string) to `[]` (string array); update Yup schema from `Yup.string()` to `Yup.array().of(Yup.string()).optional()`
+- [x] T009 [US1] In `client/app/(onboarding)/child.tsx` — remove the interests `TextInput` block; replace with `<InterestPicker value={values.interests} onChange={(v) => setFieldValue('interests', v)} />`
+- [x] T010 [US1] In `client/app/(onboarding)/child.tsx` — remove the comma-split transform in `handleSubmit`; pass `values.interests` (already `string[]`) directly to `onboardingApi.postChild`
 
 **Checkpoint**: Onboarding child step shows category grid + custom tag input; selected interests are saved correctly (verified in Profile tab after completing onboarding).
 
@@ -60,9 +60,9 @@
 
 **Independent Test** (from quickstart.md Scenario 3): Edit a child who already has interests; confirm category cards are pre-highlighted and custom tags appear as chips; change selection and save; verify Profile tab reflects the update.
 
-- [ ] T011 [US3] In `client/app/edit-child/[id].tsx` — change Formik `initialValues.interests` from `interests ?? ''` (string) to `interests ? interests.split(',').filter(Boolean) : []` (string array); update Yup schema to `Yup.array().of(Yup.string()).optional()`
-- [ ] T012 [US3] In `client/app/edit-child/[id].tsx` — remove the interests `TextInput` block; replace with `<InterestPicker value={values.interests} onChange={(v) => setFieldValue('interests', v)} />`
-- [ ] T013 [US3] In `client/app/edit-child/[id].tsx` — remove the comma-split transform in `handleSubmit`; pass `values.interests` directly to `onboardingApi.updateChild`
+- [x] T011 [US3] In `client/app/edit-child/[id].tsx` — change Formik `initialValues.interests` from `interests ?? ''` (string) to `interests ? interests.split(',').filter(Boolean) : []` (string array); update Yup schema to `Yup.array().of(Yup.string()).optional()`
+- [x] T012 [US3] In `client/app/edit-child/[id].tsx` — remove the interests `TextInput` block; replace with `<InterestPicker value={values.interests} onChange={(v) => setFieldValue('interests', v)} />`
+- [x] T013 [US3] In `client/app/edit-child/[id].tsx` — remove the comma-split transform in `handleSubmit`; pass `values.interests` directly to `onboardingApi.updateChild`
 
 **Checkpoint**: Editing a child's interests pre-populates correctly; changes persist after save.
 
@@ -70,8 +70,8 @@
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T014 [P] Remove now-unused i18n keys `childForm.interestsPlaceholder` and `childForm.interestsHint` from `client/lib/i18n/en.ts` and `client/lib/i18n/de.ts` if they are no longer referenced
-- [ ] T015 [P] Update the `childForm.interests` label key in `en.ts` and `de.ts` to reflect the new UI (e.g. `'Interests (optional)'` without the comma hint)
+- [x] T014 [P] Remove now-unused i18n keys `childForm.interestsPlaceholder` and `childForm.interestsHint` from `client/lib/i18n/en.ts` and `client/lib/i18n/de.ts` if they are no longer referenced
+- [x] T015 [P] Update the `childForm.interests` label key in `en.ts` and `de.ts` to reflect the new UI (e.g. `'Interests (optional)'` without the comma hint)
 - [ ] T016 Run through all 5 quickstart.md validation scenarios on iOS simulator; confirm edge cases (empty submit, duplicate tag, char limit, cap limit) all behave correctly
 
 ---

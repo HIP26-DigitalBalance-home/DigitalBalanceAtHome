@@ -1,3 +1,4 @@
+import { StyleProp, ViewStyle } from 'react-native';
 import { Circle, Svg } from 'react-native-svg';
 import { useAppTheme } from '@/lib/app-theme-context';
 
@@ -6,9 +7,10 @@ interface ProgressRingProps {
   goal: number;
   size?: number;
   strokeWidth?: number;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function ProgressRing({ value, goal, size = 56, strokeWidth = 5 }: ProgressRingProps) {
+export function ProgressRing({ value, goal, size = 56, strokeWidth = 5, style }: ProgressRingProps) {
   const { colors } = useAppTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -18,7 +20,7 @@ export function ProgressRing({ value, goal, size = 56, strokeWidth = 5 }: Progre
   const center = size / 2;
 
   return (
-    <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+    <Svg width={size} height={size} style={[{ transform: [{ rotate: '-90deg' }] }, style as any]}>
       {/* Track */}
       <Circle
         cx={center}
