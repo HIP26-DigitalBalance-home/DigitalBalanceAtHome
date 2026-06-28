@@ -339,3 +339,8 @@ VALUES
 | `docs/planning/compliance-brief.md` | GDPR obligations, required decisions, controls |
 | `docs/requirements.md` | Full SRS with FR-XXX / NFR-XXX requirements |
 | `docs/architecture.md` | C4 diagrams, key flows, technology decisions |
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
