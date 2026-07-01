@@ -147,6 +147,89 @@ export const de = {
     todaysSuggestion: 'VORSCHLAG DES TAGES',
     letsDoIt: "Los geht's →",
     noSuggestion: 'Derzeit kein Vorschlag verfügbar.',
+    articleOfTheDay: 'ARTIKEL DES TAGES',
+    articleModal: {
+      sources: 'Quellen',
+      completed: 'Abgeschlossen',
+      linkError: 'Der Link konnte nicht geöffnet werden.',
+    },
+    articles: {
+      screenTimeByAge: {
+        eyebrow: 'MEDIEN',
+        title: 'Wie viel Bildschirmzeit ist okay?',
+        description: 'Altersgerechte Richtwerte, Warnzeichen für Übernutzung und wie ihr gemeinsam faire Regeln findet.',
+        pages: [
+          {
+            heading: 'Altersgerechte Richtwerte',
+            body: 'Unter 3 Jahren: möglichst keine oder nur kurze, gemeinsam angeschaute Bildschirmzeit. 3–5 Jahre: rund 30 Minuten täglich, nicht jeden Tag und immer begleitet. 6–9 Jahre: etwa 45–60 Minuten, an Schultagen weniger. 10–13 Jahre: rund 1–1,5 Stunden mit klaren Regeln.',
+          },
+          {
+            heading: 'Woran ihr Übernutzung erkennt',
+            body: 'Hohe Bildschirmzeit allein ist noch kein Problem. Achtet auf Warnzeichen: Euer Kind kann nicht aufhören oder hält Absprachen nicht ein, vernachlässigt Schule, Hobbys oder Freundschaften, reagiert gereizt oder unruhig ohne Gerät – und macht trotzdem weiter.',
+          },
+          {
+            heading: 'Gemeinsame Regeln statt Verbote',
+            body: 'Legt Mediendauer und mediumfreie Zonen gemeinsam fest, etwa am Esstisch oder im Schlafzimmer – am besten in einer einfachen „Familienmedienvereinbarung". Bietet Alternativen statt nur zu verbieten: Sport, Freunde treffen, gemeinsam vorlesen. Und geht selbst mit gutem Beispiel voran.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Q&A Digitale Medien',
+                url: 'https://www.kindergesundheit.de/Info/Q_A_Digitale_Medien_.pdf',
+              },
+            ],
+          },
+        ],
+      },
+      screenTimeAndSleep: {
+        eyebrow: 'SCHLAF',
+        title: 'Warum Bildschirmzeit den Schlaf stört',
+        description: 'Drei von vier Jugendlichen nutzen ihr Handy kurz vor dem Einschlafen. Was das für den Schlaf bedeutet – und was hilft.',
+        pages: [
+          {
+            heading: 'Blaues Licht bremst die Müdigkeit',
+            body: 'Bildschirme senden blaues Licht aus, das die Produktion des Schlafhormons Melatonin unterdrückt. Dazu kommt spannender Inhalt wie Spiele oder soziale Netzwerke, der das Gehirn zusätzlich aufputscht – beides zusammen erschwert das Einschlafen.',
+          },
+          {
+            heading: 'Die Folgen von zu wenig Schlaf',
+            body: 'Schlechter Schlaf schwächt Gedächtnis und Konzentration, kann die Tagesleistung um bis zu 25 % senken und schwächt das Immunsystem. Auf lange Sicht steigt sogar das Risiko für Herz-Kreislauf-Erkrankungen und depressive Verstimmungen.',
+          },
+          {
+            heading: 'So gelingt der Ausklang ohne Bildschirm',
+            body: 'Verzichtet in den letzten 2–3 Stunden vor dem Schlafengehen auf Bildschirme und lasst Handys nachts nicht im Kinderzimmer. Vorlesen oder ruhige Musik sind gute Alternativen. Strikte Verbote wirken oft weniger als gemeinsam vereinbarte, für alle geltende Regeln.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
+                url: 'https://www.kindergesundheit.de/Info/Newsletter/2025/_docs/Newsletter_02_25_Medien___Schlaf.pdf',
+              },
+            ],
+          },
+        ],
+      },
+      movementMatters: {
+        eyebrow: 'BEWEGUNG',
+        title: 'Warum Kinder mehr Bewegung brauchen',
+        description: 'Die WHO empfiehlt mindestens 60 Minuten Bewegung täglich. Warum das so wichtig ist – und wie ihr es in den Alltag bringt.',
+        pages: [
+          {
+            heading: '60 Minuten am Tag',
+            body: 'Die Weltgesundheitsorganisation empfiehlt für Kinder mindestens 60 Minuten Bewegung täglich, bei der sie außer Atem geraten. Tatsächlich schaffen das nur 7,5 % der Mädchen und 16 % der Jungen zwischen 14 und 17 Jahren.',
+          },
+          {
+            heading: 'Was Bildschirmzeit verdrängt',
+            body: 'Kinder mit hohem Medienkonsum sprechen weniger mit Eltern und anderen Kindern und musizieren seltener als Kinder mit wenig Bildschirmzeit. Viel Bildschirmzeit hängt zudem mit schlechterer Konzentration und schulischen Leistungen zusammen.',
+          },
+          {
+            heading: 'Bewegung tut der Seele gut',
+            body: 'Bewegung wirkt sich nicht nur auf die Fitness aus, sondern auch positiv auf die Stimmung und wirkt vorbeugend gegen depressive Verstimmungen. Schon ein täglicher Spaziergang oder freies Spiel draußen unterstützt die körperliche, geistige und soziale Entwicklung.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Aktive Kinder, rege Erwachsene',
+                url: 'https://www.kindergesundheit.de/Info/Newsletter/2023/Newsletter_11.pdf',
+              },
+            ],
+          },
+        ],
+      },
+    },
   },
   challengesList: {
     title: 'Herausforderungen',

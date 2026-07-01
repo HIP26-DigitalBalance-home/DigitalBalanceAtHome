@@ -22,6 +22,8 @@ const MAPPING = {
   // UI Elements
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
+  'xmark': 'close',
   'checkmark': 'check',
   'checkmark.circle.fill': 'check-circle',
   'info.circle.fill': 'info',

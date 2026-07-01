@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ArticleOfTheDay } from '@/components/article-of-the-day';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
@@ -382,6 +383,8 @@ export default function HomeScreen() {
             </ThemedText>
           )}
         </View>
+
+        <ArticleOfTheDay />
       </ScrollView>
 
       <CompleteActivityModal

@@ -147,6 +147,89 @@ export const en = {
     todaysSuggestion: "TODAY'S SUGGESTION",
     letsDoIt: "Let's do it →",
     noSuggestion: 'No suggestion available right now.',
+    articleOfTheDay: 'ARTICLE OF THE DAY',
+    articleModal: {
+      sources: 'Sources',
+      completed: 'Completed',
+      linkError: 'Could not open the link.',
+    },
+    articles: {
+      screenTimeByAge: {
+        eyebrow: 'MEDIA',
+        title: 'How much screen time is okay?',
+        description: 'Age-appropriate guidelines, warning signs of overuse, and how to find fair rules together.',
+        pages: [
+          {
+            heading: 'Age-appropriate guidelines',
+            body: 'Under 3: ideally none, or only brief sessions watched together. Ages 3–5: about 30 minutes a day, not every day, always supervised. Ages 6–9: about 45–60 minutes, less on school days. Ages 10–13: about 1–1.5 hours with clear rules.',
+          },
+          {
+            heading: 'Signs of overuse',
+            body: 'High screen time alone is not a problem. Watch for warning signs instead: your child cannot stop or breaks agreements, neglects school, hobbies or friendships, reacts irritably or restlessly without the device — and keeps going anyway.',
+          },
+          {
+            heading: 'Shared rules instead of bans',
+            body: 'Agree on media time and media-free zones together — like the dinner table or the bedroom — ideally as a simple "family media agreement." Offer alternatives instead of just banning: sports, seeing friends, reading together. And lead by example yourselves.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Q&A Digitale Medien',
+                url: 'https://www.kindergesundheit.de/Info/Q_A_Digitale_Medien_.pdf',
+              },
+            ],
+          },
+        ],
+      },
+      screenTimeAndSleep: {
+        eyebrow: 'SLEEP',
+        title: 'Why screen time disrupts sleep',
+        description: 'Three in four teens use their phone right before falling asleep. What that means for sleep — and what helps.',
+        pages: [
+          {
+            heading: 'Blue light blocks tiredness',
+            body: 'Screens emit blue light that suppresses the sleep hormone melatonin. On top of that, exciting content like games or social media overstimulates the brain — together, both make it harder to fall asleep.',
+          },
+          {
+            heading: 'The effects of too little sleep',
+            body: 'Poor sleep weakens memory and concentration, can lower daytime performance by up to 25%, and weakens the immune system. Over the long term, it even raises the risk of cardiovascular disease and depressive moods.',
+          },
+          {
+            heading: 'How to wind down without a screen',
+            body: 'Avoid screens in the last 2–3 hours before bedtime, and keep phones out of the bedroom at night. Reading aloud or calm music are good alternatives. Strict bans often work less well than rules agreed on together and applied to everyone.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
+                url: 'https://www.kindergesundheit.de/Info/Newsletter/2025/_docs/Newsletter_02_25_Medien___Schlaf.pdf',
+              },
+            ],
+          },
+        ],
+      },
+      movementMatters: {
+        eyebrow: 'MOVEMENT',
+        title: 'Why children need more movement',
+        description: 'The WHO recommends at least 60 minutes of movement a day. Why it matters — and how to fit it into everyday life.',
+        pages: [
+          {
+            heading: '60 minutes a day',
+            body: 'The World Health Organization recommends at least 60 minutes of activity a day for children, enough to get out of breath. In reality, only 7.5% of girls and 16% of boys aged 14 to 17 manage that.',
+          },
+          {
+            heading: 'What screen time crowds out',
+            body: 'Children with high media use talk less with parents and other children, and play a musical instrument less often, than children with little screen time. High screen time is also linked to worse concentration and school performance.',
+          },
+          {
+            heading: 'Movement is good for the mind',
+            body: 'Movement affects more than fitness — it also lifts mood and helps prevent depressive moods. Even a daily walk or free play outside supports physical, mental, and social development.',
+            sources: [
+              {
+                label: 'Stiftung Kindergesundheit – Aktive Kinder, rege Erwachsene',
+                url: 'https://www.kindergesundheit.de/Info/Newsletter/2023/Newsletter_11.pdf',
+              },
+            ],
+          },
+        ],
+      },
+    },
   },
   challengesList: {
     title: 'Challenges',
