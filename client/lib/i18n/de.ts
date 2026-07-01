@@ -165,14 +165,14 @@ export const de = {
           },
           {
             heading: 'Woran ihr Übernutzung erkennt',
-            body: 'Hohe Bildschirmzeit allein ist noch kein Problem. Achtet auf Warnzeichen: Euer Kind kann nicht aufhören oder hält Absprachen nicht ein, vernachlässigt Schule, Hobbys oder Freundschaften, reagiert gereizt oder unruhig ohne Gerät – und macht trotzdem weiter.',
+            body: 'Hohe Bildschirmzeit allein ist noch kein Problem. Achtet auf Warnzeichen: Euer Kind kann nicht aufhören oder hält Absprachen nicht ein, vernachlässigt Schule, Hobbys oder Freundschaften, reagiert gereizt oder unruhig ohne Gerät und macht trotzdem weiter.',
           },
           {
             heading: 'Gemeinsame Regeln statt Verbote',
-            body: 'Legt Mediendauer und mediumfreie Zonen gemeinsam fest, etwa am Esstisch oder im Schlafzimmer – am besten in einer einfachen „Familienmedienvereinbarung". Bietet Alternativen statt nur zu verbieten: Sport, Freunde treffen, gemeinsam vorlesen. Und geht selbst mit gutem Beispiel voran.',
+            body: 'Legt Mediendauer und mediumfreie Zonen gemeinsam fest, etwa am Esstisch oder im Schlafzimmer, am besten in einer einfachen „Familienmedienvereinbarung". Bietet Alternativen statt nur zu verbieten: Sport, Freunde treffen, gemeinsam vorlesen. Und geht selbst mit gutem Beispiel voran.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Q&A Digitale Medien',
+                label: 'Stiftung Kindergesundheit: Q&A Digitale Medien',
                 url: 'https://www.kindergesundheit.de/Info/Q_A_Digitale_Medien_.pdf',
               },
             ],
@@ -182,11 +182,11 @@ export const de = {
       screenTimeAndSleep: {
         eyebrow: 'SCHLAF',
         title: 'Warum Bildschirmzeit den Schlaf stört',
-        description: 'Drei von vier Jugendlichen nutzen ihr Handy kurz vor dem Einschlafen. Was das für den Schlaf bedeutet – und was hilft.',
+        description: 'Drei von vier Jugendlichen nutzen ihr Handy kurz vor dem Einschlafen. Was das für den Schlaf bedeutet und was hilft.',
         pages: [
           {
             heading: 'Blaues Licht bremst die Müdigkeit',
-            body: 'Bildschirme senden blaues Licht aus, das die Produktion des Schlafhormons Melatonin unterdrückt. Dazu kommt spannender Inhalt wie Spiele oder soziale Netzwerke, der das Gehirn zusätzlich aufputscht – beides zusammen erschwert das Einschlafen.',
+            body: 'Bildschirme senden blaues Licht aus, das die Produktion des Schlafhormons Melatonin unterdrückt. Dazu kommt spannender Inhalt wie Spiele oder soziale Netzwerke, der das Gehirn zusätzlich aufputscht. Beides zusammen erschwert das Einschlafen.',
           },
           {
             heading: 'Die Folgen von zu wenig Schlaf',
@@ -197,7 +197,7 @@ export const de = {
             body: 'Verzichtet in den letzten 2–3 Stunden vor dem Schlafengehen auf Bildschirme und lasst Handys nachts nicht im Kinderzimmer. Vorlesen oder ruhige Musik sind gute Alternativen. Strikte Verbote wirken oft weniger als gemeinsam vereinbarte, für alle geltende Regeln.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
+                label: 'Stiftung Kindergesundheit: Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
                 url: 'https://www.kindergesundheit.de/Info/Newsletter/2025/_docs/Newsletter_02_25_Medien___Schlaf.pdf',
               },
             ],
@@ -207,7 +207,7 @@ export const de = {
       movementMatters: {
         eyebrow: 'BEWEGUNG',
         title: 'Warum Kinder mehr Bewegung brauchen',
-        description: 'Die WHO empfiehlt mindestens 60 Minuten Bewegung täglich. Warum das so wichtig ist – und wie ihr es in den Alltag bringt.',
+        description: 'Die WHO empfiehlt mindestens 60 Minuten Bewegung täglich. Warum das so wichtig ist und wie ihr es in den Alltag bringt.',
         pages: [
           {
             heading: '60 Minuten am Tag',
@@ -222,7 +222,7 @@ export const de = {
             body: 'Bewegung wirkt sich nicht nur auf die Fitness aus, sondern auch positiv auf die Stimmung und wirkt vorbeugend gegen depressive Verstimmungen. Schon ein täglicher Spaziergang oder freies Spiel draußen unterstützt die körperliche, geistige und soziale Entwicklung.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Aktive Kinder, rege Erwachsene',
+                label: 'Stiftung Kindergesundheit: Aktive Kinder, rege Erwachsene',
                 url: 'https://www.kindergesundheit.de/Info/Newsletter/2023/Newsletter_11.pdf',
               },
             ],

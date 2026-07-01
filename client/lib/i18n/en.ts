@@ -165,14 +165,14 @@ export const en = {
           },
           {
             heading: 'Signs of overuse',
-            body: 'High screen time alone is not a problem. Watch for warning signs instead: your child cannot stop or breaks agreements, neglects school, hobbies or friendships, reacts irritably or restlessly without the device — and keeps going anyway.',
+            body: 'High screen time alone is not a problem. Watch for warning signs instead: your child cannot stop or breaks agreements, neglects school, hobbies or friendships, reacts irritably or restlessly without the device and keeps going anyway.',
           },
           {
             heading: 'Shared rules instead of bans',
-            body: 'Agree on media time and media-free zones together — like the dinner table or the bedroom — ideally as a simple "family media agreement." Offer alternatives instead of just banning: sports, seeing friends, reading together. And lead by example yourselves.',
+            body: 'Agree on media time and media-free zones together, like the dinner table or the bedroom, ideally as a simple "family media agreement." Offer alternatives instead of just banning: sports, seeing friends, reading together. And lead by example yourselves.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Q&A Digitale Medien',
+                label: 'Stiftung Kindergesundheit: Q&A Digitale Medien',
                 url: 'https://www.kindergesundheit.de/Info/Q_A_Digitale_Medien_.pdf',
               },
             ],
@@ -182,11 +182,11 @@ export const en = {
       screenTimeAndSleep: {
         eyebrow: 'SLEEP',
         title: 'Why screen time disrupts sleep',
-        description: 'Three in four teens use their phone right before falling asleep. What that means for sleep — and what helps.',
+        description: 'Three in four teens use their phone right before falling asleep. What that means for sleep and what helps.',
         pages: [
           {
             heading: 'Blue light blocks tiredness',
-            body: 'Screens emit blue light that suppresses the sleep hormone melatonin. On top of that, exciting content like games or social media overstimulates the brain — together, both make it harder to fall asleep.',
+            body: 'Screens emit blue light that suppresses the sleep hormone melatonin. On top of that, exciting content like games or social media overstimulates the brain. Together, both make it harder to fall asleep.',
           },
           {
             heading: 'The effects of too little sleep',
@@ -197,7 +197,7 @@ export const en = {
             body: 'Avoid screens in the last 2–3 hours before bedtime, and keep phones out of the bedroom at night. Reading aloud or calm music are good alternatives. Strict bans often work less well than rules agreed on together and applied to everyone.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
+                label: 'Stiftung Kindergesundheit: Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
                 url: 'https://www.kindergesundheit.de/Info/Newsletter/2025/_docs/Newsletter_02_25_Medien___Schlaf.pdf',
               },
             ],
@@ -207,7 +207,7 @@ export const en = {
       movementMatters: {
         eyebrow: 'MOVEMENT',
         title: 'Why children need more movement',
-        description: 'The WHO recommends at least 60 minutes of movement a day. Why it matters — and how to fit it into everyday life.',
+        description: 'The WHO recommends at least 60 minutes of movement a day. Why it matters and how to fit it into everyday life.',
         pages: [
           {
             heading: '60 minutes a day',
@@ -219,10 +219,10 @@ export const en = {
           },
           {
             heading: 'Movement is good for the mind',
-            body: 'Movement affects more than fitness — it also lifts mood and helps prevent depressive moods. Even a daily walk or free play outside supports physical, mental, and social development.',
+            body: 'Movement affects more than fitness. It also lifts mood and helps prevent depressive moods. Even a daily walk or free play outside supports physical, mental, and social development.',
             sources: [
               {
-                label: 'Stiftung Kindergesundheit – Aktive Kinder, rege Erwachsene',
+                label: 'Stiftung Kindergesundheit: Aktive Kinder, rege Erwachsene',
                 url: 'https://www.kindergesundheit.de/Info/Newsletter/2023/Newsletter_11.pdf',
               },
             ],
