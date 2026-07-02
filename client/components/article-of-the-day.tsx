@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ArticleDetailModal } from '@/components/article-detail-modal';
 import { PaginationDots } from '@/components/onboarding/PaginationDots';
@@ -35,12 +35,13 @@ const ARTICLE_IDS = ['screenTimeByAge', 'screenTimeAndSleep', 'movementMatters']
 const ARTICLE_ICONS: Record<(typeof ARTICLE_IDS)[number], IllustrationName> = {
   screenTimeByAge: 'toco-phone',
   screenTimeAndSleep: 'bunny-night',
-  movementMatters: 'parent-carry',
+  movementMatters: 'podium-cheer',
 };
 
 export function ArticleOfTheDay() {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
+  const scrollRef = useRef<ScrollView>(null);
   const [carouselWidth, setCarouselWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
@@ -60,6 +61,17 @@ export function ArticleOfTheDay() {
     setActiveIndex(Math.max(0, Math.min(index, articles.length - 1)));
   }
 
+  function goToIndex(index: number) {
+    const clamped = Math.max(0, Math.min(index, articles.length - 1));
+    if (clamped === activeIndex) return;
+    setActiveIndex(clamped);
+    // On web, `pagingEnabled` applies CSS scroll-snap; a smooth programmatic
+    // scroll fights the mandatory snap and produces a visible pre-jump. An
+    // instant scroll lands exactly on the snap point with no glitch. Native
+    // has no CSS snap, so the animated scroll stays smooth there.
+    scrollRef.current?.scrollTo({ x: clamped * carouselWidth, animated: Platform.OS !== 'web' });
+  }
+
   return (
     <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
@@ -69,6 +81,7 @@ export function ArticleOfTheDay() {
       <View onLayout={(e) => setCarouselWidth(e.nativeEvent.layout.width)}>
         {carouselWidth > 0 && (
           <ScrollView
+            ref={scrollRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -106,7 +119,38 @@ export function ArticleOfTheDay() {
       </View>
 
       <View style={styles.dotsRow}>
+        <Pressable
+          onPress={() => goToIndex(activeIndex - 1)}
+          disabled={activeIndex === 0}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.previous', 'Previous')}
+          style={styles.arrow}
+        >
+          <ThemedText style={[styles.arrowText, { color: colors.primary, opacity: activeIndex === 0 ? 0.25 : 1 }]}>
+            ‹
+          </ThemedText>
+        </Pressable>
+
         <PaginationDots count={articles.length} activeIndex={activeIndex} />
+
+        <Pressable
+          onPress={() => goToIndex(activeIndex + 1)}
+          disabled={activeIndex === articles.length - 1}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.next', 'Next')}
+          style={styles.arrow}
+        >
+          <ThemedText
+            style={[
+              styles.arrowText,
+              { color: colors.primary, opacity: activeIndex === articles.length - 1 ? 0.25 : 1 },
+            ]}
+          >
+            ›
+          </ThemedText>
+        </Pressable>
       </View>
 
       <ArticleDetailModal
@@ -134,5 +178,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
   description: { fontSize: 13, lineHeight: 18 },
   iconBubble: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  dotsRow: { alignItems: 'center', paddingTop: Spacing.xs },
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingTop: Spacing.xs,
+  },
+  arrow: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  arrowText: { fontSize: 26, fontWeight: '700', lineHeight: 28 },
 });
