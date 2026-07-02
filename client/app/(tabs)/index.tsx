@@ -281,7 +281,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Progress widget: streak + goal ring */}
-        {familyProgress && (familyProgress.streak.current_days > 0 || familyProgress.this_week.activities > 0) && (
+        {familyProgress && (
           <Pressable
             style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/progress' as any)}

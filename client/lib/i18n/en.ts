@@ -546,6 +546,7 @@ export const en = {
     noActivity: 'No activities yet',
     activitiesGoal: '{{value}}/{{goal}} activities',
     activitiesOfGoal: '{{value}} of {{goal}} activities',
+    editGoal: 'Edit goal',
   },
   onboardingGoal: {
     title: 'How often do you want to be active together?',

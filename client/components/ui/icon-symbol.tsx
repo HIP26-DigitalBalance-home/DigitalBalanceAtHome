@@ -27,6 +27,7 @@ const MAPPING = {
   'checkmark': 'check',
   'checkmark.circle.fill': 'check-circle',
   'info.circle.fill': 'info',
+  'pencil': 'edit',
 
   // Features & Welcome
   'heart.fill': 'favorite',

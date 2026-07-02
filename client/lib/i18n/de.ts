@@ -546,6 +546,7 @@ export const de = {
     noActivity: 'Noch keine Aktivitäten',
     activitiesGoal: '{{value}}/{{goal}} Aktivitäten',
     activitiesOfGoal: '{{value}} von {{goal}} Aktivitäten',
+    editGoal: 'Ziel bearbeiten',
   },
   onboardingGoal: {
     title: 'Wie oft möchtet ihr gemeinsam aktiv sein?',

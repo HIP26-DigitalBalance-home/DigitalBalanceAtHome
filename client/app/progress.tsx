@@ -15,6 +15,9 @@ import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { onboardingApi, progressApi, type FamilyProgress } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
+import { showAlert } from '@/lib/utils/alert';
+
+const GOAL_OPTIONS = [1, 2, 3, 4] as const;
 
 export default function ProgressScreen() {
   const { colors } = useAppTheme();
@@ -23,8 +26,11 @@ export default function ProgressScreen() {
   const router = useRouter();
 
   const [progress, setProgress] = useState<FamilyProgress | null>(null);
+  const [familyId, setFamilyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
 
   useFocusEffect(useCallback(() => {
     let cancelled = false;
@@ -35,6 +41,7 @@ export default function ProgressScreen() {
         const familiesRes = await onboardingApi.getMyFamilies();
         const fid = familiesRes.data[0]?.id;
         if (!fid) return;
+        if (!cancelled) setFamilyId(fid);
         const progressRes = await progressApi.getProgress(fid);
         if (!cancelled) setProgress(progressRes.data);
       } catch (e) {
@@ -47,6 +54,20 @@ export default function ProgressScreen() {
     load();
     return () => { cancelled = true; };
   }, []));
+
+  async function handleGoalSelect(goal: number) {
+    if (!familyId || savingGoal) return;
+    setSavingGoal(true);
+    try {
+      await progressApi.updateSettings(familyId, { weekly_goal: goal });
+      setProgress((prev) => (prev ? { ...prev, weekly_goal: goal } : prev));
+      setEditingGoal(false);
+    } catch (e) {
+      showAlert(t('common.error'), getGermanErrorMessage(e));
+    } finally {
+      setSavingGoal(false);
+    }
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -66,9 +87,24 @@ export default function ProgressScreen() {
           <>
             {/* This Week */}
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
-                {t('progress.thisWeek')}
-              </ThemedText>
+              <View style={styles.sectionHeader}>
+                <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
+                  {t('progress.thisWeek')}
+                </ThemedText>
+                <Pressable
+                  onPress={() => setEditingGoal((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('progress.editGoal')}
+                >
+                  <View style={styles.editGoalButton}>
+                    <IconSymbol name="pencil" size={14} color={colors.primary} />
+                    <ThemedText style={[styles.editGoalLabel, { color: colors.primary }]}>
+                      {t('progress.editGoal')}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              </View>
               <View style={styles.weekRow}>
                 <ProgressRing value={progress.this_week.activities} goal={progress.weekly_goal} size={72} strokeWidth={6} style={{ marginTop: 12 }} />
                 <View style={styles.weekStats}>
@@ -80,6 +116,39 @@ export default function ProgressScreen() {
                   </ThemedText>
                 </View>
               </View>
+              {editingGoal && (
+                <View style={styles.goalOptions}>
+                  <ThemedText style={[styles.goalOptionsLabel, { color: colors.muted }]}>
+                    {t('progress.weeklyGoal')}
+                  </ThemedText>
+                  <View style={styles.goalOptionsRow}>
+                    {GOAL_OPTIONS.map((n) => {
+                      const isSelected = progress.weekly_goal === n;
+                      return (
+                        <Pressable
+                          key={n}
+                          style={[
+                            styles.goalOption,
+                            {
+                              borderColor: isSelected ? colors.primary : colors.border,
+                              backgroundColor: isSelected ? colors.primary + '18' : colors.background,
+                              opacity: savingGoal ? 0.6 : 1,
+                            },
+                          ]}
+                          onPress={() => handleGoalSelect(n)}
+                          disabled={savingGoal}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('onboardingGoal.perWeek', { count: n })}
+                        >
+                          <ThemedText style={[styles.goalOptionText, { color: isSelected ? colors.primary : colors.onSurface }]}>
+                            {n}×
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Your Streak */}
@@ -152,7 +221,15 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1 },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
   section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
+  editGoalButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  editGoalLabel: { fontSize: 12, fontWeight: '600' },
+  goalOptions: { gap: Spacing.xs, paddingTop: Spacing.sm },
+  goalOptionsLabel: { fontSize: 12 },
+  goalOptionsRow: { flexDirection: 'row', gap: Spacing.sm },
+  goalOption: { flex: 1, height: 44, borderWidth: 1.5, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  goalOptionText: { fontSize: 16, fontWeight: '600' },
   weekRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingTop: Spacing.sm },
   weekStats: { flex: 1, gap: 6, justifyContent: 'center' },
   statValue: { fontSize: 15 },
