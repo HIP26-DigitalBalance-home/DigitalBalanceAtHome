@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export type ThemeId = 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage';
+export type ThemeId = 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage' | 'tocoBlue' | 'tocoWarm';
 export type ColorMode = 'light' | 'dark' | 'system';
 export const DEFAULT_COLOR_MODE: ColorMode = 'system';
 
@@ -329,6 +329,111 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
         border: '#18497B',
         buttonBackground: '#EA8366',
         buttonText: '#06243F',      // deep navy, 5.96:1 on coral button ✓
+      },
+    },
+  },
+
+  // hiToco brand palette (hitoco.com) — deep hiToco blue (#002692) on the
+  // light blue tint scale (#f0f6fa/#d4e7f2/#006ba7), with the site's warm
+  // orange/beige accents. Dark mode derives from hitoco-blue-dark (#000E33).
+  // Two light variants: "Blue" rests on color-theme-hitoco-blue (#F0F6FA),
+  // "Warm" on the hitoco beige (#FEF7F1). Both share the same dark mode.
+  tocoBlue: {
+    id: 'tocoBlue',
+    titleFont: systemFont,
+    preview: { bg: '#F0F6FA', primary: '#002692', border: '#D4E7F2' },
+    radii: { card: 12, button: 12, input: 10, badge: 999, sm: 6 },
+    cardShadowColor: '#000E33',
+    cardShadowOpacity: 0.12,
+    completedSlotBg: '#FFE7CE',   // hitoco-orange-dark
+    colors: {
+      light: {
+        primary: '#002692',         // hitoco-blue-primary
+        primaryDark: '#001A66',
+        accent: '#006BA7',          // adhs-kids-primary-400, 4.55:1 on #F0F6FA ✓
+        surface: '#FFFFFF',
+        onSurface: '#323232',       // site --black
+        muted: '#4D4D4D',           // site --gray
+        destructive: '#DC1616',     // site --error
+        destructiveMuted: '#8C3A2A',
+        text: '#323232',
+        background: '#F0F6FA',      // color-theme-hitoco-blue
+        tint: '#002692',
+        icon: '#4D4D4D',            // 7.79:1 on #F0F6FA ✓
+        tabIconDefault: '#4D4D4D',  // same
+        tabIconSelected: '#002692', // 13.55:1 ✓
+        border: '#D4E7F2',          // adhs-kids-primary-200
+        buttonBackground: '#002692',
+        buttonText: '#FFFFFF',
+      },
+      dark: {
+        primary: '#7FA3FF',
+        primaryDark: '#5C85F0',
+        accent: '#FFBF36',          // site --orange, 9.65:1 on navy ✓
+        surface: '#0A2050',
+        onSurface: '#EFF4FA',
+        muted: '#93A6BD',
+        destructive: '#E04040',
+        destructiveMuted: '#B85040',
+        text: '#EFF4FA',
+        background: '#000E33',      // hitoco-blue-dark (opaque)
+        tint: '#7FA3FF',
+        icon: '#9DB0C8',            // 7.86:1 on #000E33 ✓
+        tabIconDefault: '#9DB0C8',  // same
+        tabIconSelected: '#7FA3FF', // 6.36:1 ✓
+        border: '#1A3060',
+        buttonBackground: '#7FA3FF',
+        buttonText: '#000E33',
+      },
+    },
+  },
+
+  tocoWarm: {
+    id: 'tocoWarm',
+    titleFont: systemFont,
+    preview: { bg: '#FEF7F1', primary: '#002692', border: '#E4D5C8' },
+    radii: { card: 12, button: 12, input: 10, badge: 999, sm: 6 },
+    cardShadowColor: '#000E33',
+    cardShadowOpacity: 0.12,
+    completedSlotBg: '#FFE7CE',   // hitoco-orange-dark
+    colors: {
+      light: {
+        primary: '#002692',         // hitoco-blue-primary
+        primaryDark: '#001A66',
+        accent: '#006BA7',          // adhs-kids-primary-400, 4.83:1 on #FEF7F1 ✓
+        surface: '#FFFFFF',
+        onSurface: '#323232',       // site --black
+        muted: '#4D4D4D',           // site --gray
+        destructive: '#DC1616',     // site --error
+        destructiveMuted: '#8C3A2A',
+        text: '#323232',
+        background: '#FEF7F1',      // warm hitoco beige (rgb 254 247 241)
+        tint: '#002692',
+        icon: '#4D4D4D',            // 8.28:1 on #FEF7F1 ✓
+        tabIconDefault: '#4D4D4D',  // same
+        tabIconSelected: '#002692', // 13.55:1 ✓
+        border: '#E4D5C8',          // color-theme-beige-dark
+        buttonBackground: '#002692',
+        buttonText: '#FFFFFF',
+      },
+      dark: {
+        primary: '#7FA3FF',
+        primaryDark: '#5C85F0',
+        accent: '#FFBF36',          // site --orange, 9.65:1 on navy ✓
+        surface: '#0A2050',
+        onSurface: '#EFF4FA',
+        muted: '#93A6BD',
+        destructive: '#E04040',
+        destructiveMuted: '#B85040',
+        text: '#EFF4FA',
+        background: '#000E33',      // hitoco-blue-dark (opaque)
+        tint: '#7FA3FF',
+        icon: '#9DB0C8',            // 7.86:1 on #000E33 ✓
+        tabIconDefault: '#9DB0C8',  // same
+        tabIconSelected: '#7FA3FF', // 6.36:1 ✓
+        border: '#1A3060',
+        buttonBackground: '#7FA3FF',
+        buttonText: '#000E33',
       },
     },
   },

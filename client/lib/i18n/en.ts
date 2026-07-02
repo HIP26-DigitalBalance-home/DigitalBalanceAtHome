@@ -35,6 +35,8 @@ export const en = {
     cork: 'Pinboard',
     gartenlaube: 'Garden',
     sage: 'Sage',
+    tocoBlue: 'Toco Blue',
+    tocoWarm: 'Toco Warm',
     colorMode: {
       light: 'Light',
       system: 'Auto',
