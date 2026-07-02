@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Glyph } from '@/components/ui/illustration';
 import { Spacing } from '@/constants/theme';
 import { CATEGORY_KEY_SET, INTEREST_CATEGORIES } from '@/constants/interest-categories';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -79,8 +80,8 @@ export function InterestPicker({ value, onChange }: InterestPickerProps) {
                   borderColor: selected ? colors.primary : colors.border,
                 },
               ]}>
-              <MaterialIcons
-                name={cat.icon as any}
+              <Glyph
+                name={cat.icon}
                 size={24}
                 color={selected ? colors.buttonText : colors.muted}
               />

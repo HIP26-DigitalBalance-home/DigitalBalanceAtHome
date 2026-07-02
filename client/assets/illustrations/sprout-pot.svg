@@ -1,0 +1,34 @@
+<svg width="349" height="382" viewBox="34.11 16.92 348.98 382.18" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- stem -->
+  <path d="M192 210 C 180 174, 182 140, 196 112 C 206 92, 202 72, 194 54 C 197 47, 206 45, 211 51 C 218 74, 220 96, 209 118 C 196 144, 197 176, 209 208 Z" fill="#25C876"/>
+  <!-- left leaf -->
+  <path d="M194 134 C 158 142, 112 136, 91 107 C 75 83, 90 56, 121 54 C 158 52, 188 84, 194 134 Z" fill="#7FE7B3"/>
+  <!-- right leaf -->
+  <path d="M207 100 C 240 112, 289 106, 311 77 C 328 54, 311 29, 280 28 C 243 28, 213 56, 207 100 Z" fill="#7FE7B3"/>
+  <!-- leaf seam lines -->
+  <path d="M186 126 C 168 116, 148 104, 132 84" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M216 94 C 234 86, 254 74, 272 56" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- pot body -->
+  <path d="M100 236 C 98 262, 106 330, 116 360 C 121 374, 133 383, 151 385 C 183 389, 221 389, 251 385 C 269 383, 281 372, 285 357 C 295 328, 302 262, 299 237 C 240 231, 160 231, 100 236 Z" fill="#FC6591"/>
+  <!-- rim -->
+  <path d="M82 214 C 80 200, 88 194, 104 192 C 168 186, 236 186, 298 192 C 314 194, 321 201, 319 215 C 318 228, 310 236, 294 238 C 234 244, 168 244, 106 238 C 90 236, 84 227, 82 214 Z" fill="#FF99B6"/>
+  <!-- cheeks -->
+  <ellipse cx="146" cy="313" rx="13" ry="8" fill="#FF99B6"/>
+  <ellipse cx="255" cy="311" rx="12" ry="8" fill="#FF99B6"/>
+  <!-- eyes -->
+  <ellipse cx="168" cy="293" rx="8" ry="12" fill="#1D004B"/>
+  <ellipse cx="232" cy="292" rx="8" ry="12" fill="#1D004B"/>
+  <!-- smile -->
+  <path d="M182 316 Q 200 331 219 315" stroke="#1D004B" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <!-- butterfly -->
+  <ellipse cx="337" cy="156" rx="12" ry="10" fill="#B98FEA"/>
+  <ellipse cx="361" cy="155" rx="11" ry="9" fill="#B98FEA"/>
+  <ellipse cx="340" cy="176" rx="9" ry="7" fill="#B98FEA"/>
+  <ellipse cx="358" cy="175" rx="8" ry="7" fill="#B98FEA"/>
+  <path d="M349 148 L 349 182" stroke="#1D004B" stroke-width="4" stroke-linecap="round"/>
+  <path d="M348 149 C 345 143, 342 140, 339 138" stroke="#1D004B" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M350 149 C 353 143, 356 140, 359 138" stroke="#1D004B" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- sparkles -->
+  <path d="M58 148 C 61 156, 63 158, 71 161 C 63 164, 61 166, 58 174 C 55 166, 53 164, 45 161 C 53 158, 55 156, 58 148 Z" fill="#B98FEA"/>
+  <path d="M76 108 C 78 113, 79 114, 84 116 C 79 118, 78 119, 76 124 C 74 119, 73 118, 68 116 C 73 114, 74 113, 76 108 Z" fill="#B98FEA"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M17.9 7.7 C16.5 6.7 16.5 5.7 17.9 4.75 C19.3 3.8 19.3 2.8 17.9 1.6 Q19.0 0.55 20.1 1.6 C21.5 2.8 21.5 3.8 20.1 4.75 C18.7 5.7 18.7 6.7 20.1 7.7 Q19.0 8.75 17.9 7.7 Z"/>
+  <circle fill="currentColor" cx="14" cy="7.2" r="2.0"/>
+  <path fill="currentColor" d="M7.9 12.3 L20.1 12.3 Q21.3 12.3 21.3 11.3 Q21.3 8.6 14 8.6 Q6.7 8.6 6.7 11.3 Q6.7 12.3 7.9 12.3 Z"/>
+  <rect fill="currentColor" x="2.0" y="15.0" width="5" height="3.4" rx="1.7"/>
+  <rect fill="currentColor" x="21.0" y="15.0" width="5" height="3.4" rx="1.7"/>
+  <path fill="currentColor" d="M5.8 14.6 Q5.8 13.4 7.0 13.4 L21.0 13.4 Q22.2 13.4 22.2 14.6 L22.2 21.6 Q22.2 26.6 17.2 26.6 L10.8 26.6 Q5.8 26.6 5.8 21.6 Z"/>
+</svg>

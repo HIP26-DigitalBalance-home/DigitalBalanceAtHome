@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
+import { Glyph, type GlyphName } from '@/components/ui/illustration';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/empty-state';
@@ -25,7 +25,7 @@ interface Props {
   selectedId?: string;
 }
 
-type ChipGroup = { label: string; value: string | undefined; icon?: IconSymbolName };
+type ChipGroup = { label: string; value: string | undefined; icon?: GlyphName };
 
 export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, selectedId }: Props) {
   const { colors, radii } = useAppTheme();
@@ -39,10 +39,10 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
 
   const SEASON_CHIPS: ChipGroup[] = [
     { label: t('picker.allSeasons'), value: undefined },
-    { label: t('season.spring'), value: 'spring', icon: 'leaf.fill' },
-    { label: t('season.summer'), value: 'summer', icon: 'sun.max.fill' },
-    { label: t('season.autumn'), value: 'autumn', icon: 'wind' },
-    { label: t('season.winter'), value: 'winter', icon: 'snowflake' },
+    { label: t('season.spring'), value: 'spring', icon: 'season-spring' },
+    { label: t('season.summer'), value: 'summer', icon: 'season-summer' },
+    { label: t('season.autumn'), value: 'autumn', icon: 'season-autumn' },
+    { label: t('season.winter'), value: 'winter', icon: 'season-winter' },
   ];
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -87,7 +87,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
         style={[styles.chip, { backgroundColor: active ? colors.primary : colors.surface, borderColor: active ? colors.primary : colors.border }]}
         onPress={onPress}
       >
-        {chip.icon && <IconSymbol name={chip.icon} size={13} color={textColor} />}
+        {chip.icon && <Glyph name={chip.icon} size={13} color={textColor} />}
         <ThemedText style={[styles.chipText, { color: textColor }]}>{chip.label}</ThemedText>
       </Pressable>
     );
@@ -131,7 +131,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
             keyExtractor={(a) => a.id}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
-              <EmptyState icon="🌱" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
+              <EmptyState illustration="sprout-pot" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
             }
             renderItem={({ item }) => {
               const isSelected = item.id === selectedId;

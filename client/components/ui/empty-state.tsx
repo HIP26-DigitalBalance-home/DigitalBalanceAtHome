@@ -1,24 +1,25 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
 
 interface EmptyStateProps {
-  icon: string;
+  illustration: IllustrationName;
   title: string;
   body?: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export function EmptyState({ icon, title, body, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ illustration, title, body, actionLabel, onAction }: EmptyStateProps) {
   const { colors, radii } = useAppTheme();
 
   return (
     <View style={styles.container} accessibilityRole="none">
-      <Text style={styles.icon}>{icon}</Text>
+      <Illustration name={illustration} size={120} style={styles.icon} />
       <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
       {body ? <Text style={[styles.body, { color: colors.muted }]}>{body}</Text> : null}
       {actionLabel && onAction ? (
@@ -45,7 +46,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   icon: {
-    fontSize: 48,
     marginBottom: Spacing.sm,
   },
   title: {

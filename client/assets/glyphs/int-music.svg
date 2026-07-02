@@ -1,0 +1,7 @@
+<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+  <path fill="currentColor" d="M8.3 4.22 L23.5 2.58 Q25.2 2.4 25.2 4.1 L25.2 5.7 Q25.2 7.4 23.5 7.58 L8.3 9.22 Q6.6 9.4 6.6 7.7 L6.6 6.1 Q6.6 4.4 8.3 4.22 Z"/>
+  <rect x="6.6" y="5.6" width="3.4" height="17.6" rx="1.7" fill="currentColor"/>
+  <rect x="21.8" y="3.6" width="3.4" height="17.6" rx="1.7" fill="currentColor"/>
+  <ellipse fill="currentColor" cx="5.8" cy="21.9" rx="4.2" ry="3.7"/>
+  <ellipse fill="currentColor" cx="21.0" cy="19.9" rx="4.2" ry="3.7"/>
+</svg>

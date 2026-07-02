@@ -1,0 +1,47 @@
+<svg viewBox="7.82 12.96 383.49 422.68" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cape (behind everything) -->
+  <path d="M200 246 C160 246 128 258 104 284 C70 320 38 366 22 398 Q15 412 32 410 Q60 405 84 408 Q120 412 152 406 Q180 401 205 406 Q235 412 266 407 Q305 401 340 407 Q366 411 377 398 Q383 390 372 378 C352 350 322 306 292 280 C264 256 236 246 200 246 Z" fill="#1246DA"/>
+  <!-- Cape decorations: cream stars and moons -->
+  <path d="M0,-14 L4.11,-5.66 L13.31,-4.33 L6.66,2.16 L8.23,11.33 L0,7 L-8.23,11.33 L-6.66,2.16 L-13.31,-4.33 L-4.11,-5.66 Z" transform="translate(75,330) scale(1.1) rotate(-12)" fill="#F8F3FF"/>
+  <path d="M0,-14 L4.11,-5.66 L13.31,-4.33 L6.66,2.16 L8.23,11.33 L0,7 L-8.23,11.33 L-6.66,2.16 L-13.31,-4.33 L-4.11,-5.66 Z" transform="translate(46,382) scale(0.75) rotate(18)" fill="#F8F3FF"/>
+  <path d="M0,-14 L4.11,-5.66 L13.31,-4.33 L6.66,2.16 L8.23,11.33 L0,7 L-8.23,11.33 L-6.66,2.16 L-13.31,-4.33 L-4.11,-5.66 Z" transform="translate(320,352) scale(1.0) rotate(10)" fill="#F8F3FF"/>
+  <path d="M0,-14 L4.11,-5.66 L13.31,-4.33 L6.66,2.16 L8.23,11.33 L0,7 L-8.23,11.33 L-6.66,2.16 L-13.31,-4.33 L-4.11,-5.66 Z" transform="translate(356,392) scale(0.6) rotate(-20)" fill="#F8F3FF"/>
+  <path d="M5,-9.5 A11 11 0 1 0 5,9.5 A8.5 8.5 0 1 1 5,-9.5 Z" transform="translate(114,373) rotate(-15)" fill="#F8F3FF"/>
+  <path d="M5,-9.5 A11 11 0 1 0 5,9.5 A8.5 8.5 0 1 1 5,-9.5 Z" transform="translate(290,312) scale(0.9) rotate(25)" fill="#F8F3FF"/>
+  <!-- Ears (behind head) -->
+  <circle cx="110" cy="82" r="57" fill="#E1CDFF"/>
+  <circle cx="290" cy="82" r="55" fill="#E1CDFF"/>
+  <circle cx="113" cy="78" r="35" fill="#FF99B6"/>
+  <circle cx="287" cy="78" r="34" fill="#FF99B6"/>
+  <!-- Legs -->
+  <path d="M156 348 C154 378 153 402 158 414 C163 426 191 427 195 414 C199 402 197 375 196 348 Z" fill="#E1CDFF"/>
+  <path d="M204 348 C203 375 201 402 205 414 C209 427 237 426 242 414 C247 402 246 378 244 348 Z" fill="#E1CDFF"/>
+  <!-- Body -->
+  <path d="M200 236 C162 236 140 256 133 290 C126 328 141 366 200 369 C259 366 274 328 267 288 C260 254 238 236 200 236 Z" fill="#E1CDFF"/>
+  <ellipse cx="200" cy="316" rx="40" ry="36" fill="#F1E6FF"/>
+  <!-- Left arm on hip -->
+  <path d="M154 258 C126 264 98 280 94 302 C90 326 112 342 142 334 C148 332 150 326 146 321 C128 325 110 316 113 301 C116 287 134 276 160 271 Z" fill="#E1CDFF"/>
+  <!-- Right arm raised -->
+  <path d="M250 254 C272 246 292 230 306 210 C314 198 328 198 333 208 C338 218 331 230 318 240 C300 254 276 268 252 276 Z" fill="#E1CDFF"/>
+  <!-- Head -->
+  <path d="M200 72 C252 72 296 108 300 160 C303 205 268 242 200 244 C132 242 97 205 100 158 C104 106 148 72 200 72 Z" fill="#E1CDFF"/>
+  <!-- Kerchief -->
+  <path d="M150 236 C165 252 235 252 250 236 C255 244 252 252 243 257 C219 269 181 269 157 257 C148 252 145 244 150 236 Z" fill="#1246DA"/>
+  <circle cx="200" cy="264" r="10" fill="#1246DA"/>
+  <path d="M193 272 C186 286 181 297 180 304 C179 311 187 312 190 305 C194 296 199 285 203 276 Z" fill="#1246DA"/>
+  <path d="M208 274 C212 286 216 296 221 303 C225 309 232 306 229 299 C225 290 220 280 216 272 Z" fill="#1246DA"/>
+  <!-- Face -->
+  <ellipse cx="166" cy="148" rx="13" ry="21" fill="#F8F3FF"/>
+  <ellipse cx="234" cy="148" rx="13" ry="21" fill="#F8F3FF"/>
+  <ellipse cx="166" cy="150" rx="9.5" ry="16" fill="#1D004B"/>
+  <ellipse cx="234" cy="150" rx="9.5" ry="16" fill="#1D004B"/>
+  <circle cx="200" cy="178" r="5.5" fill="#1D004B"/>
+  <path d="M186 186 Q193 194 200 186 Q207 194 214 186" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <!-- Whiskers -->
+  <path d="M162 168 Q132 160 108 154" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M164 179 Q132 177 106 176" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M162 190 Q132 194 110 200" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M238 168 Q268 160 292 154" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M236 179 Q268 177 294 176" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M238 190 Q268 194 290 200" stroke="#1D004B" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

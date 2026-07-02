@@ -108,7 +108,7 @@ export default function GroupFeedScreen() {
         }} /></View>
       ) : entries.length === 0 ? (
         <EmptyState
-          icon="📸"
+          illustration="camera-friend"
           title={t('groupFeed.emptyTitle')}
           body={t('groupFeed.emptyBody')}
         />

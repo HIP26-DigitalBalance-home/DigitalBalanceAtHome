@@ -1,20 +1,21 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 
 interface FeatureCardProps {
-  icon: string;
+  illustration: IllustrationName;
   title: string;
   body: string;
 }
 
-export function FeatureCard({ icon, title, body }: FeatureCardProps) {
+export function FeatureCard({ illustration, title, body }: FeatureCardProps) {
   const { colors, radii } = useAppTheme();
   return (
     <View style={styles.card}>
-      <ThemedText style={styles.icon}>{icon}</ThemedText>
+      <Illustration name={illustration} size={180} />
       <ThemedText type="title" style={[styles.title, { color: colors.onSurface }]}>
         {title}
       </ThemedText>
@@ -31,7 +32,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     gap: Spacing.lg,
   },
-  icon: { fontSize: 64 },
   title: { textAlign: 'center' },
   body: { textAlign: 'center', fontSize: 16, lineHeight: 24 },
 });

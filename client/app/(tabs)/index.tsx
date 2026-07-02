@@ -349,7 +349,7 @@ export default function HomeScreen() {
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
             <EmptyState
-              icon="🎯"
+              illustration="elephant-star"
               title={t('home.emptyTitle')}
               body={t('home.emptyBody')}
               actionLabel={t('home.emptyAction')}

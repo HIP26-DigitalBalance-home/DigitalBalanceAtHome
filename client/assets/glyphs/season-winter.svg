@@ -1,0 +1,9 @@
+<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+  <circle fill="currentColor" cx="14" cy="14" r="3.9"/>
+  <g transform="rotate(0 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+  <g transform="rotate(60 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+  <g transform="rotate(120 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+  <g transform="rotate(180 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+  <g transform="rotate(240 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+  <g transform="rotate(300 14 14)"><rect fill="currentColor" x="13" y="12" width="10.5" height="4" rx="2"/><circle fill="currentColor" cx="23.6" cy="14" r="3.15"/></g>
+</svg>

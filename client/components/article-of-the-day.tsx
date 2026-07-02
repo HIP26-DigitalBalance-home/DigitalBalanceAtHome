@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ArticleDetailModal } from '@/components/article-detail-modal';
 import { PaginationDots } from '@/components/onboarding/PaginationDots';
 import { ThemedText } from '@/components/themed-text';
+import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -23,7 +24,7 @@ export interface ArticlePage {
 
 export interface Article {
   id: string;
-  icon: string;
+  icon: IllustrationName;
   eyebrow: string;
   title: string;
   description: string;
@@ -31,10 +32,10 @@ export interface Article {
 }
 
 const ARTICLE_IDS = ['screenTimeByAge', 'screenTimeAndSleep', 'movementMatters'] as const;
-const ARTICLE_ICONS: Record<(typeof ARTICLE_IDS)[number], string> = {
-  screenTimeByAge: '📱',
-  screenTimeAndSleep: '😴',
-  movementMatters: '🏃',
+const ARTICLE_ICONS: Record<(typeof ARTICLE_IDS)[number], IllustrationName> = {
+  screenTimeByAge: 'toco-phone',
+  screenTimeAndSleep: 'bunny-night',
+  movementMatters: 'parent-carry',
 };
 
 export function ArticleOfTheDay() {
@@ -95,7 +96,7 @@ export function ArticleOfTheDay() {
                     </ThemedText>
                   </View>
                   <View style={[styles.iconBubble, { backgroundColor: colors.accent + '22' }]}>
-                    <ThemedText style={styles.iconEmoji}>{article.icon}</ThemedText>
+                    <Illustration name={article.icon} size={44} />
                   </View>
                 </View>
               </Pressable>
@@ -133,6 +134,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
   description: { fontSize: 13, lineHeight: 18 },
   iconBubble: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  iconEmoji: { fontSize: 30 },
   dotsRow: { alignItems: 'center', paddingTop: Spacing.xs },
 });

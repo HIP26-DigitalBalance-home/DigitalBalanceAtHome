@@ -14,9 +14,9 @@ export default function WelcomeScreen() {
   const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const SLIDES = [
-    { icon: '🌿', title: t('welcome.slide1Title'), body: t('welcome.slide1Body') },
-    { icon: '📸', title: t('welcome.slide2Title'), body: t('welcome.slide2Body') },
-  ];
+    { illustration: 'mouse-hero', title: t('welcome.slide1Title'), body: t('welcome.slide1Body') },
+    { illustration: 'camera-friend', title: t('welcome.slide2Title'), body: t('welcome.slide2Body') },
+  ] as const;
   const [activeIndex, setActiveIndex] = useState(0);
   const isLast = activeIndex === SLIDES.length - 1;
   const slide = SLIDES[activeIndex];
@@ -34,7 +34,7 @@ export default function WelcomeScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}>
       <View style={styles.slide}>
-        <FeatureCard icon={slide.icon} title={slide.title} body={slide.body} />
+        <FeatureCard illustration={slide.illustration} title={slide.title} body={slide.body} />
       </View>
 
       <View style={styles.footer}>

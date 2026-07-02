@@ -1,0 +1,36 @@
+<svg width="341" height="373" viewBox="24.60 5.85 341.43 373.07" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- star popping out of the cup (drawn behind cup) -->
+  <path d="M191.8 20.8 Q194.4 12.2 198.1 20.5 L210.6 48.5 Q217.5 64.0 233.4 63.9 L262.0 63.6 Q270.5 63.5 264.5 69.4 L244.2 89.2 Q233.0 100.2 238.3 115.9 L247.9 144.2 Q250.8 152.5 243.0 147.9 L216.8 132.5 Q202.2 123.9 189.3 133.9 L166.1 152.0 Q159.2 157.3 160.8 148.8 L166.3 120.2 Q169.4 104.4 155.9 95.0 L131.5 78.1 Q124.3 73.1 132.9 72.0 L162.0 68.1 Q178.1 66.0 183.0 49.8 L191.8 20.8 Z" fill="#914EDB"/>
+
+  <!-- stem and base -->
+  <path d="M182 260 C180 290 176 302 166 314 L234 314 C224 302 220 290 218 260 Z" fill="#1246DA"/>
+  <rect x="148" y="306" width="104" height="30" rx="12" fill="#1246DA"/>
+  <rect x="116" y="328" width="168" height="40" rx="16" fill="#1246DA"/>
+
+  <!-- handles (behind cup body) -->
+  <path d="M118 158 C55 146 28 194 55 230 C68 248 95 252 118 238 L112 220 C96 231 79 228 70 212 C58 190 72 170 112 177 Z" fill="#98B1F8"/>
+  <path d="M282 158 C345 146 372 194 345 230 C332 248 305 252 282 238 L288 220 C304 231 321 228 330 212 C342 190 328 170 288 177 Z" fill="#98B1F8"/>
+
+  <!-- cup body -->
+  <path d="M102 142 C160 129 245 129 298 142 C306 196 288 252 243 274 C226 282 172 283 156 273 C112 252 95 198 102 142 Z" fill="#98B1F8"/>
+
+  <!-- face -->
+  <ellipse cx="167" cy="193" rx="8" ry="12" fill="#1D004B"/>
+  <ellipse cx="233" cy="191" rx="8" ry="12" fill="#1D004B"/>
+  <ellipse cx="143" cy="215" rx="11" ry="7" fill="#FF99B6"/>
+  <ellipse cx="257" cy="214" rx="11" ry="7" fill="#FF99B6"/>
+  <path d="M179 216 C186 212 214 212 221 216 C220 240 209 248 200 248 C191 248 180 240 179 216 Z" fill="#1D004B"/>
+  <ellipse cx="200" cy="240" rx="10" ry="5.5" fill="#FF99B6"/>
+
+  <!-- confetti -->
+  <circle cx="66" cy="84" r="7" fill="#FC6591"/>
+  <circle cx="332" cy="56" r="8" fill="#7FE7B3"/>
+  <circle cx="52" cy="262" r="7" fill="#B98FEA"/>
+  <circle cx="348" cy="240" r="6" fill="#FC6591"/>
+  <circle cx="120" cy="28" r="5" fill="#7FE7B3"/>
+  <circle cx="288" cy="22" r="5" fill="#B98FEA"/>
+  <rect x="34" y="112" width="26" height="9" rx="4.5" fill="#7FE7B3" transform="rotate(-28 47 116)"/>
+  <rect x="318" y="116" width="26" height="9" rx="4.5" fill="#FC6591" transform="rotate(24 331 120)"/>
+  <rect x="78" y="318" width="24" height="9" rx="4.5" fill="#B98FEA" transform="rotate(18 90 322)"/>
+  <rect x="300" y="312" width="24" height="9" rx="4.5" fill="#7FE7B3" transform="rotate(-20 312 316)"/>
+</svg>

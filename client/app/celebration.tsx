@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollageGrid } from '@/components/collage-grid';
 import { ThemedText } from '@/components/themed-text';
+import { Illustration } from '@/components/ui/illustration';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, type ChallengeWithProgress } from '@/lib/api';
@@ -116,7 +117,7 @@ export default function CelebrationScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText style={[styles.emoji]}>🎉</ThemedText>
+        <Illustration name="podium-cheer" size={160} />
         <ThemedText type="title" style={[styles.headline, { color: colors.onSurface }]}>
           {t('celebration.complete')}
         </ThemedText>
@@ -164,7 +165,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.lg,
   },
-  emoji: { fontSize: 56 },
   headline: { textAlign: 'center' },
   subtitle: { textAlign: 'center', fontSize: 15, lineHeight: 22, paddingHorizontal: Spacing.md },
   collageWrapper: { width: '100%' },

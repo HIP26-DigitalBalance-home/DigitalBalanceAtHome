@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Illustration } from '@/components/ui/illustration';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -121,7 +122,7 @@ export default function GroupsScreen() {
     }
     return (
       <EmptyState
-        icon="📸"
+        illustration="camera-friend"
         title={t('groups.feedEmpty')}
         body={t('groups.feedEmptyBody')}
       />
@@ -193,7 +194,7 @@ export default function GroupsScreen() {
         </View>
       ) : groups.length === 0 ? (
         <View style={styles.center}>
-          <ThemedText style={styles.emptyIcon}>👨‍👩‍👧</ThemedText>
+          <Illustration name="octopus-heart" size={140} style={styles.emptyIcon} />
           <ThemedText type="title" style={styles.emptyTitle}>{t('groups.noGroupsTitle')}</ThemedText>
           <ThemedText style={[styles.emptyBody, { color: colors.muted }]}>
             {t('groups.noGroupsBody')}
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   addButtonText: { fontSize: 22, fontWeight: '400', lineHeight: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
   retryButton: { padding: Spacing.sm },
-  emptyIcon: { fontSize: 56 },
+  emptyIcon: { marginBottom: Spacing.xs },
   emptyTitle: { textAlign: 'center' },
   emptyBody: { textAlign: 'center', fontSize: 15, lineHeight: 22 },
   emptyActions: { width: '100%', gap: Spacing.sm, marginTop: Spacing.md },

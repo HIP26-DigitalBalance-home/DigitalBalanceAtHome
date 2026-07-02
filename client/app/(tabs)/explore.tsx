@@ -5,7 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
-import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
+import { Glyph, type GlyphName } from '@/components/ui/illustration';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
@@ -29,12 +29,12 @@ export default function ExploreScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
 
-  function cardCopy(card: ExploreCard): { name: string; description: string; icon: IconSymbolName | null } {
+  function cardCopy(card: ExploreCard): { name: string; description: string; icon: GlyphName | null } {
     if (card.kind === 'custom') {
-      return { name: t('explore.customName'), description: t('explore.customDesc'), icon: 'sparkles' };
+      return { name: t('explore.customName'), description: t('explore.customDesc'), icon: 'tab-explore' };
     }
     if (card.kind === 'random') {
-      return { name: t('explore.randomName'), description: t('explore.randomDesc'), icon: 'dice.fill' };
+      return { name: t('explore.randomName'), description: t('explore.randomDesc'), icon: 'glyph-dice' };
     }
     return { name: card.preset.name, description: card.preset.description, icon: null };
   }
@@ -99,7 +99,7 @@ export default function ExploreScreen() {
           style={styles.stamp}
           contentStyle={styles.stampContent}
         >
-          {icon ? <IconSymbol name={icon} size={24} color={colors.primary} /> : null}
+          {icon ? <Glyph name={icon} size={24} color={colors.primary} /> : null}
           <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={3}>
             {name}
           </ThemedText>

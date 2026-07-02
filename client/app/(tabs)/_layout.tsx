@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Glyph } from '@/components/ui/illustration';
 import { TabBarBackground } from '@/components/ui/tab-bar-background';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useTabBar } from '@/lib/tab-bar-context';
@@ -58,28 +58,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Glyph size={26} name="tab-home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: t('tabs.explore'),
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="sparkles" color={color} />,
+          tabBarIcon: ({ color }) => <Glyph size={26} name="tab-explore" color={color} />,
         }}
       />
       <Tabs.Screen
         name="groups"
         options={{
           title: t('tabs.groups'),
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.3.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Glyph size={26} name="tab-groups" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Glyph size={26} name="tab-profile" color={color} />,
         }}
       />
     </Tabs>

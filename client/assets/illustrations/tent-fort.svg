@@ -1,0 +1,40 @@
+<svg viewBox="15.99 2.32 368.80 401.23" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- mint ground blob -->
+  <path d="M28 366 C40 340 110 330 200 330 C290 330 362 340 373 366 C378 380 340 392 200 392 C60 392 22 380 28 366 Z" fill="#7FE7B3"/>
+  <!-- blue blanket tent -->
+  <path d="M203 50 C158 82 118 170 92 258 C78 306 70 330 66 344 C63 355 72 361 84 359 C100 356 116 362 134 359 C152 356 168 362 188 359 C208 356 226 362 246 359 C264 356 280 362 300 359 C316 356 330 360 336 350 C338 344 332 322 324 292 C300 200 258 92 203 50 Z" fill="#1246DA"/>
+  <!-- cream glowing entrance -->
+  <path d="M200 145 C180 196 164 268 159 354 C186 358 216 358 243 354 C238 268 221 196 200 145 Z" fill="#F8F3FF"/>
+  <!-- lavender cushion peeking out -->
+  <path d="M148 352 C150 336 172 328 200 328 C228 328 250 336 252 352 C253 362 240 368 200 368 C160 368 147 362 148 352 Z" fill="#B98FEA"/>
+  <path d="M180 341 Q200 349 220 341" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- cream crescent moons (bite circle in tent blue) -->
+  <circle cx="128" cy="235" r="13" fill="#F8F3FF"/>
+  <circle cx="135" cy="229" r="12" fill="#1246DA"/>
+  <circle cx="272" cy="250" r="12" fill="#F8F3FF"/>
+  <circle cx="266" cy="244" r="11" fill="#1246DA"/>
+  <!-- cream four-point stars -->
+  <path d="M155 150 C157 156 158 157 164 159 C158 161 157 162 155 168 C153 162 152 161 146 159 C152 157 153 156 155 150 Z" fill="#F8F3FF"/>
+  <path d="M250 145 C252 151 253 152 259 154 C253 156 252 157 250 163 C248 157 247 156 241 154 C247 152 248 151 250 145 Z" fill="#F8F3FF"/>
+  <path d="M112 305 C114 311 115 312 121 314 C115 316 114 317 112 323 C110 317 109 316 103 314 C109 312 110 311 112 305 Z" fill="#F8F3FF"/>
+  <path d="M290 300 C292 306 293 307 299 309 C293 311 292 312 290 318 C288 312 287 311 290 300 Z" fill="#F8F3FF"/>
+  <!-- small cream dots -->
+  <circle cx="150" cy="320" r="3.5" fill="#F8F3FF"/>
+  <circle cx="256" cy="318" r="3.5" fill="#F8F3FF"/>
+  <circle cx="300" cy="200" r="3" fill="#F8F3FF"/>
+  <circle cx="108" cy="180" r="3" fill="#F8F3FF"/>
+  <!-- glow rays around the entrance -->
+  <rect x="-8" y="-2.5" width="16" height="5" rx="2.5" fill="#F8F3FF" transform="translate(146 210) rotate(-65)"/>
+  <rect x="-8" y="-2.5" width="16" height="5" rx="2.5" fill="#F8F3FF" transform="translate(138 280) rotate(-80)"/>
+  <rect x="-8" y="-2.5" width="16" height="5" rx="2.5" fill="#F8F3FF" transform="translate(258 212) rotate(65)"/>
+  <rect x="-8" y="-2.5" width="16" height="5" rx="2.5" fill="#F8F3FF" transform="translate(266 282) rotate(80)"/>
+  <!-- face -->
+  <ellipse cx="183" cy="104" rx="4.5" ry="7.5" fill="#1D004B"/>
+  <ellipse cx="222" cy="102" rx="4.5" ry="7.5" fill="#1D004B"/>
+  <path d="M193 117 Q203 125 212 116" stroke="#1D004B" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="169" cy="116" rx="7" ry="4.5" fill="#FF99B6"/>
+  <ellipse cx="236" cy="113" rx="7" ry="4.5" fill="#FF99B6"/>
+  <!-- flag pole and pink pennant -->
+  <path d="M206 52 L202 16" stroke="#1D004B" stroke-width="4" stroke-linecap="round"/>
+  <path d="M202 15 C219 14 238 19 250 26 C237 32 219 35 203 36 Z" fill="#FC6591"/>
+</svg>
