@@ -163,15 +163,15 @@ export const de = {
         pages: [
           {
             heading: 'Altersgerechte Richtwerte',
-            body: 'Unter 3 Jahren: möglichst keine oder nur kurze, gemeinsam angeschaute Bildschirmzeit. 3–5 Jahre: rund 30 Minuten täglich, nicht jeden Tag und immer begleitet. 6–9 Jahre: etwa 45–60 Minuten, an Schultagen weniger. 10–13 Jahre: rund 1–1,5 Stunden mit klaren Regeln.',
+            body: 'Wie viel Bildschirmzeit gesund ist, hängt vor allem vom Alter eures Kindes ab, und jüngere Kinder brauchen deutlich engere Grenzen. Unter 3 Jahren: möglichst gar keine oder nur kurze, gemeinsam angeschaute Bildschirmzeit, damit ihr über das Gesehene sprechen könnt. 3–5 Jahre: rund 30 Minuten täglich, nicht jeden Tag und immer begleitet. 6–9 Jahre: etwa 45–60 Minuten, an Schultagen spürbar weniger, wenn Hausaufgaben und Schlaf Vorrang haben. 10–13 Jahre: rund 1 bis 1,5 Stunden, immer mit klaren, verlässlichen Regeln. Versteht diese Werte als Ausgangspunkt und nicht als starres Kontingent, und achtet darauf, was die Bildschirmzeit im Tag eures Kindes verdrängt.',
           },
           {
             heading: 'Woran ihr Übernutzung erkennt',
-            body: 'Hohe Bildschirmzeit allein ist noch kein Problem. Achtet auf Warnzeichen: Euer Kind kann nicht aufhören oder hält Absprachen nicht ein, vernachlässigt Schule, Hobbys oder Freundschaften, reagiert gereizt oder unruhig ohne Gerät und macht trotzdem weiter.',
+            body: 'Eine hohe Zahl an Bildschirmstunden ist für sich genommen noch kein Problem, und der Vergleich mit anderen Familien hilft selten weiter. Viel wichtiger ist, wie sich die Nutzung in den Alltag einfügt. Achtet stattdessen auf Warnzeichen: Euer Kind kann nicht aufhören, wenn die Zeit um ist, oder hält Absprachen wiederholt nicht ein, vernachlässigt Schule, Hobbys oder Freundschaften oder reagiert gereizt, angespannt oder unruhig ohne Gerät und macht trotzdem weiter. Wenn mehrere dieser Zeichen über längere Zeit zusammenkommen, lohnt es sich, den ganzen Tagesablauf anzuschauen statt nur einen einzelnen Nachmittag.',
           },
           {
             heading: 'Gemeinsame Regeln statt Verbote',
-            body: 'Legt Mediendauer und mediumfreie Zonen gemeinsam fest, etwa am Esstisch oder im Schlafzimmer, am besten in einer einfachen „Familienmedienvereinbarung". Bietet Alternativen statt nur zu verbieten: Sport, Freunde treffen, gemeinsam vorlesen. Und geht selbst mit gutem Beispiel voran.',
+            body: 'Regeln, die ihr gemeinsam aufstellt, halten meist deutlich länger als solche, die als Verbot von oben kommen. Legt Mediendauer und mediumfreie Zonen als Familie gemeinsam fest, etwa am Esstisch oder im Schlafzimmer, am besten schriftlich festgehalten in einer einfachen „Familienmedienvereinbarung", die alle sehen können. Statt nur etwas wegzunehmen, bietet reizvolle Alternativen an: Sport, Freunde treffen, draußen spielen oder gemeinsam vorlesen. Vor allem aber geht selbst mit gutem Beispiel voran, denn Kinder ahmen den Umgang der Erwachsenen mit dem eigenen Handy weit stärker nach, als sie gesprochenen Regeln folgen.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Q&A Digitale Medien',
@@ -188,15 +188,15 @@ export const de = {
         pages: [
           {
             heading: 'Blaues Licht bremst die Müdigkeit',
-            body: 'Bildschirme senden blaues Licht aus, das die Produktion des Schlafhormons Melatonin unterdrückt. Dazu kommt spannender Inhalt wie Spiele oder soziale Netzwerke, der das Gehirn zusätzlich aufputscht. Beides zusammen erschwert das Einschlafen.',
+            body: 'Bildschirme senden blaues Licht aus, das die Produktion des Schlafhormons Melatonin unterdrückt, das dem Körper eigentlich signalisiert, dass es Zeit zum Schlafen ist – so bleibt das Gehirn noch lange nach dem Ausschalten im „Tagmodus". Dazu kommt spannender Inhalt wie Spiele, Videos oder soziale Netzwerke, der den Kopf weiter kreisen und emotional aufgedreht lässt. Beides zusammen verschiebt den Moment, in dem Müdigkeit einsetzt, weshalb ein Kind selbst nach einem langen, vollen Tag zur Schlafenszeit hellwach wirken kann.',
           },
           {
             heading: 'Die Folgen von zu wenig Schlaf',
-            body: 'Schlechter Schlaf schwächt Gedächtnis und Konzentration, kann die Tagesleistung um bis zu 25 % senken und schwächt das Immunsystem. Auf lange Sicht steigt sogar das Risiko für Herz-Kreislauf-Erkrankungen und depressive Verstimmungen.',
+            body: 'Im Schlaf erholen sich Gehirn und Körper von Kindern, deshalb summiert sich zu wenig davon schnell. Schlechter Schlaf schwächt Gedächtnis und Konzentration und kann die Tagesleistung um bis zu 25 % senken, was sich als Konzentrationsprobleme in der Schule und kürzere Geduld zu Hause zeigt. Er schwächt außerdem das Immunsystem, sodass alltägliche Infekte wahrscheinlicher werden. Auf lange Sicht steigt bei dauerhaft zu kurzem Schlaf sogar das Risiko für Herz-Kreislauf-Erkrankungen und depressive Verstimmungen – Schlaf zu schützen ist damit eines der wirksamsten Dinge, die Familien für die Gesundheit tun können.',
           },
           {
             heading: 'So gelingt der Ausklang ohne Bildschirm',
-            body: 'Verzichtet in den letzten 2–3 Stunden vor dem Schlafengehen auf Bildschirme und lasst Handys nachts nicht im Kinderzimmer. Vorlesen oder ruhige Musik sind gute Alternativen. Strikte Verbote wirken oft weniger als gemeinsam vereinbarte, für alle geltende Regeln.',
+            body: 'Ein ruhiger, bildschirmfreier Ausklang hilft dem Körper, von selbst in den Schlafmodus zu wechseln. Versucht, in den letzten 2–3 Stunden vor dem Schlafengehen auf Bildschirme zu verzichten, und lasst Handys und Tablets nachts nicht im Kinderzimmer, damit die Versuchung, doch noch zu schauen, gar nicht erst besteht. Vorlesen, ein warmes Bad, ruhiges Erzählen über den Tag oder leise Musik sind sanfte Alternativen, die dem Kind signalisieren, dass der Tag zu Ende geht. Strikte Verbote wirken oft weniger als Regeln, die die ganze Familie gemeinsam vereinbart und für alle – auch die Eltern – gelten, denn ein geteilter Ablauf fühlt sich fair an statt wie eine Strafe.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
@@ -213,15 +213,15 @@ export const de = {
         pages: [
           {
             heading: '60 Minuten am Tag',
-            body: 'Die Weltgesundheitsorganisation empfiehlt für Kinder mindestens 60 Minuten Bewegung täglich, bei der sie außer Atem geraten. Tatsächlich schaffen das nur 7,5 % der Mädchen und 16 % der Jungen zwischen 14 und 17 Jahren.',
+            body: 'Die Weltgesundheitsorganisation empfiehlt für Kinder mindestens 60 Minuten Bewegung täglich, und die sollte lebhaft genug sein, um außer Atem zu geraten, statt nur ein gemütlicher Spaziergang zu sein. Diese Stunde muss nicht am Stück passieren: der Weg zur Schule, Spielen im Hof und Herumtoben auf dem Spielplatz summieren sich über den Tag. Tatsächlich schaffen dieses Ziel aber nur 7,5 % der Mädchen und 16 % der Jungen zwischen 14 und 17 Jahren, was zeigt, wie viel Alltagsbewegung aus dem Leben vieler Kinder still verschwunden ist.',
           },
           {
             heading: 'Was Bildschirmzeit verdrängt',
-            body: 'Kinder mit hohem Medienkonsum sprechen weniger mit Eltern und anderen Kindern und musizieren seltener als Kinder mit wenig Bildschirmzeit. Viel Bildschirmzeit hängt zudem mit schlechterer Konzentration und schulischen Leistungen zusammen.',
+            body: 'Das Problem an viel Bildschirmzeit ist oft nicht der Bildschirm selbst, sondern all das, was er still verdrängt. Kinder mit hohem Medienkonsum sprechen weniger mit ihren Eltern und mit anderen Kindern und musizieren seltener als Kinder mit wenig Bildschirmzeit. Genau das sind die gemeinsamen Tätigkeiten mit Hin und Her, die Sprache, Geduld und Beziehungen aufbauen. Viel Bildschirmzeit hängt zudem mit schlechterer Konzentration und schwächeren schulischen Leistungen zusammen, sodass die Stunden vor dem Gerät in viele andere Bereiche des Tages nachhallen können.',
           },
           {
             heading: 'Bewegung tut der Seele gut',
-            body: 'Bewegung wirkt sich nicht nur auf die Fitness aus, sondern auch positiv auf die Stimmung und wirkt vorbeugend gegen depressive Verstimmungen. Schon ein täglicher Spaziergang oder freies Spiel draußen unterstützt die körperliche, geistige und soziale Entwicklung.',
+            body: 'Bewegung wirkt sich auf weit mehr aus als auf Muskeln und Fitness. Aktiv zu sein löst Anspannung, hebt die Stimmung und wirkt vorbeugend gegen depressive Verstimmungen – fast wie ein natürlicher Stimmungsregler für Kinder wie Erwachsene. Sie unterstützt außerdem besseren Schlaf und danach schärfere Konzentration. Und nichts davon braucht ein Fitnessstudio oder besondere Ausrüstung: Schon ein täglicher Spaziergang, eine gemeinsame Radtour oder freies Spiel draußen unterstützt körperliche, geistige und soziale Entwicklung zugleich, besonders wenn ein Elternteil mitmacht und daraus gemeinsame Zeit wird.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Aktive Kinder, rege Erwachsene',

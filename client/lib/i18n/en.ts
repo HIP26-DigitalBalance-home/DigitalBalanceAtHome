@@ -163,15 +163,15 @@ export const en = {
         pages: [
           {
             heading: 'Age-appropriate guidelines',
-            body: 'Under 3: ideally none, or only brief sessions watched together. Ages 3–5: about 30 minutes a day, not every day, always supervised. Ages 6–9: about 45–60 minutes, less on school days. Ages 10–13: about 1–1.5 hours with clear rules.',
+            body: 'How much screen time is healthy depends above all on your child\'s age, and younger children need much tighter limits. Under 3: ideally none at all, or only brief sessions watched together so you can talk about what you see. Ages 3–5: about 30 minutes a day, not every day, and always supervised. Ages 6–9: roughly 45–60 minutes, noticeably less on school days when homework and sleep come first. Ages 10–13: around 1 to 1.5 hours, always paired with clear, predictable rules. Treat these numbers as a starting point rather than a strict quota, and pay attention to what the screen time replaces in your child\'s day.',
           },
           {
             heading: 'Signs of overuse',
-            body: 'High screen time alone is not a problem. Watch for warning signs instead: your child cannot stop or breaks agreements, neglects school, hobbies or friendships, reacts irritably or restlessly without the device and keeps going anyway.',
+            body: 'A high number of screen hours on its own is not automatically a problem, and comparing your family to others rarely helps. What matters far more is how the use fits into everyday life. Watch for warning signs instead: your child cannot stop when time is up or repeatedly breaks agreements, starts to neglect school, hobbies or friendships, or reacts irritably, tense or restless without the device and keeps going anyway. When several of these appear together over a longer stretch, it is worth pausing to look at the whole daily routine rather than a single afternoon.',
           },
           {
             heading: 'Shared rules instead of bans',
-            body: 'Agree on media time and media-free zones together, like the dinner table or the bedroom, ideally as a simple "family media agreement." Offer alternatives instead of just banning: sports, seeing friends, reading together. And lead by example yourselves.',
+            body: 'Rules that you set together tend to last far longer than ones handed down as bans. Agree on media time and media-free zones as a family, like the dinner table or the bedroom, ideally written down as a simple "family media agreement" everyone can see. Instead of only taking something away, offer appealing alternatives: sports, seeing friends, playing outside, or reading together. Above all, lead by example, because children copy how the adults around them use their own phones far more than they follow spoken rules.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Q&A Digitale Medien',
@@ -188,15 +188,15 @@ export const en = {
         pages: [
           {
             heading: 'Blue light blocks tiredness',
-            body: 'Screens emit blue light that suppresses the sleep hormone melatonin. On top of that, exciting content like games or social media overstimulates the brain. Together, both make it harder to fall asleep.',
+            body: 'Screens emit blue light that suppresses melatonin, the hormone that signals the body it is time to sleep, so the brain stays in "daytime" mode long after the lights are out. On top of that, exciting content like games, videos or social media keeps the mind racing and emotionally wound up. Together these two effects push back the moment tiredness sets in, which is why a child can feel wide awake at bedtime even after a long, busy day.',
           },
           {
             heading: 'The effects of too little sleep',
-            body: 'Poor sleep weakens memory and concentration, can lower daytime performance by up to 25%, and weakens the immune system. Over the long term, it even raises the risk of cardiovascular disease and depressive moods.',
+            body: 'Sleep is when children\'s brains and bodies recover, so falling short adds up quickly. Poor sleep weakens memory and concentration and can lower daytime performance by up to 25%, which shows up as trouble focusing in school and a shorter fuse at home. It also weakens the immune system, making everyday infections more likely. Over the long term, chronically short sleep even raises the risk of cardiovascular disease and depressive moods, so protecting sleep is one of the most powerful things families can do for health.',
           },
           {
             heading: 'How to wind down without a screen',
-            body: 'Avoid screens in the last 2–3 hours before bedtime, and keep phones out of the bedroom at night. Reading aloud or calm music are good alternatives. Strict bans often work less well than rules agreed on together and applied to everyone.',
+            body: 'A calm, screen-free run-up to bedtime helps the body switch into sleep mode on its own. Try to avoid screens in the last 2–3 hours before sleep, and keep phones and tablets out of the bedroom overnight so the temptation to check them is simply gone. Reading aloud, a warm bath, quiet talking about the day or calm music make gentle alternatives that signal the day is ending. Strict bans often work less well than rules the whole family agrees on together and applies to everyone, parents included, because a shared routine feels fair rather than like a punishment.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Zu viel Bildschirmzeit bringt Kinder um den Schlaf',
@@ -213,15 +213,15 @@ export const en = {
         pages: [
           {
             heading: '60 minutes a day',
-            body: 'The World Health Organization recommends at least 60 minutes of activity a day for children, enough to get out of breath. In reality, only 7.5% of girls and 16% of boys aged 14 to 17 manage that.',
+            body: 'The World Health Organization recommends at least 60 minutes of activity a day for children, and it should be lively enough to get them out of breath rather than a gentle stroll. That hour does not have to happen all at once: walking to school, playing in the yard and running around at the playground all add up over the day. In reality, though, only 7.5% of girls and 16% of boys aged 14 to 17 manage to reach that goal, which shows how much everyday movement has quietly disappeared from many children\'s lives.',
           },
           {
             heading: 'What screen time crowds out',
-            body: 'Children with high media use talk less with parents and other children, and play a musical instrument less often, than children with little screen time. High screen time is also linked to worse concentration and school performance.',
+            body: 'The problem with a lot of screen time is often not the screen itself but everything it quietly replaces. Children with high media use talk less with their parents and with other children, and pick up a musical instrument less often, than children with little screen time. Those are exactly the shared, back-and-forth activities that build language, patience and relationships. High screen time is also linked to worse concentration and weaker school performance, so the hours in front of a device can echo into many other parts of a child\'s day.',
           },
           {
             heading: 'Movement is good for the mind',
-            body: 'Movement affects more than fitness. It also lifts mood and helps prevent depressive moods. Even a daily walk or free play outside supports physical, mental, and social development.',
+            body: 'Movement affects far more than muscles and fitness. Being active releases tension, lifts mood and helps prevent depressive moods, so it works almost like a natural mood regulator for children and adults alike. It also supports better sleep and sharper concentration afterwards. And none of it needs a gym or special gear: even a daily walk, a bike ride together or free play outside supports physical, mental and social development at the same time, especially when a parent joins in and turns it into shared time.',
             sources: [
               {
                 label: 'Stiftung Kindergesundheit: Aktive Kinder, rege Erwachsene',
