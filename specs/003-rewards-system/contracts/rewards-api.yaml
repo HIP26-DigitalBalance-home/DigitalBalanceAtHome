@@ -1,0 +1,686 @@
+openapi: "3.1.0"
+info:
+  title: DigitalBalance @home — Rewards API (additions)
+  description: |
+    Defines all new endpoints and schema extensions for the Group-Scoped Rewards System
+    (feature 003). These additions must be merged into `docs/openapi.yaml` before codegen
+    is run. Existing endpoints not listed here are unchanged.
+  version: "0.1.0"
+
+# ─── Schema extensions ────────────────────────────────────────────────────────
+components:
+  schemas:
+
+    # Extend the existing CompletionStatus enum
+    CompletionStatus:
+      type: string
+      enum:
+        - processing
+        - pending_verification
+        - verified
+        - rejected
+        - self_reported
+      description: |
+        `ready` is removed. `pending_verification` replaces it as the status set
+        after photo compression. `verified` is awarded by admin approval. `rejected`
+        is set by admin rejection. `self_reported` is unchanged.
+
+    RewardsSettings:
+      type: object
+      required: [rewards_enabled, default_activity_points]
+      properties:
+        rewards_enabled:
+          type: boolean
+        auto_approve_days:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: "null = never auto-approve; positive integer = days after which pending photos are auto-approved"
+        default_activity_points:
+          type: integer
+          minimum: 1
+
+    ActivityPointOverride:
+      type: object
+      required: [challenge_activity_id, points]
+      properties:
+        challenge_activity_id:
+          type: string
+          format: uuid
+        points:
+          type: integer
+          minimum: 1
+
+    ActivityPointOverrideList:
+      type: array
+      items:
+        $ref: "#/components/schemas/ActivityPointOverride"
+
+    FamilyBalance:
+      type: object
+      required: [family_id, group_id, balance]
+      properties:
+        family_id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        balance:
+          type: integer
+          minimum: 0
+
+    PrizeCategory:
+      type: string
+      enum: [collage_printing, experience, activity_voucher, goods]
+
+    Prize:
+      type: object
+      required: [id, group_id, title, point_cost, category, available]
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        title_en:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        description_en:
+          type: string
+          nullable: true
+        point_cost:
+          type: integer
+          minimum: 1
+        category:
+          $ref: "#/components/schemas/PrizeCategory"
+        available:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        voucher_stock:
+          type: integer
+          nullable: true
+          description: "Remaining unredeemed codes. Only present in admin responses."
+
+    PrizeCreate:
+      type: object
+      required: [title, point_cost, category]
+      properties:
+        title:
+          type: string
+        title_en:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        description_en:
+          type: string
+          nullable: true
+        point_cost:
+          type: integer
+          minimum: 1
+        category:
+          $ref: "#/components/schemas/PrizeCategory"
+        available:
+          type: boolean
+          default: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    PrizePatch:
+      type: object
+      properties:
+        title:
+          type: string
+        title_en:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        description_en:
+          type: string
+          nullable: true
+        point_cost:
+          type: integer
+          minimum: 1
+        available:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    VoucherUpload:
+      type: object
+      required: [codes]
+      properties:
+        codes:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: "List of voucher code strings to add to the prize's pool"
+
+    VoucherStock:
+      type: object
+      required: [prize_id, remaining]
+      properties:
+        prize_id:
+          type: string
+          format: uuid
+        remaining:
+          type: integer
+          minimum: 0
+
+    RedemptionResult:
+      type: object
+      required: [redemption_id, prize_id, points_spent, voucher_code, redeemed_at]
+      properties:
+        redemption_id:
+          type: string
+          format: uuid
+        prize_id:
+          type: string
+          format: uuid
+        points_spent:
+          type: integer
+        voucher_code:
+          type: string
+          description: "The actual code to present to the partner. Shown in-app only."
+        redeemed_at:
+          type: string
+          format: date-time
+
+    PendingVerificationItem:
+      type: object
+      required: [completion_id, family_name, activity_title, photo_url, submitted_at]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+        family_name:
+          type: string
+          nullable: true
+          description: "Family display name. Never contains child names."
+        activity_title:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+          description: "15-minute presigned S3 URL for the verification photo"
+        submitted_at:
+          type: string
+          format: date-time
+
+    VerificationQueue:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PendingVerificationItem"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    RejectPayload:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+
+    RejectionInfo:
+      type: object
+      required: [completion_id, rejection_reason]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+        rejection_reason:
+          type: string
+          nullable: true
+          description: "Most recent rejection reason; null if status is not rejected"
+
+# ─── New paths ────────────────────────────────────────────────────────────────
+paths:
+
+  # Rewards settings
+  /groups/{group_id}/rewards/settings:
+    get:
+      operationId: getGroupRewardsSettings
+      summary: Get rewards configuration for a group (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardsSettings"
+        "403": { description: Not a group admin }
+        "404": { description: Group not found }
+
+    patch:
+      operationId: patchGroupRewardsSettings
+      summary: Update rewards configuration for a group (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RewardsSettings"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardsSettings"
+        "403": { description: Not a group admin }
+        "404": { description: Group not found }
+
+  # Per-activity point overrides
+  /groups/{group_id}/rewards/activity-points:
+    get:
+      operationId: getGroupActivityPoints
+      summary: List all per-activity point overrides for a group (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPointOverrideList"
+        "403": { description: Not a group admin }
+
+  /groups/{group_id}/rewards/activity-points/{challenge_activity_id}:
+    patch:
+      operationId: patchGroupActivityPoints
+      summary: Set point override for a specific activity (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: challenge_activity_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [points]
+              properties:
+                points:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPointOverride"
+        "403": { description: Not a group admin }
+        "404": { description: Group or activity not found }
+
+  # Family balance
+  /groups/{group_id}/rewards/balance:
+    get:
+      operationId: getMyGroupBalance
+      summary: Get the calling family's point balance within a group
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyBalance"
+        "404": { description: Group not found or family not a member }
+
+  # Prize catalog
+  /groups/{group_id}/prizes:
+    get:
+      operationId: listGroupPrizes
+      summary: List prizes for a group (members see available only; admins see all)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prize"
+
+    post:
+      operationId: createGroupPrize
+      summary: Create a new prize in a group's catalog (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrizeCreate"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prize"
+        "403": { description: Not a group admin }
+
+  /groups/{group_id}/prizes/{prize_id}:
+    patch:
+      operationId: patchGroupPrize
+      summary: Update a prize (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: prize_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrizePatch"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prize"
+        "403": { description: Not a group admin }
+        "404": { description: Prize not found }
+
+  /groups/{group_id}/prizes/{prize_id}/vouchers:
+    post:
+      operationId: uploadVoucherCodes
+      summary: Bulk-upload voucher codes for a prize (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: prize_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherUpload"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+        "403": { description: Not a group admin }
+        "404": { description: Prize not found }
+
+  /groups/{group_id}/prizes/{prize_id}/vouchers/remaining:
+    get:
+      operationId: getVoucherStock
+      summary: Get remaining unredeemed voucher count (admin only)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: prize_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherStock"
+        "403": { description: Not a group admin }
+
+  # Redemption
+  /groups/{group_id}/prizes/{prize_id}/redeem:
+    post:
+      operationId: redeemPrize
+      summary: Redeem a prize atomically; returns the voucher code
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: prize_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionResult"
+        "402":
+          description: Insufficient points
+        "409":
+          description: No voucher codes remaining (out of stock)
+        "404": { description: Prize not found or not available }
+
+  # Photo verification (admin)
+  /groups/{group_id}/admin/verifications:
+    get:
+      operationId: getVerificationQueue
+      summary: List pending_verification completions for admin review
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationQueue"
+        "403": { description: Not a group admin }
+
+  /groups/{group_id}/admin/verifications/{completion_id}/approve:
+    post:
+      operationId: approvePhoto
+      summary: Approve a pending completion photo; awards points
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: completion_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  points_awarded:
+                    type: integer
+        "403": { description: Not a group admin }
+        "404": { description: Completion not found or not in pending_verification }
+        "409": { description: Completion already verified or rejected }
+
+  /groups/{group_id}/admin/verifications/{completion_id}/reject:
+    post:
+      operationId: rejectPhoto
+      summary: Reject a pending completion photo with a mandatory reason
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: completion_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectPayload"
+      responses:
+        "200": { description: Rejection recorded }
+        "403": { description: Not a group admin }
+        "404": { description: Completion not found or not in pending_verification }
+        "409": { description: Completion already verified or rejected }
+
+  # Photo re-upload
+  /completions/{completion_id}/photo:
+    patch:
+      operationId: reuploadCompletionPhoto
+      summary: |
+        Re-upload a photo for an existing completion.
+        - If status is `rejected`: resets to `pending_verification`.
+        - If status is `verified`: updates photo only; status unchanged.
+        - If status is `processing` or `pending_verification`: replaces raw upload and re-triggers pipeline.
+      parameters:
+        - name: completion_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completion_id:
+                    type: string
+                    format: uuid
+                  status:
+                    $ref: "#/components/schemas/CompletionStatus"
+        "403": { description: Not the family's completion }
+        "404": { description: Completion not found }
+        "422": { description: Cannot re-upload (e.g. self_reported completion) }
