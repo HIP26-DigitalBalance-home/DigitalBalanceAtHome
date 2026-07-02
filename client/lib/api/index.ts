@@ -16,3 +16,5 @@ export { usersApi } from './users';
 export type { CompletionHistoryItem } from './completions';
 export { progressApi } from './progress';
 export type { FamilyProgress, WeekStats, StreakStats, AllTimeStats, FamilySettingsUpdate } from './progress';
+export { journalApi } from './journal';
+export type { JournalEntry } from './journal';

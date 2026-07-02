@@ -440,8 +440,8 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
 
 };
 
-export const DEFAULT_THEME_ID: ThemeId = 'sage';
+export const DEFAULT_THEME_ID: ThemeId = 'tocoWarm';
 
 // For use inside StyleSheet.create() which runs at module level (before any theme is known).
 // JSX inline styles should use `radii` from `useAppTheme()` for live theme switching.
-export const DEFAULT_RADII: ThemeRadii = THEMES.sage.radii;
+export const DEFAULT_RADII: ThemeRadii = THEMES.tocoWarm.radii;

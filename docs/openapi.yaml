@@ -1064,6 +1064,59 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /journal/entries:
+    post:
+      operationId: createJournalEntry
+      tags: [Journal]
+      summary: Record the parent's mood for a day (one entry per user per day)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJournalEntryRequest"
+      responses:
+        "201":
+          description: Journal entry recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      operationId: getJournalEntries
+      tags: [Journal]
+      summary: Get the current user's journal entries within a date range
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Journal entries ordered by entry_date ascending
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JournalEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /dev/seed:
     post:
       operationId: seedDemo
@@ -1222,6 +1275,11 @@ components:
     CompletionStatus:
       type: string
       enum: [processing, ready, self_reported]
+
+    Mood:
+      type: string
+      description: Daily self-reported mood, from worst to best
+      enum: [bad, not_good, okay, good, super]
 
     # Shared
 
@@ -2056,3 +2114,33 @@ components:
           type: integer
           minimum: 1
           example: 3
+
+    # Journal
+
+    JournalEntry:
+      type: object
+      required: [id, entry_date, mood, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        entry_date:
+          type: string
+          format: date
+          description: The user's local calendar date the mood refers to
+        mood:
+          $ref: "#/components/schemas/Mood"
+        created_at:
+          type: string
+          format: date-time
+
+    CreateJournalEntryRequest:
+      type: object
+      required: [entry_date, mood]
+      properties:
+        entry_date:
+          type: string
+          format: date
+          description: The user's local calendar date (clients send their own "today")
+        mood:
+          $ref: "#/components/schemas/Mood"

@@ -20,6 +20,7 @@ from app.api import (
     families,
     groups,
     health,
+    journal,
     photos,
     progress,
     users,
@@ -136,6 +137,7 @@ app.include_router(challenges.router, prefix="/challenges", tags=["challenges"])
 app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])
 app.include_router(progress.router, prefix="/families", tags=["families"])
+app.include_router(journal.router, prefix="/journal", tags=["journal"])
 
 if settings.SEED_ENABLED:
     from app.api import dev

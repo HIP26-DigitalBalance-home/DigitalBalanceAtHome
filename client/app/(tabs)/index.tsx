@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArticleOfTheDay } from '@/components/article-of-the-day';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
+import { JournalCard } from '@/components/journal-card';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -304,6 +305,9 @@ export default function HomeScreen() {
             <IconSymbol name="chevron.right" size={16} color={colors.muted} />
           </Pressable>
         )}
+
+        {/* Daily mood check-in — hides itself once answered */}
+        <JournalCard />
 
         {/* Active challenge collages */}
         {loadingChallenges ? (

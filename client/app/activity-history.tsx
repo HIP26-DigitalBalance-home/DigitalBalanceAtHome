@@ -1,19 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { MOODS, MOOD_BY_KEY } from '@/constants/journal';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
-import { completionsApi } from '@/lib/api';
+import { completionsApi, journalApi } from '@/lib/api';
+import { weekRange } from '@/lib/journal-utils';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
-import type { CompletionHistoryItem } from '@/lib/api';
+import type { CompletionHistoryItem, JournalEntry } from '@/lib/api';
 
 const PAGE_SIZE = 20;
+const CHART_HEIGHT = 140;
 
 export default function ActivityHistoryScreen() {
   const { colors, radii } = useAppTheme();
@@ -50,6 +53,38 @@ export default function ActivityHistoryScreen() {
   }, [i18n.language]);
 
   useEffect(() => { load(true); }, [load]);
+
+  // Mood journal data for the analyze tab
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [moodEntries, setMoodEntries] = useState<JournalEntry[]>([]);
+  const [loadingMood, setLoadingMood] = useState(true);
+  const [moodError, setMoodError] = useState<string | null>(null);
+  const [moodReload, setMoodReload] = useState(0);
+  const week = useMemo(() => weekRange(weekOffset), [weekOffset]);
+
+  useEffect(() => {
+    if (tab !== 'analyze') return;
+    let cancelled = false;
+    setLoadingMood(true);
+    setMoodError(null);
+    journalApi
+      .getEntries(week.start, week.end)
+      .then((res) => { if (!cancelled) setMoodEntries(res.data); })
+      .catch((e) => { if (!cancelled) setMoodError(getGermanErrorMessage(e)); })
+      .finally(() => { if (!cancelled) setLoadingMood(false); });
+    return () => { cancelled = true; };
+  }, [tab, week, i18n.language, moodReload]);
+
+  const entriesByDay = useMemo(() => {
+    const map: Record<string, JournalEntry> = {};
+    for (const e of moodEntries) map[e.entry_date] = e;
+    return map;
+  }, [moodEntries]);
+
+  const weekLabel = useMemo(() => {
+    const fmt = (d: Date) => d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' });
+    return `${fmt(week.dates[0])} – ${fmt(week.dates[6])}`;
+  }, [week, i18n.language]);
 
   function handleEndReached() {
     if (loadingMore || !hasMore) return;
@@ -119,14 +154,90 @@ export default function ActivityHistoryScreen() {
       </View>
 
       {tab === 'analyze' ? (
-        <View style={styles.center}>
-          <ThemedText style={[styles.comingSoon, { color: colors.onSurface }]}>
-            {t('activityHistory.analyzeComingSoon')}
+        <ScrollView contentContainerStyle={styles.analyzeContent}>
+          <View style={[styles.analyzeCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.card }]}>
+            <View style={styles.weekNav}>
+              <ThemedText style={styles.moodTitle}>{t('activityHistory.moodTitle')}</ThemedText>
+              <View style={styles.weekNavControls}>
+                <Pressable
+                  onPress={() => setWeekOffset((w) => w - 1)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('activityHistory.previousWeek')}
+                >
+                  <ThemedText style={[styles.weekNavArrow, { color: colors.primary }]}>‹</ThemedText>
+                </Pressable>
+                <ThemedText style={[styles.weekNavLabel, { color: colors.muted }]}>{weekLabel}</ThemedText>
+                <Pressable
+                  onPress={() => setWeekOffset((w) => Math.min(0, w + 1))}
+                  disabled={weekOffset === 0}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('activityHistory.nextWeek')}
+                >
+                  <ThemedText style={[styles.weekNavArrow, { color: weekOffset === 0 ? colors.border : colors.primary }]}>›</ThemedText>
+                </Pressable>
+              </View>
+            </View>
+
+            {loadingMood ? (
+              <SkeletonList count={4} rowHeight={36} />
+            ) : moodError ? (
+              <ErrorState message={moodError} onRetry={() => setMoodReload((n) => n + 1)} />
+            ) : (
+              <>
+                <View style={styles.legend}>
+                  {[...MOODS].reverse().map((m) => {
+                    const count = moodEntries.filter((e) => e.mood === m.key).length;
+                    return (
+                      <View key={m.key} style={styles.legendRow}>
+                        <View style={[styles.legendDot, { backgroundColor: m.color }]} />
+                        <ThemedText style={[styles.legendLabel, { color: colors.onSurface }]}>{t(m.labelKey)}</ThemedText>
+                        <ThemedText style={[styles.legendCount, { color: colors.muted }]}>
+                          {t('activityHistory.moodDays', { count })}
+                        </ThemedText>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                <View style={[styles.chart, { borderTopColor: colors.border }]}>
+                  {week.dates.map((date, i) => {
+                    const entry = entriesByDay[week.days[i]];
+                    const mood = entry ? MOOD_BY_KEY[entry.mood] : null;
+                    return (
+                      <View
+                        key={week.days[i]}
+                        style={[styles.chartColumn, i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }]}
+                      >
+                        <ThemedText style={[styles.chartDayLabel, { color: colors.muted }]}>
+                          {date.toLocaleDateString(i18n.language, { weekday: 'short' })}
+                        </ThemedText>
+                        <View style={styles.chartBarArea}>
+                          {mood && (
+                            <View
+                              style={[styles.chartBar, { height: (mood.score / 5) * CHART_HEIGHT, backgroundColor: mood.color }]}
+                            />
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {moodEntries.length === 0 && (
+                  <ThemedText style={[styles.moodEmpty, { color: colors.muted }]}>
+                    {t('activityHistory.moodEmptyWeek')}
+                  </ThemedText>
+                )}
+              </>
+            )}
+          </View>
+
+          <ThemedText style={[styles.moreSoon, { color: colors.muted }]}>
+            {t('activityHistory.moodMoreSoon')}
           </ThemedText>
-          <ThemedText style={[styles.comingSoonSub, { color: colors.muted }]}>
-            {t('activityHistory.analyzeComingSoonSub')}
-          </ThemedText>
-        </View>
+        </ScrollView>
       ) : loading ? (
         <View style={styles.skeletonContainer}><SkeletonList count={8} rowHeight={68} /></View>
       ) : error ? (
@@ -178,8 +289,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentLabel: { fontSize: 14 },
-  comingSoon: { fontSize: 18, fontWeight: '700' },
-  comingSoonSub: { fontSize: 14, textAlign: 'center', marginTop: Spacing.xs },
+  analyzeContent: { padding: Spacing.md, gap: Spacing.md },
+  analyzeCard: { borderWidth: 1, padding: Spacing.md, gap: Spacing.md },
+  moodTitle: { fontSize: 22, fontWeight: '700' },
+  weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  weekNavControls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  weekNavArrow: { fontSize: 24, fontWeight: '600', lineHeight: 26, paddingHorizontal: Spacing.xs },
+  weekNavLabel: { fontSize: 13, fontVariant: ['tabular-nums'] },
+  legend: { gap: Spacing.xs },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 24 },
+  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  legendLabel: { fontSize: 14, flex: 1 },
+  legendCount: { fontSize: 13, fontVariant: ['tabular-nums'] },
+  chart: { flexDirection: 'row', borderTopWidth: 1, paddingTop: Spacing.sm },
+  chartColumn: { flex: 1, alignItems: 'center', gap: Spacing.xs },
+  chartDayLabel: { fontSize: 12, fontWeight: '600' },
+  chartBarArea: { height: CHART_HEIGHT, justifyContent: 'flex-end' },
+  chartBar: { width: 16, borderRadius: 5 },
+  moodEmpty: { fontSize: 13, textAlign: 'center' },
+  moreSoon: { fontSize: 13, textAlign: 'center' },
   list: { padding: Spacing.md, gap: Spacing.sm },
   row: {
     flexDirection: 'row',
