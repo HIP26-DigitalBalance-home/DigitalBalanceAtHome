@@ -267,8 +267,12 @@ export const de = {
     ctaHint: 'Füge diese Aktivität hinzu, wenn du auf der Startseite eine Herausforderung erstellst.',
   },
   activityHistory: {
-    title: 'Aktivitätsverlauf',
+    title: 'Aktivität',
     empty: 'Noch keine abgeschlossenen Aktivitäten — schließe eine Aktivität ab, um sie hier zu sehen.',
+    tabHistory: 'Verlauf',
+    tabAnalyze: 'Analysieren',
+    analyzeComingSoon: 'Demnächst verfügbar',
+    analyzeComingSoonSub: 'Hier erscheinen bald Einblicke in die Aktivitäten deiner Familie.',
   },
   completeModal: {
     subtitle: '⏱ {{count}} Min · Als erledigt markieren',
@@ -379,7 +383,7 @@ export const de = {
   profile: {
     title: 'Profil',
     editProfile: 'Profil bearbeiten',
-    activityHistory: 'Aktivitätsverlauf',
+    activityHistory: 'Aktivität',
     privacyData: 'Datenschutz & Daten',
     myChildren: 'MEINE KINDER',
     noChildren: 'Noch keine Kinder hinzugefügt',

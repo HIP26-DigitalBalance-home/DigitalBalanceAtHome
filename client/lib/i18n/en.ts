@@ -267,8 +267,12 @@ export const en = {
     ctaHint: 'Add this activity when you create a challenge on the home screen.',
   },
   activityHistory: {
-    title: 'Activity history',
+    title: 'Activity',
     empty: 'No completed activities yet — complete an activity to see it here.',
+    tabHistory: 'History',
+    tabAnalyze: 'Analyze',
+    analyzeComingSoon: 'Coming soon',
+    analyzeComingSoonSub: 'Insights about your family’s activities will appear here.',
   },
   completeModal: {
     subtitle: '⏱ {{count}} min · Mark as done',
@@ -379,7 +383,7 @@ export const en = {
   profile: {
     title: 'Profile',
     editProfile: 'Edit profile',
-    activityHistory: 'Activity history',
+    activityHistory: 'Activity',
     privacyData: 'Privacy & data',
     myChildren: 'MY CHILDREN',
     noChildren: 'No children added yet',

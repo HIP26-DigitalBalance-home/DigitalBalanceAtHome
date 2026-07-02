@@ -20,6 +20,7 @@ export default function ActivityHistoryScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
 
+  const [tab, setTab] = useState<'history' | 'analyze'>('history');
   const [items, setItems] = useState<CompletionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,9 +94,40 @@ export default function ActivityHistoryScreen() {
           <ThemedText style={{ color: colors.primary, fontSize: 16 }}>← {t('common.back')}</ThemedText>
         </Pressable>
         <ThemedText type="title" style={styles.title}>{t('activityHistory.title')}</ThemedText>
+
+        <View style={[styles.segment, { backgroundColor: colors.border + '55' }]}>
+          {(['history', 'analyze'] as const).map((key) => {
+            const selected = tab === key;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => setTab(key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                style={[styles.segmentButton, selected && { backgroundColor: colors.surface }]}>
+                <ThemedText
+                  style={[
+                    styles.segmentLabel,
+                    { color: selected ? colors.onSurface : colors.muted, fontWeight: selected ? '700' : '600' },
+                  ]}>
+                  {t(key === 'history' ? 'activityHistory.tabHistory' : 'activityHistory.tabAnalyze')}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
-      {loading ? (
+      {tab === 'analyze' ? (
+        <View style={styles.center}>
+          <ThemedText style={[styles.comingSoon, { color: colors.onSurface }]}>
+            {t('activityHistory.analyzeComingSoon')}
+          </ThemedText>
+          <ThemedText style={[styles.comingSoonSub, { color: colors.muted }]}>
+            {t('activityHistory.analyzeComingSoonSub')}
+          </ThemedText>
+        </View>
+      ) : loading ? (
         <View style={styles.skeletonContainer}><SkeletonList count={8} rowHeight={68} /></View>
       ) : error ? (
         <View style={styles.center}><ErrorState message={error} onRetry={() => load(true)} /></View>
@@ -129,9 +161,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: { marginBottom: Spacing.xs, minHeight: 44, justifyContent: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
   skeletonContainer: { flex: 1, padding: Spacing.md },
   title: { fontSize: 24 },
+  segment: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    padding: 3,
+    marginTop: Spacing.md,
+  },
+  segmentButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentLabel: { fontSize: 14 },
+  comingSoon: { fontSize: 18, fontWeight: '700' },
+  comingSoonSub: { fontSize: 14, textAlign: 'center', marginTop: Spacing.xs },
   list: { padding: Spacing.md, gap: Spacing.sm },
   row: {
     flexDirection: 'row',
