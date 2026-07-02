@@ -1,0 +1,17 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- sleepy crescent moon with stars and cloud -->
+  <path d="M128 32C94 38 70 68 70 104C70 140 94 166 128 172C96 180 44 164 38 112C32 60 96 24 128 32Z" fill="#FEED52"/>
+  <!-- sleepy face -->
+  <path d="M64 96C67 99 73 99 76 96" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M88 100C91 103 97 103 100 100" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M76 114C79 118 89 118 92 114" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- blush -->
+  <ellipse cx="62" cy="108" rx="6" ry="4" fill="#FF99B6"/>
+  <ellipse cx="102" cy="112" rx="6" ry="4" fill="#FF99B6"/>
+  <!-- stars -->
+  <path d="M148 52L153 63L165 64.5L156 72.5L158.5 84.5L148 78L137.5 84.5L140 72.5L131 64.5L143 63L148 52Z" fill="#914EDB"/>
+  <path d="M164 110L167.5 118.5L176.5 119.5L170 126L171.5 135L164 130.5L156.5 135L158 126L151.5 119.5L160.5 118.5L164 110Z" fill="#FC6591"/>
+  <circle cx="140" cy="150" r="5" fill="#98B1F8"/>
+  <!-- little cloud -->
+  <path d="M116 168C116 160 123 154 131 154C134 147 141 143 149 145C156 146 161 152 162 158C168 158 174 163 174 170C174 177 168 182 161 182H128C121 182 116 176 116 168Z" fill="#A9D4E6"/>
+</svg>

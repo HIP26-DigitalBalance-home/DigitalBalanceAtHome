@@ -158,7 +158,7 @@ export const en = {
     articles: {
       screenTimeByAge: {
         eyebrow: 'MEDIA',
-        title: 'How much screen time is okay?',
+        title: 'How much screen time?',
         description: 'Age-appropriate guidelines, warning signs of overuse, and how to find fair rules together.',
         pages: [
           {
@@ -183,7 +183,7 @@ export const en = {
       },
       screenTimeAndSleep: {
         eyebrow: 'SLEEP',
-        title: 'Why screen time disrupts sleep',
+        title: 'Screen time and sleep',
         description: 'Three in four teens use their phone right before falling asleep. What that means for sleep and what helps.',
         pages: [
           {
@@ -208,7 +208,7 @@ export const en = {
       },
       movementMatters: {
         eyebrow: 'MOVEMENT',
-        title: 'Why children need more movement',
+        title: 'Why movement matters',
         description: 'The WHO recommends at least 60 minutes of movement a day. Why it matters and how to fit it into everyday life.',
         pages: [
           {

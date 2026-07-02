@@ -1,0 +1,17 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- friendly rain cloud over a cosy umbrella -->
+  <path d="M40 74C40 58 54 46 70 46C76 32 92 24 108 28C123 31 133 43 135 56C149 55 162 66 162 81C162 96 150 106 136 106H64C50 106 40 90 40 74Z" fill="#B98FEA"/>
+  <!-- face on cloud -->
+  <circle cx="88" cy="72" r="4" fill="#1D004B"/>
+  <circle cx="112" cy="72" r="4" fill="#1D004B"/>
+  <path d="M90 83C93 87 107 87 110 83" stroke="#1D004B" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="76" cy="82" rx="6" ry="4" fill="#FF99B6"/>
+  <ellipse cx="124" cy="82" rx="6" ry="4" fill="#FF99B6"/>
+  <!-- raindrops -->
+  <path d="M60 118C60 124 55 126 52 123C49 120 51 116 56 112C58 114 60 116 60 118Z" fill="#1246DA"/>
+  <path d="M152 118C152 124 147 126 144 123C141 120 143 116 148 112C150 114 152 116 152 118Z" fill="#1246DA"/>
+  <path d="M106 124C106 130 101 132 98 129C95 126 97 122 102 118C104 120 106 122 106 124Z" fill="#98B1F8"/>
+  <!-- umbrella -->
+  <path d="M100 132C68 132 52 150 52 162C58 156 66 156 70 162C74 156 82 154 86 160C90 154 110 154 114 160C118 154 126 156 130 162C134 156 142 156 148 162C148 150 132 132 100 132Z" fill="#F49E66"/>
+  <path d="M100 162V180C100 186 94 188 90 185" stroke="#1D004B" stroke-width="4" stroke-linecap="round"/>
+</svg>

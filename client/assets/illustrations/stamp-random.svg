@@ -1,0 +1,24 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- happy bouncing dice character -->
+  <g transform="rotate(-8 100 108)">
+    <rect x="48" y="56" width="104" height="104" rx="20" fill="#1246DA"/>
+    <!-- pips -->
+    <circle cx="72" cy="80" r="8" fill="#F8F3FF"/>
+    <circle cx="128" cy="80" r="8" fill="#F8F3FF"/>
+    <circle cx="72" cy="136" r="8" fill="#F8F3FF"/>
+    <circle cx="128" cy="136" r="8" fill="#F8F3FF"/>
+    <!-- face in the middle -->
+    <circle cx="90" cy="106" r="4" fill="#F8F3FF"/>
+    <circle cx="110" cy="106" r="4" fill="#F8F3FF"/>
+    <path d="M91 116C94 120 106 120 109 116" stroke="#F8F3FF" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- arms and feet -->
+    <path d="M48 118C38 122 34 130 36 138" stroke="#F8D9C0" stroke-width="9" stroke-linecap="round"/>
+    <path d="M152 118C162 122 166 130 164 138" stroke="#F8D9C0" stroke-width="9" stroke-linecap="round"/>
+    <ellipse cx="80" cy="166" rx="11" ry="7" fill="#F8D9C0"/>
+    <ellipse cx="120" cy="166" rx="11" ry="7" fill="#F8D9C0"/>
+  </g>
+  <!-- motion sparkles -->
+  <path d="M156 30L159.5 38.5L168.5 39.5L162 46L163.5 55L156 50.5L148.5 55L150 46L143.5 39.5L152.5 38.5L156 30Z" fill="#FC6591"/>
+  <circle cx="38" cy="40" r="6" fill="#FEED52"/>
+  <path d="M28 66C24 68 22 72 23 76" stroke="#914EDB" stroke-width="5" stroke-linecap="round"/>
+</svg>

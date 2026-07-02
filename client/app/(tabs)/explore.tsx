@@ -5,7 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
-import { Glyph, type GlyphName } from '@/components/ui/illustration';
+import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
@@ -24,19 +24,38 @@ type ExploreCard =
 
 const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
 
+// Preset names arrive from the API already localised, so both language variants
+// map to the same artwork. Unknown presets fall back to the collage-grid stamp.
+const PRESET_ILLUSTRATIONS: Record<string, IllustrationName> = {
+  'Outdoor-Abenteuer': 'stamp-outdoor',
+  'Outdoor Adventures': 'stamp-outdoor',
+  'Kreative Familie': 'stamp-creative',
+  'Creative Family': 'stamp-creative',
+  'Achtsame Momente': 'stamp-mindful',
+  'Mindful Moments': 'stamp-mindful',
+  'Gemeinsam in der Küche': 'stamp-kitchen',
+  'Together in the Kitchen': 'stamp-kitchen',
+  'Regentag-Entdecker': 'stamp-rainy',
+  'Rainy-Day Explorers': 'stamp-rainy',
+};
+
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
 
-  function cardCopy(card: ExploreCard): { name: string; description: string; icon: GlyphName | null } {
+  function cardCopy(card: ExploreCard): { name: string; description: string; illustration: IllustrationName } {
     if (card.kind === 'custom') {
-      return { name: t('explore.customName'), description: t('explore.customDesc'), icon: 'tab-explore' };
+      return { name: t('explore.customName'), description: t('explore.customDesc'), illustration: 'stamp-custom' };
     }
     if (card.kind === 'random') {
-      return { name: t('explore.randomName'), description: t('explore.randomDesc'), icon: 'glyph-dice' };
+      return { name: t('explore.randomName'), description: t('explore.randomDesc'), illustration: 'stamp-random' };
     }
-    return { name: card.preset.name, description: card.preset.description, icon: null };
+    return {
+      name: card.preset.name,
+      description: card.preset.description,
+      illustration: PRESET_ILLUSTRATIONS[card.preset.name] ?? 'stamp-custom',
+    };
   }
 
   const [presets, setPresets] = useState<CollagePreset[]>([]);
@@ -85,7 +104,7 @@ export default function ExploreScreen() {
   const data: ExploreCard[] = [...LOCAL_CARDS, ...presets.map((preset) => ({ kind: 'preset' as const, preset }))];
 
   function renderCard({ item }: { item: ExploreCard }) {
-    const { name, icon } = cardCopy(item);
+    const { name, illustration } = cardCopy(item);
     return (
       <Pressable
         style={styles.card}
@@ -99,7 +118,7 @@ export default function ExploreScreen() {
           style={styles.stamp}
           contentStyle={styles.stampContent}
         >
-          {icon ? <Glyph name={icon} size={24} color={colors.primary} /> : null}
+          <Illustration name={illustration} size={72} />
           <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]} numberOfLines={3}>
             {name}
           </ThemedText>

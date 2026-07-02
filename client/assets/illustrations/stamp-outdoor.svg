@@ -1,0 +1,22 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- smiling sun over a hill with a tree -->
+  <g>
+    <path d="M140 26L145 40M170 56L184 51M176 90L190 95M110 51L96 46M118 84L108 94" stroke="#F49E66" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="146" cy="62" r="26" fill="#FEED52"/>
+    <circle cx="138" cy="58" r="3" fill="#1D004B"/>
+    <circle cx="154" cy="58" r="3" fill="#1D004B"/>
+    <path d="M139 67C141.5 70 150.5 70 153 67" stroke="#1D004B" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- hills -->
+  <path d="M-4 200C-4 154 40 128 84 132C118 135 132 122 168 126C196 129 204 152 204 200H-4Z" fill="#7FE7B3"/>
+  <path d="M84 200C84 168 116 150 150 154C182 158 204 176 204 200H84Z" fill="#25C876"/>
+  <!-- tree -->
+  <rect x="52" y="118" width="10" height="42" rx="5" fill="#914EDB"/>
+  <circle cx="57" cy="94" r="30" fill="#7F2BCD"/>
+  <circle cx="36" cy="108" r="18" fill="#914EDB"/>
+  <circle cx="78" cy="108" r="18" fill="#914EDB"/>
+  <!-- kite -->
+  <path d="M104 44L122 62L104 80L86 62L104 44Z" fill="#FC6591"/>
+  <path d="M104 80C100 92 92 98 84 102" stroke="#1D004B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M96 88L102 92M88 96L94 100" stroke="#FF99B6" stroke-width="4" stroke-linecap="round"/>
+</svg>

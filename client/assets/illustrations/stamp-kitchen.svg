@@ -1,0 +1,26 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- happy cooking pot with steam and a spoon -->
+  <!-- steam -->
+  <path d="M78 32C74 40 82 44 78 52M100 24C96 32 104 36 100 44M122 32C118 40 126 44 122 52" stroke="#A9D4E6" stroke-width="6" stroke-linecap="round"/>
+  <!-- lid -->
+  <path d="M52 84C52 70 74 60 100 60C126 60 148 70 148 84H52Z" fill="#FC6591"/>
+  <rect x="92" y="48" width="16" height="12" rx="6" fill="#FF99B6"/>
+  <!-- pot body -->
+  <path d="M50 88H150V128C150 148 132 164 100 164C68 164 50 148 50 128V88Z" fill="#1246DA"/>
+  <rect x="46" y="84" width="108" height="10" rx="5" fill="#98B1F8"/>
+  <!-- handles -->
+  <path d="M46 104C34 104 28 112 30 120" stroke="#98B1F8" stroke-width="9" stroke-linecap="round"/>
+  <path d="M154 104C166 104 172 112 170 120" stroke="#98B1F8" stroke-width="9" stroke-linecap="round"/>
+  <!-- face -->
+  <circle cx="86" cy="116" r="4" fill="#F8F3FF"/>
+  <circle cx="114" cy="116" r="4" fill="#F8F3FF"/>
+  <path d="M88 128C92 133 108 133 112 128" stroke="#F8F3FF" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- wooden spoon leaning on pot -->
+  <g transform="rotate(24 162 120)">
+    <rect x="156" y="88" width="10" height="56" rx="5" fill="#F49E66"/>
+    <ellipse cx="161" cy="80" rx="13" ry="16" fill="#F89C69"/>
+  </g>
+  <!-- feet -->
+  <ellipse cx="80" cy="170" rx="11" ry="6" fill="#F8D9C0"/>
+  <ellipse cx="120" cy="170" rx="11" ry="6" fill="#F8D9C0"/>
+</svg>

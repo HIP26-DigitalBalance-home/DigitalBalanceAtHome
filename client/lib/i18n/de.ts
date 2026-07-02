@@ -158,7 +158,7 @@ export const de = {
     articles: {
       screenTimeByAge: {
         eyebrow: 'MEDIEN',
-        title: 'Wie viel Bildschirmzeit ist okay?',
+        title: 'Wie viel Bildschirmzeit?',
         description: 'Altersgerechte Richtwerte, Warnzeichen für Übernutzung und wie ihr gemeinsam faire Regeln findet.',
         pages: [
           {
@@ -183,7 +183,7 @@ export const de = {
       },
       screenTimeAndSleep: {
         eyebrow: 'SCHLAF',
-        title: 'Warum Bildschirmzeit den Schlaf stört',
+        title: 'Bildschirmzeit und Schlaf',
         description: 'Drei von vier Jugendlichen nutzen ihr Handy kurz vor dem Einschlafen. Was das für den Schlaf bedeutet und was hilft.',
         pages: [
           {
@@ -208,7 +208,7 @@ export const de = {
       },
       movementMatters: {
         eyebrow: 'BEWEGUNG',
-        title: 'Warum Kinder mehr Bewegung brauchen',
+        title: 'Kinder brauchen Bewegung',
         description: 'Die WHO empfiehlt mindestens 60 Minuten Bewegung täglich. Warum das so wichtig ist und wie ihr es in den Alltag bringt.',
         pages: [
           {
