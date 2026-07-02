@@ -225,12 +225,6 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/privacy' as any)}>
                 <ThemedText style={{ fontWeight: '600' }}>{t('profile.privacyData')}</ThemedText>
               </Pressable>
-
-              <Pressable
-                style={[styles.outlineButton, { borderColor: colors.border }]}
-                onPress={() => router.push('/privacy-policy' as any)}>
-                <ThemedText style={{ fontWeight: '600' }}>{t('profile.privacyPolicy')}</ThemedText>
-              </Pressable>
             </View>
 
             {/* Children */}

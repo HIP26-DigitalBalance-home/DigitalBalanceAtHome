@@ -239,6 +239,13 @@ export default function PrivacyScreen() {
             </>
           )}
         </View>
+
+        {/* Privacy Policy */}
+        <Pressable
+          style={[styles.outlineButton, { borderColor: colors.border }]}
+          onPress={() => router.push('/privacy-policy' as any)}>
+          <ThemedText style={{ fontWeight: '600' }}>{t('profile.privacyPolicy')}</ThemedText>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
