@@ -109,7 +109,7 @@ export function ArticleOfTheDay() {
                     </ThemedText>
                   </View>
                   <View style={[styles.iconBubble, { backgroundColor: colors.accent + '22' }]}>
-                    <Illustration name={article.icon} size={44} />
+                    <Illustration name={article.icon} size={64} />
                   </View>
                 </View>
               </Pressable>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
   title: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
   description: { fontSize: 13, lineHeight: 18 },
-  iconBubble: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  iconBubble: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
