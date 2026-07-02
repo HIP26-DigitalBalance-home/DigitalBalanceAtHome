@@ -314,11 +314,13 @@ def compress_photo(completion_id: uuid.UUID, raw_key: str, final_key: str, db_ur
 
 async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
         from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
         raw_data = storage.download_bytes(raw_key)
-        img = Image.open(io.BytesIO(raw_data))
+        raw_img = Image.open(io.BytesIO(raw_data))
+        # Re-saving drops EXIF metadata, so bake the orientation into the pixels first
+        img = ImageOps.exif_transpose(raw_img)
         img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
 
         buf = io.BytesIO()
