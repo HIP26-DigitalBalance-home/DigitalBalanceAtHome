@@ -310,6 +310,7 @@ export const en = {
   builder: {
     title: 'Design collage',
     hint: 'Tap a slot to choose or change an activity.',
+    hintLocked: 'These nine activities are ready to go.',
     continue: 'Continue →',
     slotChange: '{{title}} – change',
     slotEmpty: 'Empty slot – choose activity',

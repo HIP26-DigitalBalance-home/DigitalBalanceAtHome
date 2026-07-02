@@ -33,6 +33,20 @@ export default function CollageBuilderScreen() {
   const { t, i18n } = useTranslation();
   const { mode, preset: presetParam } = useLocalSearchParams<{ mode: string; preset?: string }>();
 
+  // Only the custom collage lets the user pick/change activities per slot. Preset
+  // and random collages arrive with all nine activities predefined and locked.
+  const editable = mode === 'custom';
+
+  // Header title mirrors the stamp the user tapped on the explore screen.
+  const headerTitle =
+    mode === 'custom'
+      ? t('explore.customName')
+      : mode === 'random'
+        ? t('explore.randomName')
+        : presetParam
+          ? (JSON.parse(presetParam) as CollagePreset).name
+          : t('builder.title');
+
   const [slots, setSlots] = useState<Slot[]>(() => Array(SLOT_COUNT).fill(null));
   const [loading, setLoading] = useState(mode !== 'custom');
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +101,7 @@ export default function CollageBuilderScreen() {
   );
 
   function openPicker(index: number) {
+    if (!editable) return;
     setEditingSlot(index);
     setPickerOpen(true);
   }
@@ -123,8 +138,15 @@ export default function CollageBuilderScreen() {
     return (
       <Pressable
         onPress={() => openPicker(index)}
-        accessibilityRole="button"
-        accessibilityLabel={filled ? t('builder.slotChange', { title: item!.title }) : t('builder.slotEmpty')}
+        disabled={!editable}
+        accessibilityRole={editable ? 'button' : 'text'}
+        accessibilityLabel={
+          editable
+            ? filled
+              ? t('builder.slotChange', { title: item!.title })
+              : t('builder.slotEmpty')
+            : item?.title
+        }
         style={[
           styles.slot,
           {
@@ -158,7 +180,7 @@ export default function CollageBuilderScreen() {
         <Pressable onPress={() => router.back()} accessibilityRole="button">
           <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>{t('builder.title')}</ThemedText>
+        <ThemedText style={styles.headerTitle} numberOfLines={1}>{headerTitle}</ThemedText>
         <ThemedText style={[styles.counter, { color: colors.muted }]}>{filledCount}/{SLOT_COUNT}</ThemedText>
       </View>
 
@@ -169,7 +191,7 @@ export default function CollageBuilderScreen() {
       ) : (
         <>
           <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            {t('builder.hint')}
+            {editable ? t('builder.hint') : t('builder.hintLocked')}
           </ThemedText>
           <View style={styles.gridOuter}>
             <View onLayout={(e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width)}>
@@ -198,13 +220,15 @@ export default function CollageBuilderScreen() {
         </Pressable>
       </View>
 
-      <ActivityPickerModal
-        visible={pickerOpen}
-        selectedId={editingSlot !== null ? (slots[editingSlot]?.id ?? undefined) : undefined}
-        onSelect={handleSelect}
-        onClose={handleClosePicker}
-        onCreateNew={handleCreateNew}
-      />
+      {editable && (
+        <ActivityPickerModal
+          visible={pickerOpen}
+          selectedId={editingSlot !== null ? (slots[editingSlot]?.id ?? undefined) : undefined}
+          onSelect={handleSelect}
+          onClose={handleClosePicker}
+          onCreateNew={handleCreateNew}
+        />
+      )}
     </SafeAreaView>
   );
 }

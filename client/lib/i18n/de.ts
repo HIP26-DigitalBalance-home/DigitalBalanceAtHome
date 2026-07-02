@@ -310,6 +310,7 @@ export const de = {
   builder: {
     title: 'Collage gestalten',
     hint: 'Tippe auf ein Feld, um eine Aktivität zu wählen oder zu ändern.',
+    hintLocked: 'Diese neun Aktivitäten sind startklar.',
     continue: 'Weiter →',
     slotChange: '{{title}} – ändern',
     slotEmpty: 'Leeres Feld – Aktivität wählen',
