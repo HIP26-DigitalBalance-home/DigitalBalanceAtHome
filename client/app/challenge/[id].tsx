@@ -222,16 +222,14 @@ export default function ChallengeDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
-              <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
-                {statusLabels[challenge.status] ?? challenge.status}
-              </ThemedText>
-            </View>
+            {challenge.status !== 'upcoming' && (
+              <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
+                <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
+                  {statusLabels[challenge.status] ?? challenge.status}
+                </ThemedText>
+              </View>
+            )}
           </View>
-
-          <ThemedText style={[styles.dates, { color: colors.muted }]}>
-            {challenge.start_date} → {challenge.end_date}
-          </ThemedText>
 
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('challengeDetail.yourCollage')}</ThemedText>
           <CollageGrid
@@ -362,7 +360,6 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  dates: { fontSize: 13, marginTop: -Spacing.sm },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
   exportRow: { flexDirection: 'row', gap: Spacing.sm },
   exportButton: {

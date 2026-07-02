@@ -28,7 +28,6 @@ export default function ChallengesScreen() {
   const STATUS_CHIPS: { label: string; value: StatusFilter }[] = [
     { label: t('common.all'), value: undefined },
     { label: t('status.active'), value: 'active' },
-    { label: t('status.upcoming'), value: 'upcoming' },
     { label: t('status.completed'), value: 'completed' },
   ];
   const statusLabels: Record<string, string> = {
@@ -110,15 +109,14 @@ export default function ChallengesScreen() {
             >
               <View style={styles.cardTop}>
                 <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
-                  <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
-                    {statusLabels[item.status] ?? item.status}
-                  </ThemedText>
-                </View>
+                {item.status !== 'upcoming' && (
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
+                    <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
+                      {statusLabels[item.status] ?? item.status}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
-              <ThemedText style={[styles.dates, { color: colors.muted }]}>
-                {item.start_date} → {item.end_date}
-              </ThemedText>
               {item.description ? (
                 <ThemedText style={[styles.desc, { color: colors.muted }]} numberOfLines={2}>
                   {item.description}
@@ -154,7 +152,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
   statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  dates: { fontSize: 12 },
   desc: { fontSize: 13 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
   createBtn: { height: 44, paddingHorizontal: Spacing.xl, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center' },
