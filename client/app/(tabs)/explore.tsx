@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ErrorState } from '@/components/ui/error-state';
 import { Illustration, type IllustrationName } from '@/components/ui/illustration';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
@@ -92,7 +93,7 @@ export default function ExploreScreen() {
   function renderCard({ item }: { item: ExploreCard }) {
     const { name, illustration } = cardCopy(item);
     return (
-      <Pressable
+      <PressableScale
         style={styles.card}
         onPress={() => openBuilder(item)}
         accessibilityRole="button"
@@ -109,7 +110,7 @@ export default function ExploreScreen() {
             {name}
           </ThemedText>
         </StampFrame>
-      </Pressable>
+      </PressableScale>
     );
   }
 

@@ -11,13 +11,16 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Illustration } from '@/components/ui/illustration';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
@@ -79,7 +82,7 @@ export default function GroupsScreen() {
         {accordionOpen && (
           <View style={styles.accordionBody}>
             {groups.map((g) => (
-              <Pressable
+              <PressableScale
                 key={g.id}
                 style={[styles.groupCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => router.push(`/group/${g.id}` as any)}>
@@ -96,7 +99,7 @@ export default function GroupsScreen() {
                     <ThemedText style={styles.adminBadgeText}>Admin</ThemedText>
                   </View>
                 )}
-              </Pressable>
+              </PressableScale>
             ))}
             <Pressable
               style={[styles.joinButton, { opacity: isOnline ? 1 : 0.4 }]}
@@ -200,30 +203,34 @@ export default function GroupsScreen() {
             {t('groups.noGroupsBody')}
           </ThemedText>
           <View style={styles.emptyActions}>
-            <Pressable
+            <PressableScale
               style={[styles.ctaButton, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/create-group' as any)}>
               <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>{t('groups.createGroup')}</ThemedText>
-            </Pressable>
-            <Pressable
+            </PressableScale>
+            <PressableScale
               style={[styles.ctaButton, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border }]}
               onPress={() => router.push('/join-group' as any)}>
               <ThemedText style={[styles.ctaText, { color: colors.onSurface }]}>{t('groups.joinWithCodeBtn')}</ThemedText>
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
       ) : (
-        <FlatList
-          data={feed}
-          keyExtractor={(e) => e.id}
-          renderItem={renderFeedEntry}
-          ListHeaderComponent={renderAccordion}
-          ListEmptyComponent={renderFeedEmpty}
-          contentContainerStyle={[styles.list, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} />
-          }
-        />
+        // Animated.View wraps the fade — Animated.FlatList's `entering` throws
+        // (FlatList has no `children` for Reanimated's layout clone to walk).
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={feed}
+            keyExtractor={(e) => e.id}
+            renderItem={renderFeedEntry}
+            ListHeaderComponent={renderAccordion}
+            ListEmptyComponent={renderFeedEmpty}
+            contentContainerStyle={[styles.list, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} />
+            }
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

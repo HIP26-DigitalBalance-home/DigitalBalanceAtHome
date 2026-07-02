@@ -1,13 +1,16 @@
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { Durations, fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { groupsApi, type FeedEntry } from '@/lib/api';
@@ -61,7 +64,8 @@ export default function GroupFeedScreen() {
           <Image
             source={{ uri: item.photo_url }}
             style={styles.photo}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={Durations.base}
             accessibilityLabel={t('photoViewer.photoOf', { title: item.activity_title })}
           />
         ) : (
@@ -113,15 +117,19 @@ export default function GroupFeedScreen() {
           body={t('groupFeed.emptyBody')}
         />
       ) : (
-        <FlatList
-          data={entries}
-          keyExtractor={(e) => e.id}
-          renderItem={renderEntry}
-          contentContainerStyle={styles.list}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} /> : null}
-        />
+        // Animated.View wraps the fade — Animated.FlatList's `entering` throws
+        // (FlatList has no `children` for Reanimated's layout clone to walk).
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={entries}
+            keyExtractor={(e) => e.id}
+            renderItem={renderEntry}
+            contentContainerStyle={styles.list}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} /> : null}
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

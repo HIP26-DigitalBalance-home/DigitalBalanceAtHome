@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
+import { timing } from '@/constants/motion';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 
@@ -18,8 +19,8 @@ export function OfflineBanner() {
   const translateY = useSharedValue(-60);
 
   React.useEffect(() => {
-    opacity.value = withTiming(isOnline ? 0 : 1, { duration: 250 });
-    translateY.value = withTiming(isOnline ? -60 : 0, { duration: 250 });
+    opacity.value = withTiming(isOnline ? 0 : 1, timing());
+    translateY.value = withTiming(isOnline ? -60 : 0, timing());
   }, [isOnline, opacity, translateY]);
 
   const animStyle = useAnimatedStyle(() => ({

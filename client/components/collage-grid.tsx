@@ -109,9 +109,12 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
           onPress={handlePress}
           accessibilityRole="button"
           accessibilityLabel={isEmpty ? t('collage.slotFill', { title: item.activity.title }) : t('collage.slotDone', { title: item.activity.title })}
-          style={[
+          // Not PressableScale: its animated transform would override the
+          // card's static rotation, so press feedback is opacity-only here.
+          style={({ pressed }) => [
             styles.card,
             {
+              opacity: pressed ? 0.85 : 1,
               // 3px inset per side: card fits the rotated visual within the cell.
               position: 'absolute',
               top: CARD_INSET,

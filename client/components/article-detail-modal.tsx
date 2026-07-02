@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { PaginationDots } from '@/components/onboarding/PaginationDots';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Durations } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -23,6 +26,14 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
   const { t } = useTranslation();
   const [pageIndex, setPageIndex] = useState(0);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // The parent nulls `article` at the moment it closes the modal — latch the
+  // last value so the content stays rendered while the exit animation plays.
+  const [latchedArticle, setLatchedArticle] = useState(article);
+  const renderArticle = article ?? latchedArticle;
+
+  useEffect(() => {
+    if (article) setLatchedArticle(article);
+  }, [article]);
 
   useEffect(() => {
     if (visible) {
@@ -31,9 +42,9 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
     }
   }, [visible]);
 
-  if (!article) return null;
+  if (!renderArticle) return null;
 
-  const pages = article.pages;
+  const pages = renderArticle.pages;
   const page = pages[pageIndex];
   const isLastPage = pageIndex === pages.length - 1;
 
@@ -56,7 +67,7 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <AnimatedModal visible={visible} variant="sheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={styles.dotsRow}>
           <PaginationDots count={pages.length} activeIndex={pageIndex} />
@@ -88,19 +99,22 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
                     {t('home.articleModal.sources')} {sourcesOpen ? '▲' : '▼'}
                   </ThemedText>
                 </Pressable>
-                {sourcesOpen &&
-                  page.sources.map((source) => (
-                    <Pressable
-                      key={source.url}
-                      onPress={() => handleOpenSource(source.url)}
-                      hitSlop={8}
-                      accessibilityRole="link"
-                    >
-                      <ThemedText style={[styles.sourceItem, { color: colors.primary }]}>
-                        {source.label}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                {sourcesOpen && (
+                  <Animated.View entering={FadeIn.duration(Durations.fast).reduceMotion(ReduceMotion.System)}>
+                    {page.sources.map((source) => (
+                      <Pressable
+                        key={source.url}
+                        onPress={() => handleOpenSource(source.url)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                      >
+                        <ThemedText style={[styles.sourceItem, { color: colors.primary }]}>
+                          {source.label}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </Animated.View>
+                )}
               </View>
             )}
           </ScrollView>
@@ -139,7 +153,7 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
           </View>
         </View>
       </SafeAreaView>
-    </Modal>
+    </AnimatedModal>
   );
 }
 

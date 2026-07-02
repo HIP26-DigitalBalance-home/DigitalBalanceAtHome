@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArticleOfTheDay } from '@/components/article-of-the-day';
@@ -13,9 +14,11 @@ import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { ErrorState } from '@/components/ui/error-state';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
@@ -333,7 +336,7 @@ export default function HomeScreen() {
 
         {/* Progress widget: streak + goal ring */}
         {familyProgress && (
-          <Pressable
+          <PressableScale
             style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/progress' as any)}
             accessibilityRole="button"
@@ -354,7 +357,7 @@ export default function HomeScreen() {
               </ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-          </Pressable>
+          </PressableScale>
         )}
 
         {/* Daily mood check-in — hides itself once answered */}
@@ -413,7 +416,11 @@ export default function HomeScreen() {
           </View>
         ) : challenges.length > 0 ? (
           challenges.map((challenge) => (
-            <View key={challenge.id} style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Animated.View
+              key={challenge.id}
+              entering={fadeIn()}
+              style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
               <View style={styles.sectionHeader}>
                 <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
                   {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
@@ -435,7 +442,7 @@ export default function HomeScreen() {
                 onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
                 onPhotoPress={makePhotoHandler(challenge.group_families_count ?? null)}
               />
-            </View>
+            </Animated.View>
           ))
         ) : (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>

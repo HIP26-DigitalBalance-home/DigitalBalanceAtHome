@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleProp, StyleSheet, View, ImageStyle } from 'react-native';
+import { ActivityIndicator, StyleProp, StyleSheet, View, ImageStyle } from 'react-native';
+import { Image } from 'expo-image';
 
+import { Durations } from '@/constants/motion';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { photosApi } from '@/lib/api/completions';
 
@@ -60,11 +62,17 @@ export function ImageWithFallback({
     );
   }
 
+  // RN resizeMode → expo-image contentFit
+  const contentFit = ({ cover: 'cover', contain: 'contain', stretch: 'fill', center: 'none' } as const)[
+    resizeMode
+  ];
+
   return (
     <Image
       source={{ uri: currentUri }}
       style={style}
-      resizeMode={resizeMode}
+      contentFit={contentFit}
+      transition={Durations.base}
       accessibilityLabel={accessibilityLabel}
       onError={handleError}
     />

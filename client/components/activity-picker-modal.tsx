@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Glyph, type GlyphName } from '@/components/ui/illustration';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { activitiesApi, type ActivityFilters, type ActivityItem } from '@/lib/api';
@@ -94,7 +97,7 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <AnimatedModal visible={visible} variant="sheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <ThemedText style={styles.title}>{t('picker.title')}</ThemedText>
@@ -126,37 +129,41 @@ export function ActivityPickerModal({ visible, onSelect, onClose, onCreateNew, s
             <ErrorState message={error} onRetry={load} />
           </View>
         ) : (
-          <FlatList
-            data={sortedActivities}
-            keyExtractor={(a) => a.id}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={
-              <EmptyState illustration="sprout-pot" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
-            }
-            renderItem={({ item }) => {
-              const isSelected = item.id === selectedId;
-              return (
-              <Pressable
-                style={[styles.card, {
-                  backgroundColor: isSelected ? colors.primary + '12' : colors.surface,
-                  borderColor: isSelected ? colors.primary : colors.border,
-                }]}
-                onPress={() => onSelect(item)}
-              >
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.cardTitle}>{item.title}</ThemedText>
-                  <ThemedText style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>{item.description}</ThemedText>
-                </View>
-                <ThemedText style={[styles.cardMeta, { color: item.cost_indicator === 'free' ? colors.accent : colors.primary }]}>
-                  {item.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
-                </ThemedText>
-              </Pressable>
-              );
-            }}
-          />
+          // Animated.View wraps the fade — Animated.FlatList's `entering` throws
+          // (FlatList has no `children` for Reanimated's layout clone to walk).
+          <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+            <FlatList
+              data={sortedActivities}
+              keyExtractor={(a) => a.id}
+              contentContainerStyle={styles.list}
+              ListEmptyComponent={
+                <EmptyState illustration="sprout-pot" title={t('picker.emptyTitle')} body={t('picker.emptyBody')} />
+              }
+              renderItem={({ item }) => {
+                const isSelected = item.id === selectedId;
+                return (
+                <Pressable
+                  style={[styles.card, {
+                    backgroundColor: isSelected ? colors.primary + '12' : colors.surface,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  }]}
+                  onPress={() => onSelect(item)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.cardTitle}>{item.title}</ThemedText>
+                    <ThemedText style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>{item.description}</ThemedText>
+                  </View>
+                  <ThemedText style={[styles.cardMeta, { color: item.cost_indicator === 'free' ? colors.accent : colors.primary }]}>
+                    {item.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
+                  </ThemedText>
+                </Pressable>
+                );
+              }}
+            />
+          </Animated.View>
         )}
       </SafeAreaView>
-    </Modal>
+    </AnimatedModal>
   );
 }
 

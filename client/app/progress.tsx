@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProgressRing } from '@/components/progress-ring';
@@ -9,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
@@ -84,7 +86,8 @@ export default function ProgressScreen() {
         ) : error ? (
           <ErrorState message={error} />
         ) : progress ? (
-          <>
+          // gap mirrors styles.content so the wrapper doesn't collapse spacing
+          <Animated.View entering={fadeIn()} style={{ gap: Spacing.lg }}>
             {/* This Week */}
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>
@@ -208,7 +211,7 @@ export default function ProgressScreen() {
                 </View>
               </View>
             </View>
-          </>
+          </Animated.View>
         ) : null}
       </ScrollView>
     </SafeAreaView>

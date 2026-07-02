@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Dimensions,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
 
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -54,6 +54,18 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
   const { width } = Dimensions.get('window');
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  // The parent nulls the photo props at the moment it closes the modal — latch
+  // the last values so the card stays rendered while the exit animation plays.
+  const [latched, setLatched] = useState({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount });
+  const content = photoUrl || completionId
+    ? { photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount }
+    : latched;
+
+  useEffect(() => {
+    if (photoUrl || completionId) {
+      setLatched({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount });
+    }
+  }, [photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount]);
 
   async function handleDelete() {
     if (!completionId) return;
@@ -90,21 +102,25 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
   const cardWidth = width - Spacing.screenHorizontal * 2;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[styles.card, { width: cardWidth, backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={(e) => e.stopPropagation()}
-        >
+    <AnimatedModal
+      visible={visible}
+      variant="dialog"
+      onRequestClose={onClose}
+      onBackdropPress={onClose}
+      contentContainerStyle={styles.container}
+    >
+      <View
+        style={[styles.card, { width: cardWidth, backgroundColor: colors.surface, borderColor: colors.border }]}
+      >
           {/* Photo with X overlaid */}
           <View style={[styles.photoContainer, { width: cardWidth, height: cardWidth * 0.75 }]}>
-            {photoUrl && completionId ? (
+            {content.photoUrl && content.completionId ? (
               <ImageWithFallback
-                uri={photoUrl}
-                completionId={completionId}
+                uri={content.photoUrl}
+                completionId={content.completionId}
                 style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
-                accessibilityLabel={t('photoViewer.photoOf', { title: activityTitle })}
+                accessibilityLabel={t('photoViewer.photoOf', { title: content.activityTitle })}
               />
             ) : (
               <ActivityIndicator color={colors.primary} />
@@ -122,26 +138,26 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
           {/* Title + group progress + buttons */}
           <View style={styles.body}>
             <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
-              {activityTitle}
+              {content.activityTitle}
             </ThemedText>
 
-            {groupFamiliesCount != null && groupFamiliesCount > 0 && familiesCompletedCount != null && (
+            {content.groupFamiliesCount != null && content.groupFamiliesCount > 0 && content.familiesCompletedCount != null && (
               <View style={styles.progressSection}>
                 <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                  {familiesCompletedCount > 0 && (
+                  {content.familiesCompletedCount > 0 && (
                     <View
                       style={[
                         styles.progressFill,
                         {
-                          width: `${Math.min(familiesCompletedCount / groupFamiliesCount, 1) * 100}%` as any,
-                          backgroundColor: progressColor(familiesCompletedCount / groupFamiliesCount),
+                          width: `${Math.min(content.familiesCompletedCount / content.groupFamiliesCount, 1) * 100}%` as any,
+                          backgroundColor: progressColor(content.familiesCompletedCount / content.groupFamiliesCount),
                         },
                       ]}
                     />
                   )}
                 </View>
                 <ThemedText style={[styles.progressLabel, { color: colors.muted }]}>
-                  {familiesCompletedCount} / {groupFamiliesCount} Familien
+                  {content.familiesCompletedCount} / {content.groupFamiliesCount} Familien
                 </ThemedText>
               </View>
             )}
@@ -166,16 +182,14 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
                 : <ThemedText style={[styles.actionText, { color: colors.destructive }]}>🗑 {t('common.delete')}</ThemedText>}
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </AnimatedModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.screenHorizontal,

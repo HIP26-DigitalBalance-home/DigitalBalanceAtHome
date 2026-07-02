@@ -1,22 +1,23 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { AnimatedTabBar } from '@/components/ui/animated-tab-bar';
 import { Glyph } from '@/components/ui/illustration';
 import { TabBarBackground } from '@/components/ui/tab-bar-background';
 import { useAppTheme } from '@/lib/app-theme-context';
-import { useTabBar } from '@/lib/tab-bar-context';
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const { hidden } = useTabBar();
 
   return (
     <Tabs
+      // AnimatedTabBar owns the pill's absolute position and the hide/show
+      // slide (it reads `hidden` from TabBarContext); tabBarStyle below keeps
+      // only the visual styling.
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: colors.tabIconSelected,
         tabBarInactiveTintColor: colors.tabIconDefault,
@@ -30,11 +31,7 @@ export default function TabLayout() {
           fontSize: 10,
           marginTop: 2,
         },
-        tabBarStyle: hidden ? { display: 'none' } : {
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: insets.bottom > 0 ? insets.bottom : 16,
+        tabBarStyle: {
           height: 72,
           paddingTop: 6,
           paddingBottom: 6,

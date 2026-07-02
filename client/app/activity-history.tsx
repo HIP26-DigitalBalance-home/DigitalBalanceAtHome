@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -8,6 +9,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { MOODS, MOOD_BY_KEY } from '@/constants/journal';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { completionsApi, journalApi } from '@/lib/api';
@@ -185,7 +187,8 @@ export default function ActivityHistoryScreen() {
             ) : moodError ? (
               <ErrorState message={moodError} onRetry={() => setMoodReload((n) => n + 1)} />
             ) : (
-              <>
+              // gap mirrors styles.analyzeCard so the wrapper doesn't collapse spacing
+              <Animated.View entering={fadeIn()} style={{ gap: Spacing.md }}>
                 <View style={styles.legend}>
                   {[...MOODS].reverse().map((m) => {
                     const count = moodEntries.filter((e) => e.mood === m.key).length;
@@ -230,7 +233,7 @@ export default function ActivityHistoryScreen() {
                     {t('activityHistory.moodEmptyWeek')}
                   </ThemedText>
                 )}
-              </>
+              </Animated.View>
             )}
           </View>
 
@@ -243,22 +246,26 @@ export default function ActivityHistoryScreen() {
       ) : error ? (
         <View style={styles.center}><ErrorState message={error} onRetry={() => load(true)} /></View>
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={
-            <ThemedText style={[styles.empty, { color: colors.muted }]}>
-              {t('activityHistory.empty')}
-            </ThemedText>
-          }
-          ListFooterComponent={
-            loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} /> : null
-          }
-        />
+        // Animated.View wraps the fade — Animated.FlatList's `entering` throws
+        // (FlatList has no `children` for Reanimated's layout clone to walk).
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.3}
+            ListEmptyComponent={
+              <ThemedText style={[styles.empty, { color: colors.muted }]}>
+                {t('activityHistory.empty')}
+              </ThemedText>
+            }
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} /> : null
+            }
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

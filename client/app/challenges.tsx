@@ -2,11 +2,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -84,43 +87,47 @@ export default function ChallengesScreen() {
       ) : error ? (
         <View style={styles.center}><ErrorState message={error} onRetry={load} /></View>
       ) : (
-        <FlatList
-          data={challenges}
-          keyExtractor={(c) => c.id}
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <ThemedText style={{ color: colors.muted }}>{t('challengesList.noneFound')}</ThemedText>
-              <Pressable
-                style={[styles.createBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/(tabs)/explore' as any)}
-              >
-                <ThemedText style={{ color: colors.buttonText, fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
-              </Pressable>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: item.id } } as any)}
-            >
-              <View style={styles.cardTop}>
-                <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
-                  <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
-                    {statusLabels[item.status] ?? item.status}
-                  </ThemedText>
-                </View>
+        // Animated.View wraps the fade — Animated.FlatList's `entering` throws
+        // (FlatList has no `children` for Reanimated's layout clone to walk).
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={challenges}
+            keyExtractor={(c) => c.id}
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <ThemedText style={{ color: colors.muted }}>{t('challengesList.noneFound')}</ThemedText>
+                <Pressable
+                  style={[styles.createBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => router.push('/(tabs)/explore' as any)}
+                >
+                  <ThemedText style={{ color: colors.buttonText, fontWeight: '600' }}>{t('challengesList.createOne')}</ThemedText>
+                </Pressable>
               </View>
-              {item.description ? (
-                <ThemedText style={[styles.desc, { color: colors.muted }]} numberOfLines={2}>
-                  {item.description}
-                </ThemedText>
-              ) : null}
-            </Pressable>
-          )}
-        />
+            }
+            renderItem={({ item }) => (
+              <PressableScale
+                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: item.id } } as any)}
+              >
+                <View style={styles.cardTop}>
+                  <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
+                    <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
+                      {statusLabels[item.status] ?? item.status}
+                    </ThemedText>
+                  </View>
+                </View>
+                {item.description ? (
+                  <ThemedText style={[styles.desc, { color: colors.muted }]} numberOfLines={2}>
+                    {item.description}
+                  </ThemedText>
+                ) : null}
+              </PressableScale>
+            )}
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

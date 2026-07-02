@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Redirect, Stack, useLocalSearchParams, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +10,7 @@ import '@/lib/i18n';
 
 import { useOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { LoadingScreen } from '@/components/ui/loading-screen';
+import { WebScreenTransition } from '@/components/ui/web-screen-transition';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { CookieBanner } from '@/components/ui/cookie-banner';
@@ -80,21 +82,32 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+        // Native stack animations don't run on web — fade screens in on mount instead.
+        screenLayout={
+          Platform.OS === 'web'
+            ? ({ children }) => <WebScreenTransition>{children}</WebScreenTransition>
+            : undefined
+        }
+      >
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="choose-language" />
-        <Stack.Screen name="sign-in" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="create-group" />
-        <Stack.Screen name="join-group" />
-        <Stack.Screen name="join-family" />
+        {/* Auth/gate screens swap via Redirect — a lateral slide reads wrong there. */}
+        <Stack.Screen name="choose-language" options={{ animation: 'fade' }} />
+        <Stack.Screen name="sign-in" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(onboarding)" options={{ animation: 'fade' }} />
+        {/* Create/join flows rise from the bottom like sheets (animation only —
+            presentation: 'modal' would change safe-area insets and shift layout). */}
+        <Stack.Screen name="create-group" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="join-group" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="join-family" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="group/[id]" />
         <Stack.Screen name="activity/[id]" />
-        <Stack.Screen name="collage-builder" />
-        <Stack.Screen name="create-activity" />
+        <Stack.Screen name="collage-builder" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="create-activity" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="challenges" />
         <Stack.Screen name="challenge/[id]" />
-        <Stack.Screen name="celebration" />
+        <Stack.Screen name="celebration" options={{ animation: 'fade' }} />
         <Stack.Screen name="group-feed/[id]" />
         <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />

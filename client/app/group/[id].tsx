@@ -4,11 +4,14 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -165,6 +168,9 @@ export default function GroupDetailScreen() {
         <View style={styles.backButton} />
       </View>
 
+      {/* Animated.View wraps the fade — Animated.FlatList's `entering` throws
+          (FlatList has no `children` for Reanimated's layout clone to walk). */}
+      <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
       <FlatList
         data={group.members}
         keyExtractor={(m) => m.family_id}
@@ -172,26 +178,26 @@ export default function GroupDetailScreen() {
         ListFooterComponent={
           <>
             {/* Feed link */}
-            <Pressable
+            <PressableScale
               style={[styles.feedButton, { borderColor: colors.primary, backgroundColor: colors.surface }]}
               onPress={() => router.push({ pathname: '/group-feed/[id]', params: { id: id! } } as any)}
             >
               <ThemedText style={{ color: colors.primary, fontWeight: '600', fontSize: 15 }}>
                 {t('groupDetail.viewFeed')}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
 
             {groupChallenges.length > 0 ? (
               <View style={[styles.challengesPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('groupDetail.activeChallenges')}</ThemedText>
                 {groupChallenges.map((c) => (
-                  <Pressable
+                  <PressableScale
                     key={c.id}
                     onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: c.id } } as any)}
                     style={[styles.challengeRow, { borderColor: colors.border }]}
                   >
                     <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{c.title}</ThemedText>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
@@ -257,6 +263,7 @@ export default function GroupDetailScreen() {
           );
         }}
       />
+      </Animated.View>
     </SafeAreaView>
   );
 }

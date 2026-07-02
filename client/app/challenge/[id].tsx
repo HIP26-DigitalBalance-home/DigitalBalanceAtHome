@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -11,8 +12,10 @@ import { InviteFriendsModal } from '@/components/invite-friends-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -243,7 +246,7 @@ export default function ChallengeDetailScreen() {
           <ErrorState message={error} onRetry={() => router.back()} />
         </View>
       ) : challenge ? (
-        <ScrollView contentContainerStyle={styles.content}>
+        <Animated.ScrollView entering={fadeIn()} contentContainerStyle={styles.content}>
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
             <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
@@ -353,7 +356,7 @@ export default function ChallengeDetailScreen() {
 
           {/* Group link */}
           {challenge.group_id && (
-            <Pressable
+            <PressableScale
               style={[styles.groupLink, { borderColor: colors.border, backgroundColor: colors.surface }]}
               onPress={() => router.push({ pathname: '/group/[id]', params: { id: challenge.group_id! } } as any)}
             >
@@ -362,7 +365,7 @@ export default function ChallengeDetailScreen() {
                 {groupName ?? t('challengeDetail.viewGroup')}
               </ThemedText>
               {groupName && <ThemedText style={{ color: colors.muted, fontSize: 13 }}>→</ThemedText>}
-            </Pressable>
+            </PressableScale>
           )}
 
           {/* Delete challenge */}
@@ -375,7 +378,7 @@ export default function ChallengeDetailScreen() {
               ? <ActivityIndicator color={colors.destructiveMuted} />
               : <ThemedText style={[styles.deleteText, { color: colors.destructiveMuted }]}>{t('challengeDetail.deleteButton')}</ThemedText>}
           </Pressable>
-        </ScrollView>
+        </Animated.ScrollView>
       ) : null}
 
       <CompleteActivityModal

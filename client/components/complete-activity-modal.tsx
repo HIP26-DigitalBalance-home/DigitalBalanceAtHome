@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import type { ChallengeActivitySlot } from '@/lib/api';
@@ -23,6 +24,14 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
   const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
   const [sharedToFeed, setSharedToFeed] = useState(defaultShared);
+  // The parent nulls `slot` at the moment it closes the modal — latch the last
+  // value so the content stays rendered while the exit animation plays.
+  const [latchedSlot, setLatchedSlot] = useState(slot);
+  const renderSlot = slot ?? latchedSlot;
+
+  useEffect(() => {
+    if (slot) setLatchedSlot(slot);
+  }, [slot]);
 
   useEffect(() => {
     if (visible) setSharedToFeed(defaultShared);
@@ -51,75 +60,70 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
     }
   }
 
-  if (!slot) return null;
+  if (!renderSlot) return null;
 
   return (
-    <Modal
+    <AnimatedModal
       visible={visible}
-      transparent
-      animationType="fade"
+      variant="dialog"
       onRequestClose={onClose}
+      onBackdropPress={onClose}
+      contentContainerStyle={styles.container}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <ThemedText style={[styles.activityTitle, { color: colors.onSurface }]} numberOfLines={2}>
-            {slot.activity.title}
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-            {t('completeModal.subtitle', { count: slot.activity.estimated_duration_minutes })}
-          </ThemedText>
+      <View style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <ThemedText style={[styles.activityTitle, { color: colors.onSurface }]} numberOfLines={2}>
+          {renderSlot.activity.title}
+        </ThemedText>
+        <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+          {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
+        </ThemedText>
 
-          <View style={[styles.shareRow, { borderColor: colors.border }]}>
-            <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
-            <Switch
-              value={sharedToFeed}
-              onValueChange={setSharedToFeed}
-              trackColor={{ false: colors.border, true: colors.primary }}
-            />
-          </View>
+        <View style={[styles.shareRow, { borderColor: colors.border }]}>
+          <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
+          <Switch
+            value={sharedToFeed}
+            onValueChange={setSharedToFeed}
+            trackColor={{ false: colors.border, true: colors.primary }}
+          />
+        </View>
 
-          <View style={styles.buttons}>
-            <Pressable
-              style={[styles.button, { backgroundColor: colors.primary }]}
-              onPress={pickImage}
-              disabled={picking}
-            >
-              {picking ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.buttonText}>
-                  {Platform.OS === 'web' ? t('completeModal.choosePhoto') : t('completeModal.photoLibrary')}
-                </ThemedText>
-              )}
-            </Pressable>
+        <View style={styles.buttons}>
+          <Pressable
+            style={[styles.button, { backgroundColor: colors.primary }]}
+            onPress={pickImage}
+            disabled={picking}
+          >
+            {picking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.buttonText}>
+                {Platform.OS === 'web' ? t('completeModal.choosePhoto') : t('completeModal.photoLibrary')}
+              </ThemedText>
+            )}
+          </Pressable>
 
-            <Pressable
-              style={[styles.button, { backgroundColor: colors.accent }]}
-              onPress={() => slot && onSelfReported(slot.id, sharedToFeed)}
-            >
-              <ThemedText style={styles.buttonText}>{t('completeModal.markWithoutPhoto')}</ThemedText>
-            </Pressable>
+          <Pressable
+            style={[styles.button, { backgroundColor: colors.accent }]}
+            onPress={() => slot && onSelfReported(slot.id, sharedToFeed)}
+          >
+            <ThemedText style={styles.buttonText}>{t('completeModal.markWithoutPhoto')}</ThemedText>
+          </Pressable>
 
-            <Pressable
-              style={[styles.cancelButton, { borderColor: colors.border }]}
-              onPress={onClose}
-            >
-              <ThemedText style={{ color: colors.muted }}>{t('common.cancel')}</ThemedText>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          <Pressable
+            style={[styles.cancelButton, { borderColor: colors.border }]}
+            onPress={onClose}
+          >
+            <ThemedText style={{ color: colors.muted }}>{t('common.cancel')}</ThemedText>
+          </Pressable>
+        </View>
+      </View>
+    </AnimatedModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 32,
