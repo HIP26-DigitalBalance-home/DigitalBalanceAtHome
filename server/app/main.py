@@ -1,7 +1,7 @@
 import asyncio
 import uuid as _uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request
@@ -43,23 +43,16 @@ _STATUS_TO_CODE: dict[int, str] = {
 
 
 async def _freeze_job_loop() -> None:
-    """Runs the streak auto-freeze job every Sunday at 21:00 UTC."""
+    """Runs the streak auto-freeze job daily at 21:00 UTC."""
     from app.services.progress import run_freeze_job
 
     while True:
         now = datetime.now(timezone.utc)
-        # Sunday = weekday 6; target 21:00 UTC
-        days_until_sunday = (6 - now.weekday()) % 7
-        next_sunday = now.replace(hour=21, minute=0, second=0, microsecond=0)
-        if days_until_sunday > 0 or now.hour >= 21:
-            next_sunday = next_sunday.replace(day=now.day) if days_until_sunday == 0 else next_sunday
-            from datetime import timedelta
-
-            next_sunday += timedelta(days=days_until_sunday if days_until_sunday > 0 else 7)
-        wait_seconds = (next_sunday - now).total_seconds()
-        if wait_seconds < 0:
-            wait_seconds += 7 * 24 * 3600
-        logger.info("freeze_job_scheduled", next_run=next_sunday.isoformat())
+        next_run = now.replace(hour=21, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run += timedelta(days=1)
+        wait_seconds = (next_run - now).total_seconds()
+        logger.info("freeze_job_scheduled", next_run=next_run.isoformat())
         await asyncio.sleep(wait_seconds)
         try:
             async with AsyncSessionLocal() as session:

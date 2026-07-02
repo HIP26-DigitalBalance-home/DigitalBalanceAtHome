@@ -2011,22 +2011,25 @@ components:
 
     StreakStats:
       type: object
-      required: [current_weeks, longest_weeks, frozen_this_week]
+      required: [current_days, longest_days, frozen_today]
       properties:
-        current_weeks:
+        current_days:
           type: integer
           minimum: 0
+          description: Consecutive days with at least one completion
           example: 4
-        last_weeks:
+        last_days:
           type: integer
           nullable: true
+          description: Length of the previous streak before it was reset
           example: null
-        longest_weeks:
+        longest_days:
           type: integer
           minimum: 0
           example: 6
-        frozen_this_week:
+        frozen_today:
           type: boolean
+          description: A one-day grace freeze is currently protecting the streak
           example: false
 
     AllTimeStats:

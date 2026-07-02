@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,20 +7,11 @@ from app.repositories.family import FamilyRepository
 from app.repositories.progress import ProgressRepository
 from app.services.exceptions import NoFamilyError
 
-# ── ISO week helpers ────────────────────────────────────────────────────────
+# ── Date helpers ──────────────────────────────────────────────────────────────
 
 
-def current_iso_week() -> str:
-    iso = datetime.now(timezone.utc).isocalendar()
-    return f"{iso.year}-W{iso.week:02d}"
-
-
-def previous_iso_week(week_str: str) -> str:
-    year, w = week_str.split("-W")
-    monday = datetime.strptime(f"{year}-W{w}-1", "%G-W%V-%u")
-    prev = monday - timedelta(weeks=1)
-    iso = prev.isocalendar()
-    return f"{iso.year}-W{iso.week:02d}"
+def current_date() -> date:
+    return datetime.now(timezone.utc).date()
 
 
 # ── Progress read ───────────────────────────────────────────────────────────
@@ -40,10 +31,10 @@ async def get_progress(family_id: uuid.UUID, session: AsyncSession) -> dict:
         "weekly_goal": family.weekly_goal,
         "this_week": this_week,
         "streak": {
-            "current_weeks": family.streak_weeks,
-            "last_weeks": family.last_streak_weeks,
-            "longest_weeks": family.longest_streak_weeks,
-            "frozen_this_week": family.last_frozen_iso_week == current_iso_week(),
+            "current_days": family.streak_days,
+            "last_days": family.last_streak_days,
+            "longest_days": family.longest_streak_days,
+            "frozen_today": family.last_frozen_date == current_date(),
         },
         "all_time": all_time,
     }
@@ -60,32 +51,31 @@ async def update_streak_on_completion(family_id: uuid.UUID, session: AsyncSessio
     if not family:
         return
 
-    week = current_iso_week()
+    today = current_date()
 
-    if family.last_activity_iso_week == week:
-        # Already counted this week — no change needed
+    if family.last_activity_date == today:
+        # Already counted today — no change needed
         return
 
-    prev_week = previous_iso_week(week)
+    yesterday = today - timedelta(days=1)
 
-    # If a freeze was applied this week but the family completes anyway, void it
-    freeze_voided = family.last_frozen_iso_week == week
+    # If a freeze was applied today but the family completes anyway, void it
+    freeze_voided = family.last_frozen_date == today
 
-    consecutive = family.last_activity_iso_week == prev_week or family.last_frozen_iso_week == prev_week
+    consecutive = family.last_activity_date == yesterday or family.last_frozen_date == yesterday
 
     if consecutive:
-        family.streak_weeks += 1
-        if freeze_voided:
-            family.last_frozen_iso_week = None
+        family.streak_days += 1
     else:
         # Gap not covered by a freeze — reset and start over at 1
-        family.last_streak_weeks = family.streak_weeks
-        family.streak_weeks = 1
-        if freeze_voided:
-            family.last_frozen_iso_week = None
+        family.last_streak_days = family.streak_days
+        family.streak_days = 1
 
-    family.last_activity_iso_week = week
-    family.longest_streak_weeks = max(family.longest_streak_weeks, family.streak_weeks)
+    if freeze_voided:
+        family.last_frozen_date = None
+
+    family.last_activity_date = today
+    family.longest_streak_days = max(family.longest_streak_days, family.streak_days)
 
 
 # ── Settings update ─────────────────────────────────────────────────────────
@@ -104,32 +94,32 @@ async def update_settings(family_id: uuid.UUID, weekly_goal: int, session: Async
 
 
 async def run_freeze_job(session: AsyncSession) -> None:
-    """Run on Sunday evenings. For each family with an active streak:
-    - If no activity this week and last week wasn't frozen → apply freeze.
-    - If no activity this week and last week WAS frozen → reset streak.
-    Families that completed an activity this week are unaffected."""
+    """Run daily. For each family with an active streak:
+    - If no activity today and yesterday wasn't frozen → apply a one-day freeze.
+    - If no activity today and yesterday WAS frozen → reset streak.
+    Families that completed an activity today are unaffected."""
     from sqlalchemy import select
 
     from app.models.family import Family
 
-    week = current_iso_week()
-    prev_week = previous_iso_week(week)
+    today = current_date()
+    yesterday = today - timedelta(days=1)
 
-    result = await session.execute(select(Family).where(Family.streak_weeks > 0))
+    result = await session.execute(select(Family).where(Family.streak_days > 0))
     families = list(result.scalars().all())
 
     for family in families:
-        if family.last_activity_iso_week == week:
-            # Active this week — nothing to do
+        if family.last_activity_date == today:
+            # Active today — nothing to do
             continue
 
-        if family.last_frozen_iso_week == prev_week:
-            # Two consecutive empty weeks — reset streak
-            family.last_streak_weeks = family.streak_weeks
-            family.streak_weeks = 0
-            family.last_frozen_iso_week = None
+        if family.last_frozen_date == yesterday:
+            # Two consecutive empty days — reset streak
+            family.last_streak_days = family.streak_days
+            family.streak_days = 0
+            family.last_frozen_date = None
         else:
-            # First empty week — apply freeze
-            family.last_frozen_iso_week = week
+            # First empty day — apply freeze
+            family.last_frozen_date = today
 
     await session.commit()

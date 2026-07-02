@@ -6,10 +6,10 @@ export interface WeekStats {
 }
 
 export interface StreakStats {
-  current_weeks: number;
-  last_weeks: number | null;
-  longest_weeks: number;
-  frozen_this_week: boolean;
+  current_days: number;
+  last_days: number | null;
+  longest_days: number;
+  frozen_today: boolean;
 }
 
 export interface AllTimeStats {

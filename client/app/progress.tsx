@@ -88,22 +88,22 @@ export default function ProgressScreen() {
                 {t('progress.yourStreak')}
               </ThemedText>
               <ThemedText style={[styles.streakCount, { color: colors.onSurface }]}>
-                🔥 {progress.streak.current_weeks === 1
-                  ? t('progress.streakWeek')
-                  : t('progress.streakWeeks', { count: progress.streak.current_weeks })}
+                🔥 {progress.streak.current_days === 1
+                  ? t('progress.streakDay')
+                  : t('progress.streakDays', { count: progress.streak.current_days })}
               </ThemedText>
-              {progress.streak.frozen_this_week && (
+              {progress.streak.frozen_today && (
                 <ThemedText style={[styles.frozenLabel, { color: colors.muted }]}>
-                  {t('progress.frozenThisWeek')}
+                  {t('progress.frozenToday')}
                 </ThemedText>
               )}
-              {progress.streak.last_weeks != null && progress.streak.last_weeks > 0 && (
+              {progress.streak.last_days != null && progress.streak.last_days > 0 && (
                 <ThemedText style={[styles.lastStreak, { color: colors.muted }]}>
-                  {t('progress.lastStreak', { count: progress.streak.last_weeks })}
+                  {t('progress.lastStreak', { count: progress.streak.last_days })}
                 </ThemedText>
               )}
               <ThemedText style={[styles.longestStreak, { color: colors.muted }]}>
-                {t('progress.longestStreak', { count: progress.streak.longest_weeks })}
+                {t('progress.longestStreak', { count: progress.streak.longest_days })}
               </ThemedText>
             </View>
 

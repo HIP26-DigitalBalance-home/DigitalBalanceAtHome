@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,11 +15,12 @@ class Family(Base, TimestampMixin):
 
     # Progress tracking
     weekly_goal: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
-    streak_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_streak_weeks: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    longest_streak_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_activity_iso_week: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    last_frozen_iso_week: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # Streaks are measured in consecutive days with at least one completion.
+    streak_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_streak_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    longest_streak_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_activity_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_frozen_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 class FamilyMembership(Base):

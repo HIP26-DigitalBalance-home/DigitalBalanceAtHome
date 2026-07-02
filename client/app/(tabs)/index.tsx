@@ -280,7 +280,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Progress widget: streak + goal ring */}
-        {familyProgress && (familyProgress.streak.current_weeks > 0 || familyProgress.this_week.activities > 0) && (
+        {familyProgress && (familyProgress.streak.current_days > 0 || familyProgress.this_week.activities > 0) && (
           <Pressable
             style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/progress' as any)}
@@ -295,10 +295,10 @@ export default function HomeScreen() {
             </View>
             <View style={styles.progressStreakBlock}>
               <ThemedText style={[styles.progressStreakCount, { color: colors.onSurface }]}>
-                🔥 {familyProgress.streak.current_weeks}
+                🔥 {familyProgress.streak.current_days}
               </ThemedText>
               <ThemedText style={[styles.progressStreakLabel, { color: colors.muted }]}>
-                {familyProgress.streak.frozen_this_week ? '❄️' : t('progress.streakWeeks', { count: familyProgress.streak.current_weeks })}
+                {familyProgress.streak.frozen_today ? '❄️' : t('progress.streakDays', { count: familyProgress.streak.current_days })}
               </ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={16} color={colors.muted} />
