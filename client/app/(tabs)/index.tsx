@@ -11,6 +11,7 @@ import { JournalCard } from '@/components/journal-card';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -24,6 +25,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
   activitiesApi,
   challengesApi,
+  collagePresetsApi,
   completionsApi,
   onboardingApi,
   photosApi,
@@ -34,21 +36,38 @@ import {
   type FamilyProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
+import { PRESET_ILLUSTRATIONS } from '@/lib/preset-illustrations';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CITY_KEY = '@dba_city_preference';
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
+const SUGGESTION_COUNT = 5;
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
-function pickSuggestionFromChallenges(challenges: ChallengeWithProgress[]): ActivityItem | null {
-  const unfulfilled = challenges.flatMap((c) =>
-    c.activities.filter((slot) => slot.completion == null).map((slot) => slot.activity)
-  );
-  if (unfulfilled.length === 0) return null;
-  return unfulfilled[Math.floor(Math.random() * unfulfilled.length)];
+function collectUnfulfilledActivities(challenges: ChallengeWithProgress[]): ActivityItem[] {
+  const seen = new Set<string>();
+  const unfulfilled: ActivityItem[] = [];
+  for (const challenge of challenges) {
+    for (const slot of challenge.activities) {
+      if (slot.completion == null && !seen.has(slot.activity.id)) {
+        seen.add(slot.activity.id);
+        unfulfilled.push(slot.activity);
+      }
+    }
+  }
+  return unfulfilled;
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 export default function HomeScreen() {
@@ -61,7 +80,8 @@ export default function HomeScreen() {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [challengeError, setChallengeError] = useState<string | null>(null);
-  const [fallbackSuggestion, setFallbackSuggestion] = useState<ActivityItem | null>(null);
+  const [fallbackActivities, setFallbackActivities] = useState<ActivityItem[]>([]);
+  const [activityArt, setActivityArt] = useState<Record<string, IllustrationName>>({});
   const [familyProgress, setFamilyProgress] = useState<FamilyProgress | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
 
@@ -130,19 +150,48 @@ export default function HomeScreen() {
     return () => { cancelled = true; };
   }, [i18n.language]));
 
-  // Fallback suggestion when all challenge slots are completed
+  // Map each activity to the artwork of the explore preset it belongs to,
+  // so suggestion cards match the collage cards in the Explore view.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPresetArt() {
+      try {
+        const res = await collagePresetsApi.list();
+        if (cancelled) return;
+        const map: Record<string, IllustrationName> = {};
+        for (const preset of res.data) {
+          const art = PRESET_ILLUSTRATIONS[preset.name] ?? 'stamp-custom';
+          for (const activityId of preset.activity_ids) {
+            if (!map[activityId]) map[activityId] = art;
+          }
+        }
+        setActivityArt(map);
+      } catch {
+        // best-effort; cards fall back to the custom stamp
+      }
+    }
+    loadPresetArt();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fallback activities when the open challenge slots can't fill all suggestion cards
   useEffect(() => {
     if (loadingChallenges) return;
-    if (pickSuggestionFromChallenges(challenges)) return;
+    if (collectUnfulfilledActivities(challenges).length >= SUGGESTION_COUNT) return;
 
     let cancelled = false;
     async function loadFallback() {
+      let age: number | undefined;
       try {
         const childrenRes = await onboardingApi.getChildren();
-        const firstChild = childrenRes.data[0];
-        const city = await AsyncStorage.getItem(CITY_KEY);
-        const res = await activitiesApi.suggestion(firstChild?.id, city);
-        if (!cancelled) setFallbackSuggestion(res.data);
+        const dob = childrenRes.data[0]?.date_of_birth;
+        if (dob) age = Math.max(0, Math.floor((Date.now() - new Date(dob).getTime()) / MS_PER_YEAR));
+      } catch {
+        // age filter is optional
+      }
+      try {
+        const res = await activitiesApi.list(age != null ? { age } : {});
+        if (!cancelled) setFallbackActivities(res.data);
       } catch {
         // best-effort
       }
@@ -151,10 +200,12 @@ export default function HomeScreen() {
     return () => { cancelled = true; };
   }, [loadingChallenges, challenges]);
 
-  const suggestion = useMemo(
-    () => pickSuggestionFromChallenges(challenges) ?? fallbackSuggestion,
-    [challenges, fallbackSuggestion]
-  );
+  const suggestions = useMemo(() => {
+    const fromChallenges = shuffle(collectUnfulfilledActivities(challenges));
+    const seen = new Set(fromChallenges.map((a) => a.id));
+    const fill = shuffle(fallbackActivities.filter((a) => !seen.has(a.id)));
+    return [...fromChallenges, ...fill].slice(0, SUGGESTION_COUNT);
+  }, [challenges, fallbackActivities]);
 
   function checkCelebration(slotId: string, updatedLocal: Record<string, LocalCompletion>) {
     const challenge = challengesRef.current.find((c) => c.activities.some((s) => s.id === slotId));
@@ -309,6 +360,46 @@ export default function HomeScreen() {
         {/* Daily mood check-in — hides itself once answered */}
         <JournalCard />
 
+        {/* Suggestion carousel — full-bleed, not boxed in a section card */}
+        <View style={styles.suggestionSection}>
+          <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.todaysSuggestion')}</ThemedText>
+          {loadingChallenges ? (
+            <SkeletonList count={1} rowHeight={140} />
+          ) : suggestions.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.suggestionScroll}
+              contentContainerStyle={styles.suggestionRow}
+            >
+              {suggestions.map((activity) => (
+                <Pressable
+                  key={activity.id}
+                  style={[styles.suggestionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={() => openActivity(activity)}
+                  accessibilityRole="button"
+                  accessibilityLabel={activity.title}
+                >
+                  <Illustration name={activityArt[activity.id] ?? 'stamp-custom'} size={56} />
+                  <View style={styles.suggestionCardFooter}>
+                    <ThemedText style={[styles.suggestionCardMeta, { color: colors.primary }]}>
+                      {t('common.minutes', { count: activity.estimated_duration_minutes })} ·{' '}
+                      {activity.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
+                    </ThemedText>
+                    <ThemedText style={[styles.suggestionCardTitle, { color: colors.onSurface }]} numberOfLines={2}>
+                      {activity.title}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <ThemedText style={{ color: colors.muted, fontSize: 14 }}>
+              {t('home.noSuggestion')}
+            </ThemedText>
+          )}
+        </View>
+
         {/* Active challenge collages */}
         {loadingChallenges ? (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -359,32 +450,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Suggestion card */}
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.todaysSuggestion')}</ThemedText>
-          {loadingChallenges ? (
-            <SkeletonList count={1} rowHeight={80} />
-          ) : suggestion ? (
-            <>
-              <ThemedText style={styles.suggestionTitle}>{suggestion.title}</ThemedText>
-              <ThemedText style={[styles.suggestionMeta, { color: colors.muted }]}>
-                {t('common.minutes', { count: suggestion.estimated_duration_minutes })} ·{' '}
-                {suggestion.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
-              </ThemedText>
-              <Pressable
-                style={[styles.ctaButton, { backgroundColor: colors.primary }]}
-                onPress={() => openActivity(suggestion)}
-              >
-                <ThemedText style={[styles.ctaText, { color: colors.buttonText }]}>{t('home.letsDoIt')}</ThemedText>
-              </Pressable>
-            </>
-          ) : (
-            <ThemedText style={{ color: colors.muted, fontSize: 14 }}>
-              {t('home.noSuggestion')}
-            </ThemedText>
-          )}
-        </View>
-
         <ArticleOfTheDay />
       </ScrollView>
 
@@ -424,10 +489,20 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14 },
   createButton: { height: 44, paddingHorizontal: Spacing.lg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   createButtonText: { fontSize: 14, fontWeight: '600' },
-  suggestionTitle: { fontSize: 17, fontWeight: '600', lineHeight: 24 },
-  suggestionMeta: { fontSize: 13 },
-  ctaButton: { height: 44, borderRadius: DEFAULT_RADII.button, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
-  ctaText: { fontSize: 15, fontWeight: '600' },
+  suggestionSection: { gap: Spacing.sm },
+  suggestionScroll: { marginHorizontal: -Spacing.screenHorizontal },
+  suggestionRow: { paddingHorizontal: Spacing.screenHorizontal, gap: Spacing.sm },
+  suggestionCard: {
+    width: 148,
+    minHeight: 150,
+    borderRadius: DEFAULT_RADII.card,
+    borderWidth: 1,
+    padding: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  suggestionCardFooter: { gap: 2 },
+  suggestionCardMeta: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  suggestionCardTitle: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
   progressWidget: { flexDirection: 'row', alignItems: 'center', borderRadius: DEFAULT_RADII.card, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.lg },
   progressRingBlock: { alignItems: 'center', gap: 2, paddingTop: Spacing.sm },
   progressRingLabel: { fontSize: 11 },

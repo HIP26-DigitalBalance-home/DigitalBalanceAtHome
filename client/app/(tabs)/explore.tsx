@@ -13,6 +13,7 @@ import { Spacing } from '@/constants/theme';
 import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { collagePresetsApi, type CollagePreset } from '@/lib/api';
+import { PRESET_ILLUSTRATIONS } from '@/lib/preset-illustrations';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
 // Cards rendered locally, always shown (even on network failure). They are never
@@ -23,21 +24,6 @@ type ExploreCard =
   | { kind: 'preset'; preset: CollagePreset };
 
 const LOCAL_CARDS: ExploreCard[] = [{ kind: 'custom' }, { kind: 'random' }];
-
-// Preset names arrive from the API already localised, so both language variants
-// map to the same artwork. Unknown presets fall back to the collage-grid stamp.
-const PRESET_ILLUSTRATIONS: Record<string, IllustrationName> = {
-  'Outdoor-Abenteuer': 'stamp-outdoor',
-  'Outdoor Adventures': 'stamp-outdoor',
-  'Kreative Familie': 'stamp-creative',
-  'Creative Family': 'stamp-creative',
-  'Achtsame Momente': 'stamp-mindful',
-  'Mindful Moments': 'stamp-mindful',
-  'Gemeinsam in der Küche': 'stamp-kitchen',
-  'Together in the Kitchen': 'stamp-kitchen',
-  'Regentag-Entdecker': 'stamp-rainy',
-  'Rainy-Day Explorers': 'stamp-rainy',
-};
 
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
