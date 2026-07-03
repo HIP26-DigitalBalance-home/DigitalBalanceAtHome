@@ -8,7 +8,11 @@ export type { ActivityItem, ActivityFilters, CreateActivityPayload } from './act
 export { collagePresetsApi } from './collage-presets';
 export type { CollagePreset } from './collage-presets';
 export { challengesApi } from './challenges';
-export type { ChallengeSummary, ChallengeWithProgress, ChallengeActivitySlot, Completion, CreateChallengePayload } from './challenges';
+export type { ChallengeSummary, ChallengeWithProgress, ChallengeActivitySlot, ChallengeParticipant, Completion, CreateChallengePayload } from './challenges';
+export { friendsApi } from './friends';
+export type { Friend } from './friends';
+export { notificationsApi } from './notifications';
+export type { NotificationItem } from './notifications';
 export { completionsApi, photosApi } from './completions';
 export type { PhotoUrlResponse } from './completions';
 export { devApi } from './dev';

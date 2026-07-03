@@ -2,7 +2,7 @@
 
 import asyncio
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -177,7 +177,6 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     objects) before creating a fresh one.
     """
     now = datetime.now(timezone.utc)
-    today = date.today()
 
     # 8-char hex tag scopes mock-user emails to this real user so accounts
     # never collide when multiple demo users seed concurrently.
@@ -320,9 +319,10 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         await session.flush()
         return ch
 
-    def _ch(title, desc, group_id, start_offset, end_offset, title_en=None, desc_en=None) -> Challenge:
+    def _ch(title, desc, group_id, start_offset=None, end_offset=None, title_en=None, desc_en=None) -> Challenge:
         # Base columns hold German; *_en hold English so content negotiation can
         # serve either language (see app/services/localization.py).
+        # Challenges no longer have dates; offsets kept for call-site compatibility.
         return Challenge(
             title=title,
             description=desc,
@@ -330,8 +330,6 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             description_en=desc_en,
             group_id=group_id,
             created_by_family_id=family.id,
-            start_date=today + timedelta(days=start_offset),
-            end_date=today + timedelta(days=end_offset),
             display_mode="collage",
         )
 

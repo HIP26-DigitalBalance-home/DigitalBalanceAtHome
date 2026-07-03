@@ -337,9 +337,6 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
               <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
-              <ThemedText style={[styles.challengeDates, { color: colors.muted }]}>
-                {challenge.start_date} → {challenge.end_date}
-              </ThemedText>
               <CollageGrid
                 slots={challenge.activities}
                 groupFamiliesCount={challenge.group_families_count}
@@ -394,7 +391,7 @@ export default function HomeScreen() {
       <CompleteActivityModal
         visible={activeSlot !== null}
         slot={activeSlot}
-        isGroupChallenge={activeSlot != null && challenges.some((c) => c.group_id != null && c.activities.some((s) => s.id === activeSlot.id))}
+        defaultShared={activeSlot != null && challenges.some((c) => !c.is_private && c.activities.some((s) => s.id === activeSlot.id))}
         onClose={() => setActiveSlot(null)}
         onSelfReported={handleSelfReported}
         onPhotoSelected={handlePhotoSelected}

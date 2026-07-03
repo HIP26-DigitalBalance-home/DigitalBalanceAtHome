@@ -136,3 +136,18 @@ class NoDeletionPending(DomainError):
 class ConsentVersionMismatch(DomainError):
     status_code = 403
     code = "consent_version_mismatch"
+
+
+class UserNotFound(DomainError):
+    status_code = 404
+    code = "user_not_found"
+
+
+class NotFriend(DomainError):
+    status_code = 403
+    code = "not_friend"
+
+
+class AlreadyParticipant(DomainError):
+    status_code = 409
+    code = "already_participant"

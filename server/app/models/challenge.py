@@ -1,7 +1,7 @@
 import uuid
-from datetime import date
+from datetime import datetime
 
-from sqlalchemy import Date, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,9 +23,9 @@ class Challenge(Base, TimestampMixin):
     created_by_family_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="CASCADE"), nullable=False
     )
-    start_date: Mapped[date] = mapped_column(Date, nullable=False)
-    end_date: Mapped[date] = mapped_column(Date, nullable=False)
     display_mode: Mapped[str] = mapped_column(String, nullable=False, default="collage")
+    # Private collages default uploads to shared_to_feed=false (opt-in sharing)
+    is_private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
 
 
 class ChallengeActivity(Base, TimestampMixin):
@@ -36,3 +36,44 @@ class ChallengeActivity(Base, TimestampMixin):
     )
     activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id"), nullable=False)
     grid_position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class ChallengeSharedGroup(Base):
+    """Groups whose feeds receive this challenge's opted-in photos (public collages)."""
+
+    __tablename__ = "challenge_shared_groups"
+    __table_args__ = (UniqueConstraint("challenge_id", "group_id", name="uq_challenge_shared_group"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    challenge_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+
+class ChallengeParticipant(Base):
+    """A friend invited to fill a challenge's collage together with the creating family.
+
+    Access is granted to the participant's whole family (completions are per family),
+    while user_id records which parent was invited and receives the notification.
+    """
+
+    __tablename__ = "challenge_participants"
+    __table_args__ = (UniqueConstraint("challenge_id", "user_id", name="uq_challenge_participant"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    challenge_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("families.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    invited_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

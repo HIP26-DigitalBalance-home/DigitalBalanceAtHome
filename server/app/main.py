@@ -18,9 +18,11 @@ from app.api import (
     completions,
     consents,
     families,
+    friends,
     groups,
     health,
     journal,
+    notifications,
     photos,
     progress,
     users,
@@ -138,6 +140,8 @@ app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])
 app.include_router(progress.router, prefix="/families", tags=["families"])
 app.include_router(journal.router, prefix="/journal", tags=["journal"])
+app.include_router(friends.router, prefix="/friends", tags=["friends"])
+app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 
 if settings.SEED_ENABLED:
     from app.api import dev

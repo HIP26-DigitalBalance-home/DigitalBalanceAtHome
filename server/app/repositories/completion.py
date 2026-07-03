@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity import Activity
-from app.models.challenge import Challenge, ChallengeActivity
+from app.models.challenge import Challenge, ChallengeActivity, ChallengeSharedGroup
 from app.models.completion import Completion
 from app.models.family import Family
 
@@ -80,7 +80,10 @@ class CompletionRepository:
     async def get_group_feed(
         self, group_id: uuid.UUID, limit: int = 20, offset: int = 0
     ) -> list[tuple[Completion, str, str | None, str | None]]:
-        """Return (Completion, activity_title, activity_title_en, family_name) for shared feed entries."""
+        """Return (Completion, activity_title, activity_title_en, family_name) for shared feed entries.
+
+        Includes completions from the group's own challenges plus opted-in completions
+        from personal challenges explicitly shared to this group at creation."""
         stmt = (
             select(Completion, Activity.title, Activity.title_en, Family.name)
             .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
@@ -88,8 +91,16 @@ class CompletionRepository:
             .join(Activity, ChallengeActivity.activity_id == Activity.id)
             .join(Family, Completion.family_id == Family.id)
             .where(
-                Challenge.group_id == group_id,
                 Completion.shared_to_feed.is_(True),
+                or_(
+                    Challenge.group_id == group_id,
+                    exists(
+                        select(ChallengeSharedGroup.id).where(
+                            ChallengeSharedGroup.challenge_id == Challenge.id,
+                            ChallengeSharedGroup.group_id == group_id,
+                        )
+                    ),
+                ),
             )
             .order_by(Completion.completed_at.desc())
             .limit(limit)

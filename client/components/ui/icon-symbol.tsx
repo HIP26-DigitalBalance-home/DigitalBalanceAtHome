@@ -46,6 +46,7 @@ const MAPPING = {
 
   // Contacts & Communication
   'person.circle.fill': 'account-circle',
+  'person.badge.plus': 'person-add',
   'phone.fill': 'phone',
   'message.fill': 'chat',
   'envelope.fill': 'email',

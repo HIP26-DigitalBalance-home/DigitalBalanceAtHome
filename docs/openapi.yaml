@@ -882,7 +882,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [upcoming, active, completed]
+            enum: [active, completed]
       responses:
         "200":
           description: Challenges
@@ -929,6 +929,129 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateChallenge
+      tags: [Challenges]
+      summary: Update challenge settings (currently only collage privacy)
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+        - $ref: "#/components/parameters/ChallengeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChallengeRequest"
+      responses:
+        "200":
+          description: Updated challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeWithProgress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /challenges/{challengeId}/participants:
+    get:
+      operationId: listChallengeParticipants
+      tags: [Challenges]
+      summary: List friends invited to collaborate on this challenge's collage
+      parameters:
+        - $ref: "#/components/parameters/ChallengeId"
+      responses:
+        "200":
+          description: Participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeParticipant"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: inviteChallengeParticipant
+      tags: [Challenges]
+      summary: Invite a friend (member of a shared group) to fill the collage together
+      description: |
+        The invited user gains access to this challenge — they see all collage photos
+        and can complete slots themselves. They receive a notification.
+      parameters:
+        - $ref: "#/components/parameters/ChallengeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteParticipantRequest"
+      responses:
+        "201":
+          description: Participant invited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeParticipant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # ── Friends & Notifications ─────────────────────────────────
+
+  /friends:
+    get:
+      operationId: listFriends
+      tags: [Friends]
+      summary: List all parents who share at least one group with the caller's family
+      description: Sorted alphabetically by display name. Excludes the caller's own family members.
+      responses:
+        "200":
+          description: Friends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Friend"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [Notifications]
+      summary: List the caller's notifications, newest first
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications/read:
+    post:
+      operationId: markNotificationsRead
+      tags: [Notifications]
+      summary: Mark all of the caller's notifications as read
+      responses:
+        "204":
+          description: Marked read
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   # ── Photos ──────────────────────────────────────────────────
 
@@ -1842,7 +1965,7 @@ components:
 
     ChallengeSummary:
       type: object
-      required: [id, title, start_date, end_date, display_mode, status, created_at]
+      required: [id, title, display_mode, status, is_private, created_at]
       properties:
         id:
           type: string
@@ -1856,18 +1979,17 @@ components:
           type: string
           format: uuid
           nullable: true
-        start_date:
-          type: string
-          format: date
-        end_date:
-          type: string
-          format: date
+        is_private:
+          type: boolean
+          default: true
+          description: When true, photos uploaded to this challenge default to NOT being shared to group feeds
         display_mode:
           type: string
           enum: [collage]
         status:
           type: string
-          enum: [upcoming, active, completed]
+          enum: [active, completed]
+          description: Challenges have no dates — a challenge is active until every slot is filled
         created_at:
           type: string
           format: date-time
@@ -1893,10 +2015,17 @@ components:
               nullable: true
               default: null
               description: Total families in the group (for computing aggregate percentages); null for personal challenges
+            shared_group_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+              default: []
+              description: Groups whose feeds receive this challenge's opted-in photos
 
     CreateChallengeRequest:
       type: object
-      required: [title, activity_ids, start_date, end_date]
+      required: [title, activity_ids]
       properties:
         title:
           type: string
@@ -1916,12 +2045,96 @@ components:
             format: uuid
           minItems: 1
           description: Activities in order — grid_position is assigned by their position in this list
-        start_date:
+        is_private:
+          type: boolean
+          default: true
+          description: When false, uploads default to being shared to the feeds of shared_group_ids
+        shared_group_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          default: []
+          description: Groups (the caller's family must be a member) whose feeds receive opted-in photos
+
+    UpdateChallengeRequest:
+      type: object
+      properties:
+        is_private:
+          type: boolean
+          description: When true, uploads default to not being shared to group feeds
+
+    ChallengeParticipant:
+      type: object
+      required: [user_id, display_name, family_id, invited_by_user_id, created_at]
+      properties:
+        user_id:
           type: string
-          format: date
-        end_date:
+          format: uuid
+        display_name:
           type: string
-          format: date
+        family_id:
+          type: string
+          format: uuid
+        invited_by_user_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    InviteParticipantRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+
+    Friend:
+      type: object
+      required: [user_id, display_name, shared_group_names]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        shared_group_names:
+          type: array
+          items:
+            type: string
+          description: Names of the groups the caller shares with this parent
+
+    NotificationItem:
+      type: object
+      required: [id, type, created_at, read]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [challenge_invite]
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        actor_display_name:
+          type: string
+          nullable: true
+        challenge_id:
+          type: string
+          format: uuid
+          nullable: true
+        challenge_title:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        read:
+          type: boolean
 
     # Photos
 

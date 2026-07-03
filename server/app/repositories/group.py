@@ -136,3 +136,29 @@ class GroupRepository:
             return []
         result = await self.session.execute(select(User).where(User.id.in_(ids)))
         return list(result.scalars().all())
+
+    async def get_friend_rows(self, family_id: uuid.UUID) -> list[tuple[User, uuid.UUID, str]]:
+        """(User, their family_id, shared group name) for every parent whose family
+        shares at least one group with the given family. Excludes the family itself."""
+        my_group_ids = select(GroupMembership.group_id).where(GroupMembership.family_id == family_id).scalar_subquery()
+        result = await self.session.execute(
+            select(User, FamilyMembership.family_id, Group.name)
+            .join(FamilyMembership, FamilyMembership.user_id == User.id)
+            .join(GroupMembership, GroupMembership.family_id == FamilyMembership.family_id)
+            .join(Group, Group.id == GroupMembership.group_id)
+            .where(
+                GroupMembership.group_id.in_(my_group_ids),
+                FamilyMembership.family_id != family_id,
+            )
+            .order_by(User.display_name)
+        )
+        return list(result.tuples().all())
+
+    async def families_share_group(self, family_a: uuid.UUID, family_b: uuid.UUID) -> bool:
+        a_groups = select(GroupMembership.group_id).where(GroupMembership.family_id == family_a).scalar_subquery()
+        result = await self.session.execute(
+            select(GroupMembership.id)
+            .where(GroupMembership.family_id == family_b, GroupMembership.group_id.in_(a_groups))
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None

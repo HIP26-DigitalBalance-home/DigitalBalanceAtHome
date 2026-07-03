@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 import { ErrorState } from '@/components/ui/error-state';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII, THEMES, type ColorMode, type ThemeId } from '@/constants/themes';
@@ -17,7 +18,7 @@ import { useLanguage } from '@/lib/i18n/language-context';
 import type { AppLanguage } from '@/lib/i18n/language-preloader';
 import { useAuth } from '@/lib/auth';
 import { useNetworkStatus } from '@/hooks/use-network-status';
-import { onboardingApi, devApi, usersApi, apiClient } from '@/lib/api';
+import { onboardingApi, devApi, usersApi, notificationsApi, apiClient } from '@/lib/api';
 import { resetOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
@@ -68,6 +69,7 @@ export default function ProfileScreen() {
   const [city, setCity] = useState('');
   const [seeding, setSeeding] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setFetchError(null);
@@ -88,6 +90,14 @@ export default function ProfileScreen() {
   }, [updateCurrentUser]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    let cancelled = false;
+    notificationsApi.list()
+      .then((r) => { if (!cancelled) setUnreadCount(r.data.filter((n) => !n.read).length); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,6 +179,22 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <ThemedText type="title" style={styles.title}>{t('profile.title')}</ThemedText>
+        <Pressable
+          style={styles.bellButton}
+          onPress={() => {
+            setUnreadCount(0);
+            router.push('/notifications' as any);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications.title')}
+        >
+          <IconSymbol name="bell.badge.fill" color={colors.primary} size={26} />
+          {unreadCount > 0 && (
+            <View style={[styles.bellBadge, { backgroundColor: colors.destructiveMuted }]}>
+              <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       <FlatList
@@ -484,11 +510,27 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.screenHorizontal,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
   title: { fontSize: 28 },
+  bellButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  bellBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 2,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   content: { padding: Spacing.md, gap: Spacing.md },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase', marginTop: Spacing.sm },
   card: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },

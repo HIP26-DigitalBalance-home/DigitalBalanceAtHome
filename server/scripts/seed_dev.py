@@ -18,7 +18,7 @@ Your email is detected from the SEED_ADMIN_EMAIL env var (default: ignacio.garci
 import asyncio
 import os
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import boto3
@@ -42,9 +42,9 @@ _SEED_PHOTOS_DIR = Path(__file__).parent / "seed_photos"
 
 _ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
     # Baking
-    ("plätzchen", "baking.jpg"),       # Gemeinsam Plätzchen backen
-    ("pfannkuchen", "baking.jpg"),     # Pfannkuchen zum Frühstück backen
-    ("schokolade", "baking.jpg"),      # Heiße Schokolade selbst machen
+    ("plätzchen", "baking.jpg"),  # Gemeinsam Plätzchen backen
+    ("pfannkuchen", "baking.jpg"),  # Pfannkuchen zum Frühstück backen
+    ("schokolade", "baking.jpg"),  # Heiße Schokolade selbst machen
     ("backen", "baking.jpg"),
     # Cooking
     ("kochen", "cooking.jpg"),
@@ -64,7 +64,7 @@ _ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
     ("zeichnen", "drawing.jpg"),
     ("malen", "drawing.jpg"),
     ("collage", "drawing.jpg"),
-    ("papierflieger", "planes.jpg"),   # Papierflieger basteln
+    ("papierflieger", "planes.jpg"),  # Papierflieger basteln
     # Planting
     ("pflanzen", "planting.jpg"),
     ("vogelhäuschen", "planting.jpg"),
@@ -168,9 +168,7 @@ async def seed():
         print(f"✓  Found admin user: {admin_user.display_name} ({admin_user.email})")
 
         # ── Ensure admin has a family ────────────────────────────────────────
-        result = await session.execute(
-            select(FamilyMembership).where(FamilyMembership.user_id == admin_user.id)
-        )
+        result = await session.execute(select(FamilyMembership).where(FamilyMembership.user_id == admin_user.id))
         admin_membership = result.scalars().first()
 
         if admin_membership is None:
@@ -205,16 +203,12 @@ async def seed():
 
             print(f"✓  Created family 'García Family' for {admin_user.display_name}")
         else:
-            admin_family_result = await session.execute(
-                select(Family).where(Family.id == admin_membership.family_id)
-            )
+            admin_family_result = await session.execute(select(Family).where(Family.id == admin_membership.family_id))
             admin_family = admin_family_result.scalar_one()
             print(f"✓  Admin family: '{admin_family.name or 'Unnamed'}'")
 
         # ── Clean up existing seed groups ────────────────────────────────────
-        result = await session.execute(
-            select(Group).where(Group.name == "3B Class Parents")
-        )
+        result = await session.execute(select(Group).where(Group.name == "3B Class Parents"))
         existing_group = result.scalar_one_or_none()
         if existing_group:
             await session.execute(delete(GroupAdmin).where(GroupAdmin.group_id == existing_group.id))
@@ -232,16 +226,20 @@ async def seed():
         session.add(group)
         await session.flush()
 
-        session.add(GroupMembership(
-            group_id=group.id,
-            family_id=admin_family.id,
-            joined_at=datetime.now(timezone.utc),
-        ))
-        session.add(GroupAdmin(
-            group_id=group.id,
-            user_id=admin_user.id,
-            granted_at=datetime.now(timezone.utc),
-        ))
+        session.add(
+            GroupMembership(
+                group_id=group.id,
+                family_id=admin_family.id,
+                joined_at=datetime.now(timezone.utc),
+            )
+        )
+        session.add(
+            GroupAdmin(
+                group_id=group.id,
+                user_id=admin_user.id,
+                granted_at=datetime.now(timezone.utc),
+            )
+        )
         print(f"✓  Created group '3B Class Parents' with {admin_user.display_name} as admin")
 
         # ── Create mock families ─────────────────────────────────────────────
@@ -253,9 +251,7 @@ async def seed():
 
             first_user = None
             for parent_data in mock["parents"]:
-                existing_user = await session.execute(
-                    select(User).where(User.email == parent_data["email"])
-                )
+                existing_user = await session.execute(select(User).where(User.email == parent_data["email"]))
                 mock_user = existing_user.scalar_one_or_none()
                 if mock_user is None:
                     mock_user = User(
@@ -267,40 +263,38 @@ async def seed():
                     session.add(mock_user)
                     await session.flush()
 
-                session.add(FamilyMembership(
-                    family_id=family.id,
-                    user_id=mock_user.id,
-                    joined_at=datetime.now(timezone.utc),
-                ))
+                session.add(
+                    FamilyMembership(
+                        family_id=family.id,
+                        user_id=mock_user.id,
+                        joined_at=datetime.now(timezone.utc),
+                    )
+                )
                 if first_user is None:
                     first_user = mock_user
 
             mock_family_records.append((family, first_user))
-            session.add(GroupMembership(
-                group_id=group.id,
-                family_id=family.id,
-                joined_at=datetime.now(timezone.utc),
-            ))
+            session.add(
+                GroupMembership(
+                    group_id=group.id,
+                    family_id=family.id,
+                    joined_at=datetime.now(timezone.utc),
+                )
+            )
             print(f"  + Added mock family: {mock['family_name']}")
 
         # ── Fetch activities to use in challenges ────────────────────────────
-        activity_result = await session.execute(
-            select(Activity).where(Activity.cost_indicator != "paid").limit(18)
-        )
+        activity_result = await session.execute(select(Activity).where(Activity.cost_indicator != "paid").limit(18))
         all_activities = list(activity_result.scalars().all())
         if len(all_activities) < 6:
             print("⚠  Not enough activities to seed challenges — skipping")
         else:
-            today = date.today()
-
             for challenge_title in [
                 "Spring Outdoor Adventures",
                 "Summer Family Challenge",
                 "Winter Warmth Challenge",
             ]:
-                result = await session.execute(
-                    select(Challenge).where(Challenge.title == challenge_title)
-                )
+                result = await session.execute(select(Challenge).where(Challenge.title == challenge_title))
                 existing = result.scalar_one_or_none()
                 if existing:
                     await session.execute(
@@ -309,14 +303,13 @@ async def seed():
                     await session.delete(existing)
             await session.flush()
 
-            def _make_challenge(title, description, group_id, family_id, start_offset, end_offset):
+            def _make_challenge(title, description, group_id, family_id, start_offset=None, end_offset=None):
+                # Challenges no longer have dates; offsets kept for call-site compatibility.
                 return Challenge(
                     title=title,
                     description=description,
                     group_id=group_id,
                     created_by_family_id=family_id,
-                    start_date=today + timedelta(days=start_offset),
-                    end_date=today + timedelta(days=end_offset),
                     display_mode="collage",
                 )
 
@@ -324,11 +317,13 @@ async def seed():
                 session.add(challenge)
                 await session.flush()
                 for pos, activity in enumerate(activities):
-                    session.add(ChallengeActivity(
-                        challenge_id=challenge.id,
-                        activity_id=activity.id,
-                        grid_position=pos,
-                    ))
+                    session.add(
+                        ChallengeActivity(
+                            challenge_id=challenge.id,
+                            activity_id=activity.id,
+                            grid_position=pos,
+                        )
+                    )
                 await session.flush()
                 return challenge
 
@@ -336,7 +331,10 @@ async def seed():
                 _make_challenge(
                     "Spring Outdoor Adventures",
                     "Explore nature and spend quality time together this spring!",
-                    group.id, admin_family.id, -7, 14,
+                    group.id,
+                    admin_family.id,
+                    -7,
+                    14,
                 ),
                 all_activities[:6],
             )
@@ -346,7 +344,10 @@ async def seed():
                 _make_challenge(
                     "Summer Family Challenge",
                     "Get ready for summer with these fun activities!",
-                    None, admin_family.id, 3, 24,
+                    None,
+                    admin_family.id,
+                    3,
+                    24,
                 ),
                 all_activities[6:12],
             )
@@ -356,7 +357,10 @@ async def seed():
                 _make_challenge(
                     "Winter Warmth Challenge",
                     "Cozy indoor activities to brighten the cold months.",
-                    group.id, admin_family.id, -40, -10,
+                    group.id,
+                    admin_family.id,
+                    -40,
+                    -10,
                 ),
                 all_activities[12:18],
             )
@@ -452,16 +456,18 @@ async def seed():
                     photo_key = _upload_seed_photo(fam.id, photo_file)
                     if photo_key:
                         photo_count += 1
-                session.add(Completion(
-                    challenge_activity_id=slot.id,
-                    family_id=fam.id,
-                    completed_by_user_id=u.id,
-                    status="ready" if photo_key else "self_reported",
-                    photo_key=photo_key,
-                    caption=caption,
-                    shared_to_feed=shared,
-                    completed_at=_ts(days_ago),
-                ))
+                session.add(
+                    Completion(
+                        challenge_activity_id=slot.id,
+                        family_id=fam.id,
+                        completed_by_user_id=u.id,
+                        status="ready" if photo_key else "self_reported",
+                        photo_key=photo_key,
+                        caption=caption,
+                        shared_to_feed=shared,
+                        completed_at=_ts(days_ago),
+                    )
+                )
 
             await session.flush()
             shared_count = sum(1 for *_, shared, _ in completions_data if shared)

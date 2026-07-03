@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
+import { InviteFriendsModal } from '@/components/invite-friends-modal';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ErrorState } from '@/components/ui/error-state';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -21,6 +23,7 @@ import {
   groupsApi,
   photosApi,
   type ChallengeActivitySlot,
+  type ChallengeParticipant,
   type ChallengeWithProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
@@ -35,14 +38,12 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function ChallengeDetailScreen() {
   const { colors, radii } = useAppTheme();
-  const statusColor = (s: string) =>
-    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
+  const statusColor = (s: string) => (s === 'active' ? colors.accent : colors.muted);
   const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
   const { id } = useLocalSearchParams<{ id: string }>();
   const statusLabels: Record<string, string> = {
     active: t('status.active'),
-    upcoming: t('status.upcoming'),
     completed: t('status.completed'),
   };
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
@@ -55,6 +56,9 @@ export default function ChallengeDetailScreen() {
   const [groupName, setGroupName] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
+  const [participants, setParticipants] = useState<ChallengeParticipant[]>([]);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
   const pollingRef = useRef<Record<string, { interval: ReturnType<typeof setInterval>; timeout: ReturnType<typeof setTimeout> }>>({});
 
   const challengeRef = useRef<ChallengeWithProgress | null>(null);
@@ -88,8 +92,28 @@ export default function ChallengeDetailScreen() {
       })
       .catch((e) => { if (!cancelled) setError(getGermanErrorMessage(e)); })
       .finally(() => { if (!cancelled) setLoading(false); });
+    challengesApi.getParticipants(id)
+      .then((r) => { if (!cancelled) setParticipants(r.data); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [id, i18n.language]);
+
+  function handlePrivacyToggle(isPrivate: boolean) {
+    // Guard against redundant/spurious switch events (react-native-web can
+    // re-fire onValueChange) and concurrent saves — both would loop PATCHes.
+    if (!challenge || challenge.is_private === isPrivate || savingPrivacy) return;
+    if (!isOnline) { showAlert(t('common.offline'), t('common.noConnection')); return; }
+    const previous = challenge.is_private;
+    setChallenge({ ...challenge, is_private: isPrivate });
+    setSavingPrivacy(true);
+    challengesApi
+      .update(challenge.id, { is_private: isPrivate })
+      .catch(() => {
+        setChallenge((c) => (c ? { ...c, is_private: previous } : c));
+        showAlert(t('common.error'), t('challengeDetail.privacyUpdateFailed'));
+      })
+      .finally(() => setSavingPrivacy(false));
+  }
 
   function checkCelebration(updatedLocal: Record<string, LocalCompletion>) {
     const c = challengeRef.current;
@@ -222,13 +246,11 @@ export default function ChallengeDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.titleRow}>
             <ThemedText type="title" style={{ flex: 1 }}>{challenge.title}</ThemedText>
-            {challenge.status !== 'upcoming' && (
-              <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
-                <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
-                  {statusLabels[challenge.status] ?? challenge.status}
-                </ThemedText>
-              </View>
-            )}
+            <View style={[styles.statusBadge, { backgroundColor: statusColor(challenge.status) + '22' }]}>
+              <ThemedText style={[styles.statusText, { color: statusColor(challenge.status) }]}>
+                {statusLabels[challenge.status] ?? challenge.status}
+              </ThemedText>
+            </View>
           </View>
 
           <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>{t('challengeDetail.yourCollage')}</ThemedText>
@@ -239,6 +261,43 @@ export default function ChallengeDetailScreen() {
             onSlotPress={challenge.status === 'active' ? setActiveSlot : undefined}
             onPhotoPress={handlePhotoPress}
           />
+
+          {/* Invite friends + collage privacy */}
+          <View style={styles.socialRow}>
+            <Pressable
+              style={[styles.inviteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => setInviteVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('challengeDetail.addFriends')}
+            >
+              <IconSymbol name="person.badge.plus" color={colors.primary} size={26} />
+              <ThemedText style={[styles.inviteCardText, { color: colors.primary }]}>
+                {t('challengeDetail.addFriends')}
+              </ThemedText>
+            </Pressable>
+
+            <View style={[styles.privacyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.privacyHeader}>
+                <ThemedText style={[styles.privacyTitle, { color: colors.onSurface }]}>
+                  {t('challengeDetail.privateTitle')}
+                </ThemedText>
+                <Switch
+                  value={challenge.is_private}
+                  onValueChange={handlePrivacyToggle}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                />
+              </View>
+              <ThemedText style={[styles.privacyDesc, { color: colors.muted }]}>
+                {challenge.is_private ? t('challengeDetail.privateDesc') : t('challengeDetail.publicDesc')}
+              </ThemedText>
+            </View>
+          </View>
+
+          {participants.length > 0 && (
+            <ThemedText style={[styles.participantsText, { color: colors.muted }]}>
+              {t('challengeDetail.togetherWith', { names: participants.map((p) => p.display_name).join(', ') })}
+            </ThemedText>
+          )}
 
           {Platform.OS === 'web' && (
             <View style={styles.exportRow}>
@@ -322,11 +381,24 @@ export default function ChallengeDetailScreen() {
       <CompleteActivityModal
         visible={activeSlot !== null}
         slot={activeSlot}
-        isGroupChallenge={challenge?.group_id != null}
+        defaultShared={challenge != null && !challenge.is_private}
         onClose={() => setActiveSlot(null)}
         onSelfReported={handleSelfReported}
         onPhotoSelected={handlePhotoSelected}
       />
+
+      {challenge && (
+        <InviteFriendsModal
+          visible={inviteVisible}
+          challengeId={challenge.id}
+          onClose={() => setInviteVisible(false)}
+          onInvited={() => {
+            challengesApi.getParticipants(challenge.id)
+              .then((r) => setParticipants(r.data))
+              .catch(() => {});
+          }}
+        />
+      )}
 
       <PhotoViewerModal
         visible={viewerPhoto !== null}
@@ -361,6 +433,28 @@ const styles = StyleSheet.create({
   statusBadge: { borderRadius: DEFAULT_RADII.sm, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
+  socialRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
+  inviteCard: {
+    flex: 1,
+    borderRadius: DEFAULT_RADII.card,
+    borderWidth: 1,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  inviteCardText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  privacyCard: {
+    flex: 1.6,
+    borderRadius: DEFAULT_RADII.card,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  privacyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  privacyTitle: { fontSize: 16, fontWeight: '700' },
+  privacyDesc: { fontSize: 12, lineHeight: 16 },
+  participantsText: { fontSize: 13, marginTop: -Spacing.sm },
   exportRow: { flexDirection: 'row', gap: Spacing.sm },
   exportButton: {
     flex: 1,

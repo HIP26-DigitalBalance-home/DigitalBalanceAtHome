@@ -191,7 +191,6 @@ export default function GroupDetailScreen() {
                     style={[styles.challengeRow, { borderColor: colors.border }]}
                   >
                     <ThemedText style={{ color: colors.onSurface, fontWeight: '600' }}>{c.title}</ThemedText>
-                    <ThemedText style={{ color: colors.muted, fontSize: 12 }}>{c.start_date} → {c.end_date}</ThemedText>
                   </Pressable>
                 ))}
               </View>

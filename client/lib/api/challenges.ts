@@ -28,16 +28,24 @@ export interface ChallengeSummary {
   title: string;
   description?: string | null;
   group_id?: string | null;
-  start_date: string;
-  end_date: string;
   display_mode: 'collage';
-  status: 'upcoming' | 'active' | 'completed';
+  status: 'active' | 'completed';
+  is_private: boolean;
+  created_at: string;
+}
+
+export interface ChallengeParticipant {
+  user_id: string;
+  display_name: string;
+  family_id: string;
+  invited_by_user_id: string;
   created_at: string;
 }
 
 export interface ChallengeWithProgress extends ChallengeSummary {
   activities: ChallengeActivitySlot[];
   group_families_count?: number | null;
+  shared_group_ids?: string[];
 }
 
 export interface CreateChallengePayload {
@@ -45,8 +53,8 @@ export interface CreateChallengePayload {
   description?: string | null;
   group_id?: string | null;
   activity_ids: string[];
-  start_date: string;
-  end_date: string;
+  is_private?: boolean;
+  shared_group_ids?: string[];
 }
 
 export const challengesApi = {
@@ -56,12 +64,21 @@ export const challengesApi = {
   getActive: () =>
     apiClient.get<ChallengeWithProgress[]>('/challenges/active'),
 
-  getMy: (status?: 'upcoming' | 'active' | 'completed') =>
+  getMy: (status?: 'active' | 'completed') =>
     apiClient.get<ChallengeSummary[]>('/challenges/me', { params: status ? { status } : undefined }),
 
   getById: (id: string) =>
     apiClient.get<ChallengeWithProgress>(`/challenges/${id}`),
 
+  update: (id: string, payload: { is_private?: boolean }) =>
+    apiClient.patch<ChallengeWithProgress>(`/challenges/${id}`, payload),
+
   delete: (id: string) =>
     apiClient.delete(`/challenges/${id}`),
+
+  getParticipants: (id: string) =>
+    apiClient.get<ChallengeParticipant[]>(`/challenges/${id}/participants`),
+
+  inviteParticipant: (id: string, userId: string) =>
+    apiClient.post<ChallengeParticipant>(`/challenges/${id}/participants`, { user_id: userId }),
 };

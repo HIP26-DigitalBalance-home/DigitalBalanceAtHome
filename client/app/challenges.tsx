@@ -13,12 +13,11 @@ import { useAppTheme } from '@/lib/app-theme-context';
 import { challengesApi, type ChallengeSummary } from '@/lib/api';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 
-type StatusFilter = 'upcoming' | 'active' | 'completed' | undefined;
+type StatusFilter = 'active' | 'completed' | undefined;
 
 export default function ChallengesScreen() {
   const { colors, radii } = useAppTheme();
-  const statusColor = (s: string) =>
-    s === 'active' ? colors.accent : s === 'upcoming' ? colors.primary : colors.muted;
+  const statusColor = (s: string) => (s === 'active' ? colors.accent : colors.muted);
   const { t, i18n } = useTranslation();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +31,6 @@ export default function ChallengesScreen() {
   ];
   const statusLabels: Record<string, string> = {
     active: t('status.active'),
-    upcoming: t('status.upcoming'),
     completed: t('status.completed'),
   };
 
@@ -109,13 +107,11 @@ export default function ChallengesScreen() {
             >
               <View style={styles.cardTop}>
                 <ThemedText style={[styles.cardTitle, { color: colors.onSurface }]}>{item.title}</ThemedText>
-                {item.status !== 'upcoming' && (
-                  <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
-                    <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
-                      {statusLabels[item.status] ?? item.status}
-                    </ThemedText>
-                  </View>
-                )}
+                <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
+                  <ThemedText style={[styles.statusText, { color: statusColor(item.status) }]}>
+                    {statusLabels[item.status] ?? item.status}
+                  </ThemedText>
+                </View>
               </View>
               {item.description ? (
                 <ThemedText style={[styles.desc, { color: colors.muted }]} numberOfLines={2}>

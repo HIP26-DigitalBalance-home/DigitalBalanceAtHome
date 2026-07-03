@@ -11,21 +11,22 @@ import type { ChallengeActivitySlot } from '@/lib/api';
 interface Props {
   visible: boolean;
   slot: ChallengeActivitySlot | null;
-  isGroupChallenge?: boolean;
+  /** Initial state of the share switch — public collages default to sharing. */
+  defaultShared?: boolean;
   onClose: () => void;
   onSelfReported: (slotId: string, sharedToFeed: boolean) => void;
   onPhotoSelected: (slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) => void;
 }
 
-export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose, onSelfReported, onPhotoSelected }: Props) {
+export function CompleteActivityModal({ visible, slot, defaultShared = false, onClose, onSelfReported, onPhotoSelected }: Props) {
   const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
-  const [sharedToFeed, setSharedToFeed] = useState(false);
+  const [sharedToFeed, setSharedToFeed] = useState(defaultShared);
 
   useEffect(() => {
-    if (visible) setSharedToFeed(false);
-  }, [visible]);
+    if (visible) setSharedToFeed(defaultShared);
+  }, [visible, defaultShared]);
 
   async function pickImage() {
     setPicking(true);
@@ -71,16 +72,14 @@ export function CompleteActivityModal({ visible, slot, isGroupChallenge, onClose
             {t('completeModal.subtitle', { count: slot.activity.estimated_duration_minutes })}
           </ThemedText>
 
-          {isGroupChallenge && (
-            <View style={[styles.shareRow, { borderColor: colors.border }]}>
-              <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
-              <Switch
-                value={sharedToFeed}
-                onValueChange={setSharedToFeed}
-                trackColor={{ false: colors.border, true: colors.primary }}
-              />
-            </View>
-          )}
+          <View style={[styles.shareRow, { borderColor: colors.border }]}>
+            <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
+            <Switch
+              value={sharedToFeed}
+              onValueChange={setSharedToFeed}
+              trackColor={{ false: colors.border, true: colors.primary }}
+            />
+          </View>
 
           <View style={styles.buttons}>
             <Pressable
