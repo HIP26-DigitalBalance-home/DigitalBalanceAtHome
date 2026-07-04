@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ArticleOfTheDay } from '@/components/article-of-the-day';
+import { ArticleTeaser } from '@/components/article-teaser';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { JournalCard } from '@/components/journal-card';
@@ -341,6 +341,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        {/* Article of the day — education stays top of mind, in a slim row */}
+        <ArticleTeaser />
+
         {/* Progress widget: streak + goal ring */}
         {familyProgress && (
           <PressableScale
@@ -463,8 +466,6 @@ export default function HomeScreen() {
             />
           </View>
         )}
-
-        <ArticleOfTheDay />
       </ScrollView>
 
       <CompleteActivityModal

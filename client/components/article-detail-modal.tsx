@@ -13,15 +13,17 @@ import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { showAlert } from '@/lib/utils/alert';
-import type { Article } from '@/components/article-of-the-day';
+import type { Article } from '@/lib/articles';
 
 interface Props {
   visible: boolean;
   article: Article | null;
   onClose: () => void;
+  /** Called when the reader finishes the last page via the "Completed" button. */
+  onCompleted?: () => void;
 }
 
-export function ArticleDetailModal({ visible, article, onClose }: Props) {
+export function ArticleDetailModal({ visible, article, onClose, onCompleted }: Props) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const [pageIndex, setPageIndex] = useState(0);
@@ -134,7 +136,10 @@ export function ArticleDetailModal({ visible, article, onClose }: Props) {
             {isLastPage ? (
               <Pressable
                 style={[styles.completeButton, { backgroundColor: colors.primary }]}
-                onPress={onClose}
+                onPress={() => {
+                  onCompleted?.();
+                  onClose();
+                }}
               >
                 <ThemedText style={[styles.completeButtonText, { color: colors.buttonText }]}>
                   {t('home.articleModal.completed')}
