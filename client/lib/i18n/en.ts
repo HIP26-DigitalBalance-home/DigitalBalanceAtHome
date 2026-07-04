@@ -36,6 +36,7 @@ export const en = {
     sage: 'Sage',
     tocoBlue: 'Toco Blue',
     tocoWarm: 'Toco Warm',
+    meadow: 'Meadow',
     colorMode: {
       light: 'Light',
       system: 'Auto',

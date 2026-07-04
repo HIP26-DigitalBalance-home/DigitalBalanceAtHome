@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export type ThemeId = 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage' | 'tocoBlue' | 'tocoWarm';
+export type ThemeId = 'inkwell' | 'riso' | 'cork' | 'gartenlaube' | 'sage' | 'tocoBlue' | 'tocoWarm' | 'meadow';
 export type ColorMode = 'light' | 'dark' | 'system';
 export const DEFAULT_COLOR_MODE: ColorMode = 'system';
 
@@ -434,6 +434,62 @@ export const THEMES: Record<ThemeId, AppThemeDef> = {
         border: '#1A3060',
         buttonBackground: '#7FA3FF',
         buttonText: '#000E33',
+      },
+    },
+  },
+
+  // Teammate-proposed "Meadow" palette: FF8C2A / 3BB5A0 / 8CB369 / F4E285 / BA1650.
+  // Demo theme only — the palette supplies a usable brand (teal) and accent
+  // (orange), but no neutrals; paper, ink, and dark-mode tones below are
+  // invented since nothing in the five source colors is dark/desaturated
+  // enough to serve as text, border, or a dark surface. Olive (#8CB369) has
+  // no role of its own and is parked as the "completed" tint only.
+  meadow: {
+    id: 'meadow',
+    titleFont: systemFont,
+    preview: { bg: '#FBF5E0', primary: '#3BB5A0', border: '#E8E1CB' },
+    radii: { card: 16, button: 12, input: 10, badge: 999, sm: 8 },
+    cardShadowColor: '#3A2F0A',
+    cardShadowOpacity: 0.12,
+    completedSlotBg: '#D8E9C9',   // olive #8CB369, lightened
+    colors: {
+      light: {
+        primary: '#3BB5A0',
+        primaryDark: '#1F7D6C',      // invented — teal darkened for contrast
+        accent: '#FF8C2A',
+        surface: '#FFFFFF',          // invented
+        onSurface: '#23201A',        // invented — no ink in source palette
+        muted: '#6E6A60',            // invented
+        destructive: '#BA1650',      // berry, repurposed as alert
+        destructiveMuted: '#8C1740', // invented
+        text: '#23201A',             // invented
+        background: '#FBF5E0',      // yellow #F4E285, desaturated — raw is too loud
+        tint: '#3BB5A0',
+        icon: '#5E5A50',             // invented
+        tabIconDefault: '#5E5A50',   // invented
+        tabIconSelected: '#1F7D6C',
+        border: '#E8E1CB',           // invented
+        buttonBackground: '#1F7D6C',
+        buttonText: '#FFFFFF',
+      },
+      dark: {
+        primary: '#5CCBB6',
+        primaryDark: '#3BB5A0',
+        accent: '#FFA24E',
+        surface: '#26311C',          // invented — dark olive-neutral
+        onSurface: '#F2EFE4',        // invented
+        muted: '#A8A395',            // invented
+        destructive: '#E0508A',
+        destructiveMuted: '#B85040',
+        text: '#F2EFE4',
+        background: '#1B2314',       // invented
+        tint: '#5CCBB6',
+        icon: '#B8B2A0',             // invented
+        tabIconDefault: '#B8B2A0',
+        tabIconSelected: '#5CCBB6',
+        border: '#3A462C',           // invented
+        buttonBackground: '#5CCBB6',
+        buttonText: '#1B2314',
       },
     },
   },
