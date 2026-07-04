@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { fadeOut } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 
@@ -29,6 +30,9 @@ export function Skeleton({ width, height, borderRadius = 8, style }: SkeletonPro
 
   return (
     <Animated.View
+      // Crossfade out on unmount so loaded content (fadeIn) replaces the
+      // skeleton without a blank frame in between.
+      exiting={fadeOut()}
       style={[{ width, height, borderRadius, backgroundColor: colors.border }, animStyle, style]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"

@@ -1,16 +1,23 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Easing } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { AnimatedTabBar } from '@/components/ui/animated-tab-bar';
 import { Glyph } from '@/components/ui/illustration';
 import { TabBarBackground } from '@/components/ui/tab-bar-background';
+import { Durations } from '@/constants/motion';
 import { useAppTheme } from '@/lib/app-theme-context';
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
+  // Tab transitions run through RN Animated (not reanimated), so the
+  // ReduceMotion.System config from constants/motion doesn't apply — gate on
+  // the OS setting explicitly instead.
+  const reducedMotion = useReducedMotion();
 
   return (
     <Tabs
@@ -19,6 +26,15 @@ export default function TabLayout() {
       // only the visual styling.
       tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
+        // Crossfade with a slight directional shift between tabs, timed to
+        // match the stack/content fades so tab switches stop being hard cuts.
+        animation: reducedMotion ? 'none' : 'shift',
+        transitionSpec: {
+          animation: 'timing',
+          // RN Animated equivalent of Easings.standard (reanimated type
+          // doesn't fit here).
+          config: { duration: Durations.base, easing: Easing.bezier(0.2, 0, 0, 1) },
+        },
         tabBarActiveTintColor: colors.tabIconSelected,
         tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarBackground: () => <TabBarBackground />,

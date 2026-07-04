@@ -1,4 +1,4 @@
-import { Easing, FadeIn, ReduceMotion } from 'react-native-reanimated';
+import { Easing, FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 
 // Shared motion tokens — all animations use these so transitions feel
 // consistent across the app. Animate opacity/transform only, never layout.
@@ -27,4 +27,11 @@ export function timing(duration: number = Durations.base) {
 // loaded content); honours the OS reduce-motion setting.
 export function fadeIn(duration: number = Durations.base) {
   return FadeIn.duration(duration).reduceMotion(ReduceMotion.System);
+}
+
+// Default `exiting` animation — the counterpart to fadeIn(), so a view being
+// replaced (e.g. a skeleton) crossfades out instead of vanishing a frame
+// before its replacement fades in.
+export function fadeOut(duration: number = Durations.fast) {
+  return FadeOut.duration(duration).reduceMotion(ReduceMotion.System);
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Redirect, Stack, useLocalSearchParams, useSegments } from 'expo-router';
@@ -80,10 +80,19 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  const { colors } = useAppTheme();
+
   return (
     <>
       <Stack
-        screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          // Scene background must match the app theme, not the navigation
+          // theme default (white/black) — otherwise every push/pop flashes
+          // the mismatched colour behind the sliding screens.
+          contentStyle: { backgroundColor: colors.background },
+        }}
         // Native stack animations don't run on web — fade screens in on mount instead.
         screenLayout={
           Platform.OS === 'web'
@@ -120,10 +129,29 @@ function RootLayoutNav() {
 
 // Inner component — lives inside AppThemeProvider so it can read effectiveScheme.
 function ThemedApp() {
-  const { effectiveScheme } = useAppTheme();
+  const { effectiveScheme, colors } = useAppTheme();
+
+  // Stock navigation themes use plain white/near-black backgrounds; our themes
+  // are tinted (cream, sage, …). Feed the app palette into the navigation
+  // theme so navigator-owned surfaces (stack container during transitions,
+  // tab scenes) never flash a mismatched colour.
+  const navigationTheme = useMemo(() => {
+    const base = effectiveScheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.surface,
+        border: colors.border,
+        text: colors.onSurface,
+        primary: colors.primary,
+      },
+    };
+  }, [effectiveScheme, colors]);
 
   return (
-    <ThemeProvider value={effectiveScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <TabBarProvider>
         <StandardProvider>
           <AuthProvider>
