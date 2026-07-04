@@ -143,9 +143,16 @@ async def _upload_seed_photo(family_id: uuid.UUID, filename: str) -> str | None:
         return None
 
 
-async def _delete_s3_objects(keys: list[str]) -> None:
-    """Delete a list of S3 objects. Silently ignores errors."""
-    if not settings.S3_ENDPOINT_URL or not settings.S3_BUCKET_NAME or not keys:
+async def _delete_family_photos(family_ids: set[uuid.UUID] | list[uuid.UUID]) -> None:
+    """Delete every S3 object under each family's photo prefix.
+
+    Deleting by ``photos/{family_id}/`` prefix (rather than by known completion
+    keys) also sweeps up orphans from an interrupted upload — a photo written to
+    S3 whose completion row never committed — so a reset leaves no stragglers.
+    Best-effort: S3 errors never block the reset.
+    """
+    ids = [str(f) for f in family_ids]
+    if not settings.S3_ENDPOINT_URL or not settings.S3_BUCKET_NAME or not ids:
         return
     try:
         client = boto3.client(
@@ -156,25 +163,48 @@ async def _delete_s3_objects(keys: list[str]) -> None:
             region_name=settings.S3_REGION,
             config=Config(signature_version="s3v4"),
         )
-        objects = [{"Key": k} for k in keys]
+
+        def _purge() -> None:
+            paginator = client.get_paginator("list_objects_v2")
+            batch: list[dict] = []
+
+            def _flush() -> None:
+                if batch:
+                    client.delete_objects(
+                        Bucket=settings.S3_BUCKET_NAME,
+                        Delete={"Objects": batch, "Quiet": True},
+                    )
+                    batch.clear()
+
+            for fid in ids:
+                for page in paginator.paginate(Bucket=settings.S3_BUCKET_NAME, Prefix=f"photos/{fid}/"):
+                    for obj in page.get("Contents", []):
+                        batch.append({"Key": obj["Key"]})
+                        if len(batch) >= 1000:  # delete_objects caps at 1000 keys
+                            _flush()
+            _flush()
+
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: client.delete_objects(
-                Bucket=settings.S3_BUCKET_NAME,
-                Delete={"Objects": objects, "Quiet": True},
-            ),
-        )
+        await loop.run_in_executor(None, _purge)
     except Exception:
         pass
 
 
 async def seed_demo_data(session: AsyncSession, user: User) -> None:
-    """Seed a complete, isolated demo dataset for `user`.
+    """Reset `user` to a fixed demo state.
 
-    Multi-user safe: each caller gets their own group, mock families, and
-    challenges. Re-seeding cleans up the previous dataset (DB rows + S3
-    objects) before creating a fresh one.
+    This is a "reset", not an "append": it keeps the user account (id, email,
+    login) but purges the user's entire dataset — family, children, groups,
+    challenges, collages/completions — plus every mock account and S3 photo
+    from a prior run, then rebuilds a known-good demo dataset. Because it tears
+    everything down first it is fully idempotent and never collides with
+    pre-existing data.
+
+    Multi-user safe: mock accounts are tagged per real user, so concurrent demo
+    users never touch each other's data.
+
+    Note: if the user shares a family with a co-parent, that family is deleted
+    too — this is a dev-only tool (gated by SEED_ENABLED).
     """
     now = datetime.now(timezone.utc)
 
@@ -182,15 +212,69 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     # never collide when multiple demo users seed concurrently.
     user_tag = str(user.id).replace("-", "")[:8]
 
-    # ── Ensure user has a family ──────────────────────────────────────────────
-    result = await session.execute(select(FamilyMembership).where(FamilyMembership.user_id == user.id))
-    membership = result.scalars().first()
+    # ── Purge everything belonging to this user's demo state ──────────────────
+    # Identify prior mock accounts (tagged per-user) and their families, plus
+    # the user's own family — from a previous seed or from normal onboarding.
+    mock_email_pattern = f"%.{user_tag}@demo.internal"
+    mock_user_ids = list(
+        (await session.execute(select(User.id).where(User.email.like(mock_email_pattern)))).scalars().all()
+    )
+    mock_family_ids: list[uuid.UUID] = []
+    if mock_user_ids:
+        mock_family_ids = list(
+            (
+                await session.execute(
+                    select(FamilyMembership.family_id).where(FamilyMembership.user_id.in_(mock_user_ids))
+                )
+            )
+            .scalars()
+            .all()
+        )
 
-    if membership is None:
-        family = Family(name=f"{user.display_name.split()[0]}'s Family")
-        session.add(family)
-        await session.flush()
-        session.add(FamilyMembership(family_id=family.id, user_id=user.id, joined_at=now))
+    old_family_id = (
+        (await session.execute(select(FamilyMembership.family_id).where(FamilyMembership.user_id == user.id)))
+        .scalars()
+        .first()
+    )
+
+    families_to_delete = set(mock_family_ids)
+    if old_family_id:
+        families_to_delete.add(old_family_id)
+
+    # Purge every S3 photo under the torn-down families' prefixes (best-effort).
+    await _delete_family_photos(families_to_delete)
+
+    # DB teardown. Leans on ON DELETE CASCADE (see FK definitions):
+    #   Family → memberships, children, invites, completions, challenges
+    #            (→ challenge_activities → completions), group_memberships
+    #   Group  → memberships, admins, invites, shared_groups; challenges.group_id → NULL
+    await session.execute(delete(Group).where(Group.created_by_user_id == user.id))
+    await session.execute(delete(GroupAdmin).where(GroupAdmin.user_id == user.id))
+    # Defensive: completions authored by a mock user but not covered by a family
+    # cascade — keeps the mock-user delete below FK-safe under any prior state.
+    if mock_user_ids:
+        await session.execute(delete(Completion).where(Completion.completed_by_user_id.in_(mock_user_ids)))
+    if old_family_id:
+        await session.execute(delete(Family).where(Family.id == old_family_id))
+    if mock_family_ids:
+        await session.execute(delete(Family).where(Family.id.in_(mock_family_ids)))
+    if mock_user_ids:
+        await session.execute(delete(User).where(User.id.in_(mock_user_ids)))
+    await session.flush()
+
+    # ── Rebuild the user's baseline: fresh family, consent, one child ─────────
+    user.points_balance = 0
+
+    family = Family(name=f"{user.display_name.split()[0]}'s Family")
+    session.add(family)
+    await session.flush()
+    session.add(FamilyMembership(family_id=family.id, user_id=user.id, joined_at=now))
+
+    # Consent is an append-only GDPR log — keep any history, add one only if none.
+    has_consent = (
+        await session.execute(select(ConsentRecord.id).where(ConsentRecord.user_id == user.id).limit(1))
+    ).first()
+    if has_consent is None:
         session.add(
             ConsentRecord(
                 user_id=user.id,
@@ -201,71 +285,16 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
                 location_consent=False,
             )
         )
-        session.add(
-            ChildProfile(
-                family_id=family.id,
-                nickname="Maxi",
-                date_of_birth=datetime(2019, 3, 15).date(),
-                interests=["drawing", "football"],
-            )
+
+    session.add(
+        ChildProfile(
+            family_id=family.id,
+            nickname="Maxi",
+            date_of_birth=datetime(2019, 3, 15).date(),
+            interests=["drawing", "football"],
         )
-        await session.flush()
-    else:
-        family_result = await session.execute(select(Family).where(Family.id == membership.family_id))
-        family = family_result.scalar_one()
-
-    # ── Tear down this user's previous demo data (idempotent re-seed) ────────
-    prev_group_result = await session.execute(select(Group).where(Group.created_by_user_id == user.id))
-    prev_group = prev_group_result.scalar_one_or_none()
-
-    if prev_group:
-        # Collect S3 keys before cascade-deleting completions.
-        photo_result = await session.execute(
-            select(Completion.photo_key)
-            .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
-            .join(Challenge, ChallengeActivity.challenge_id == Challenge.id)
-            .where(
-                Challenge.created_by_family_id == family.id,
-                Completion.photo_key.isnot(None),
-            )
-        )
-        photo_keys: list[str] = [k for k in photo_result.scalars().all() if k is not None]
-        await _delete_s3_objects(photo_keys)
-
-        # Delete this user's challenges (ChallengeActivity deletion cascades to Completion).
-        ch_result = await session.execute(select(Challenge).where(Challenge.created_by_family_id == family.id))
-        for ch in ch_result.scalars().all():
-            await session.execute(delete(ChallengeActivity).where(ChallengeActivity.challenge_id == ch.id))
-            await session.delete(ch)
-        await session.flush()
-
-        # Collect mock family IDs from this group before destroying it.
-        mock_fm_result = await session.execute(
-            select(GroupMembership.family_id).where(
-                GroupMembership.group_id == prev_group.id,
-                GroupMembership.family_id != family.id,
-            )
-        )
-        mock_family_ids = list(mock_fm_result.scalars().all())
-
-        # Destroy the group.
-        await session.execute(delete(GroupAdmin).where(GroupAdmin.group_id == prev_group.id))
-        await session.execute(delete(GroupMembership).where(GroupMembership.group_id == prev_group.id))
-        await session.delete(prev_group)
-        await session.flush()
-
-        # Destroy mock families and their memberships.
-        for fid in mock_family_ids:
-            await session.execute(delete(FamilyMembership).where(FamilyMembership.family_id == fid))
-            mf_result = await session.execute(select(Family).where(Family.id == fid))
-            mf = mf_result.scalar_one_or_none()
-            if mf:
-                await session.delete(mf)
-        await session.flush()
-
-        # Destroy mock users scoped to this demo user.
-        await session.execute(delete(User).where(User.email.like(f"%.{user_tag}@demo.internal")))
-        await session.flush()
+    )
+    await session.flush()
 
     # ── Create group ──────────────────────────────────────────────────────────
     group = Group(
