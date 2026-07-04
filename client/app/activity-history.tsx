@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
@@ -24,8 +24,9 @@ export default function ActivityHistoryScreen() {
   const { colors, radii } = useAppTheme();
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const { tab: initialTab } = useLocalSearchParams<{ tab?: string }>();
 
-  const [tab, setTab] = useState<'history' | 'analyze'>('history');
+  const [tab, setTab] = useState<'history' | 'analyze'>(initialTab === 'analyze' ? 'analyze' : 'history');
   const [items, setItems] = useState<CompletionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

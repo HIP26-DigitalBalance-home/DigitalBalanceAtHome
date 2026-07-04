@@ -211,7 +211,7 @@ export default function CollageBuilderScreen() {
           challengesApi.inviteParticipant(res.data.id, f.user_id).catch(() => {})
         )
       );
-      router.replace('/challenges' as any);
+      router.replace({ pathname: '/challenges', params: { created: '1' } } as any);
     } catch (e) {
       showAlert(t('common.error'), getGermanErrorMessage(e));
       setSubmitting(false);

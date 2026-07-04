@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -328,7 +328,14 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}>
         <View style={styles.titleRow}>
-          <ThemedText type="title">Bond</ThemedText>
+          <View style={styles.brandRow}>
+            <Image
+              source={require('@/assets/images/bunny-logo.png')}
+              style={styles.brandLogo}
+              accessibilityLabel="Bond mascot"
+            />
+            <ThemedText type="title">Bond</ThemedText>
+          </View>
           <Pressable onPress={() => router.push('/challenges' as any)}>
             <ThemedText style={{ color: colors.primary, fontSize: 14 }}>{t('home.allChallenges')}</ThemedText>
           </Pressable>
@@ -487,6 +494,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  brandLogo: { width: 32, height: 32, borderRadius: 16 },
   section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },

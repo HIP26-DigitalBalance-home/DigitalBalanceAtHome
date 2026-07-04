@@ -238,6 +238,7 @@ export const en = {
     new: '+ New',
     noneFound: 'No challenges found.',
     createOne: 'Create challenge',
+    created: 'Collage created',
   },
   celebration: {
     notFound: 'Challenge not found.',
@@ -313,6 +314,8 @@ export const en = {
   journal: {
     sectionLabel: 'JOURNAL',
     question: 'How are you feeling today?',
+    answeredToday: 'Done for today: {{mood}}',
+    viewHistory: 'View history',
     moods: {
       bad: 'Bad',
       not_good: 'Not good',

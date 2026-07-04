@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@/components/ui/error-state';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { ThemedText } from '@/components/themed-text';
 import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
@@ -22,10 +23,19 @@ export default function ChallengesScreen() {
   const { colors, radii } = useAppTheme();
   const statusColor = (s: string) => (s === 'active' ? colors.accent : colors.muted);
   const { t, i18n } = useTranslation();
+  const { created } = useLocalSearchParams<{ created?: string }>();
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>(undefined);
+  // Self-dismissing toast — only shown right after being redirected here from collage creation.
+  const [showCreatedToast, setShowCreatedToast] = useState(!!created);
+
+  useEffect(() => {
+    if (!created) return;
+    const timer = setTimeout(() => setShowCreatedToast(false), 2200);
+    return () => clearTimeout(timer);
+  }, [created]);
 
   const STATUS_CHIPS: { label: string; value: StatusFilter }[] = [
     { label: t('common.all'), value: undefined },
@@ -63,6 +73,23 @@ export default function ChallengesScreen() {
           <ThemedText style={{ color: colors.primary }}>{t('challengesList.new')}</ThemedText>
         </Pressable>
       </View>
+
+      <AnimatedModal
+        visible={showCreatedToast}
+        variant="dialog"
+        onRequestClose={() => setShowCreatedToast(false)}
+        onBackdropPress={() => setShowCreatedToast(false)}
+        contentContainerStyle={styles.createdModalContainer}
+      >
+        <View style={[styles.createdCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.createdIconCircle, { backgroundColor: colors.primary + '18' }]}>
+            <ThemedText style={[styles.createdIcon, { color: colors.primary }]}>✓</ThemedText>
+          </View>
+          <ThemedText style={[styles.createdText, { color: colors.onSurface }]}>
+            {t('challengesList.created')}
+          </ThemedText>
+        </View>
+      </AnimatedModal>
 
       {/* Filter chips */}
       <View style={styles.chipsRow}>
@@ -145,6 +172,32 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '600' },
   chipsRow: { flexDirection: 'row', gap: Spacing.xs, paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.sm },
+  createdModalContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  createdCard: {
+    width: '100%',
+    maxWidth: 340,
+    minHeight: 220,
+    borderRadius: DEFAULT_RADII.card,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.lg,
+    padding: Spacing.xl,
+  },
+  createdIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createdIcon: { fontSize: 36, fontWeight: '700' },
+  createdText: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, minHeight: 44, justifyContent: 'center' },
   backButton: { minHeight: 44, justifyContent: 'center' },
   skeletonContainer: { flex: 1, padding: Spacing.screenHorizontal },

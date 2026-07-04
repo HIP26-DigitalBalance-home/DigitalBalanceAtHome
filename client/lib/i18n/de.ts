@@ -238,6 +238,7 @@ export const de = {
     new: '+ Neu',
     noneFound: 'Keine Herausforderungen gefunden.',
     createOne: 'Herausforderung erstellen',
+    created: 'Collage erstellt',
   },
   celebration: {
     notFound: 'Herausforderung nicht gefunden.',
@@ -313,6 +314,8 @@ export const de = {
   journal: {
     sectionLabel: 'JOURNAL',
     question: 'Wie fühlst du dich heute?',
+    answeredToday: 'Heute erledigt: {{mood}}',
+    viewHistory: 'Verlauf ansehen',
     moods: {
       bad: 'Schlecht',
       not_good: 'Nicht gut',
