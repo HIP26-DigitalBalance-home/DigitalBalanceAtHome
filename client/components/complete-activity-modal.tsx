@@ -1,6 +1,17 @@
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  View,
+} from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,8 +26,19 @@ interface Props {
   /** Initial state of the share switch — public collages default to sharing. */
   defaultShared?: boolean;
   onClose: () => void;
-  onSelfReported: (slotId: string, sharedToFeed: boolean) => void;
-  onPhotoSelected: (slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) => void;
+  onSelfReported: (slotId: string, sharedToFeed: boolean, caption?: string) => void;
+  onPhotoSelected: (
+    slotId: string,
+    imageUri: string,
+    mimeType: string,
+    sharedToFeed: boolean,
+    caption?: string,
+  ) => void;
+}
+
+interface SelectedPhoto {
+  uri: string;
+  mimeType: string;
 }
 
 export function CompleteActivityModal({ visible, slot, defaultShared = false, onClose, onSelfReported, onPhotoSelected }: Props) {
@@ -24,6 +46,9 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
   const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
   const [sharedToFeed, setSharedToFeed] = useState(defaultShared);
+  const [caption, setCaption] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
+  const [withoutPhoto, setWithoutPhoto] = useState(false);
   // The parent nulls `slot` at the moment it closes the modal — latch the last
   // value so the content stays rendered while the exit animation plays.
   const [latchedSlot, setLatchedSlot] = useState(slot);
@@ -34,7 +59,12 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
   }, [slot]);
 
   useEffect(() => {
-    if (visible) setSharedToFeed(defaultShared);
+    if (visible) {
+      setSharedToFeed(defaultShared);
+      setCaption('');
+      setSelectedPhoto(null);
+      setWithoutPhoto(false);
+    }
   }, [visible, defaultShared]);
 
   async function pickImage() {
@@ -53,10 +83,33 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
         const mimeType = (['image/jpeg', 'image/jpg', 'image/png'] as string[]).includes(rawMime)
           ? rawMime
           : 'image/jpeg';
-        onPhotoSelected(slot.id, asset.uri, mimeType, sharedToFeed);
+        setSelectedPhoto({ uri: asset.uri, mimeType });
+        setWithoutPhoto(false);
       }
     } finally {
       setPicking(false);
+    }
+  }
+
+  function selectWithoutPhoto() {
+    setSelectedPhoto(null);
+    setWithoutPhoto(true);
+  }
+
+  function submit() {
+    if (!slot) return;
+    const normalizedCaption = caption.trim() || undefined;
+
+    if (selectedPhoto) {
+      onPhotoSelected(
+        slot.id,
+        selectedPhoto.uri,
+        selectedPhoto.mimeType,
+        sharedToFeed,
+        normalizedCaption,
+      );
+    } else if (withoutPhoto) {
+      onSelfReported(slot.id, sharedToFeed, normalizedCaption);
     }
   }
 
@@ -70,53 +123,151 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
       onBackdropPress={onClose}
       contentContainerStyle={styles.container}
     >
-      <View style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}>
-        <ThemedText style={[styles.activityTitle, { color: colors.onSurface }]} numberOfLines={2}>
-          {renderSlot.activity.title}
-        </ThemedText>
-        <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-          {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
-        </ThemedText>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
+      >
+        <ScrollView
+          style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <ThemedText style={[styles.activityTitle, { color: colors.onSurface }]} numberOfLines={2}>
+            {renderSlot.activity.title}
+          </ThemedText>
 
-        <View style={[styles.shareRow, { borderColor: colors.border }]}>
-          <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>{t('completeModal.shareToFeed')}</ThemedText>
-          <Switch
-            value={sharedToFeed}
-            onValueChange={setSharedToFeed}
-            trackColor={{ false: colors.border, true: colors.primary }}
+          {selectedPhoto && (
+            <Image
+              source={{ uri: selectedPhoto.uri }}
+              style={[styles.preview, { borderRadius: radii.input }]}
+              contentFit="cover"
+              accessibilityLabel={t('completeModal.selectedPhoto')}
+            />
+          )}
+
+          <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+            {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
+          </ThemedText>
+
+          <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>
+            {t('completeModal.description')}
+          </ThemedText>
+          <TextInput
+            style={[
+              styles.descriptionInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: radii.input,
+                color: colors.onSurface,
+              },
+            ]}
+            value={caption}
+            onChangeText={setCaption}
+            placeholder={t('completeModal.descriptionPlaceholder')}
+            placeholderTextColor={colors.muted}
+            multiline
+            numberOfLines={3}
+            maxLength={500}
+            textAlignVertical="top"
           />
-        </View>
 
-        <View style={styles.buttons}>
-          <Pressable
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            onPress={pickImage}
-            disabled={picking}
-          >
-            {picking ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.buttonText}>
-                {Platform.OS === 'web' ? t('completeModal.choosePhoto') : t('completeModal.photoLibrary')}
+          <View style={[styles.shareRow, { borderColor: colors.border }]}>
+            <ThemedText style={[styles.shareLabel, { color: colors.onSurface }]}>
+              {t('completeModal.shareToFeed')}
+            </ThemedText>
+            <Switch
+              value={sharedToFeed}
+              onValueChange={setSharedToFeed}
+              trackColor={{ false: colors.border, true: colors.primary }}
+            />
+          </View>
+
+          <View style={styles.buttons}>
+            <Pressable
+              style={[
+                styles.button,
+                {
+                  backgroundColor: selectedPhoto ? colors.primary : colors.surface,
+                  borderColor: selectedPhoto ? colors.primary : colors.border,
+                  borderRadius: radii.button,
+                },
+              ]}
+              onPress={pickImage}
+              disabled={picking}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedPhoto !== null, disabled: picking }}
+            >
+              {picking ? (
+                <ActivityIndicator color={selectedPhoto ? colors.buttonText : colors.primary} />
+              ) : (
+                <ThemedText
+                  style={[styles.buttonText, { color: selectedPhoto ? colors.buttonText : colors.onSurface }]}
+                >
+                  {selectedPhoto
+                    ? t('completeModal.changePhoto')
+                    : Platform.OS === 'web'
+                      ? t('completeModal.choosePhoto')
+                      : t('completeModal.photoLibrary')}
+                </ThemedText>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.button,
+                {
+                  backgroundColor: withoutPhoto ? colors.accent : colors.surface,
+                  borderColor: withoutPhoto ? colors.accent : colors.border,
+                  borderRadius: radii.button,
+                },
+              ]}
+              onPress={selectWithoutPhoto}
+              accessibilityRole="button"
+              accessibilityState={{ selected: withoutPhoto }}
+            >
+              <ThemedText
+                style={[styles.buttonText, { color: withoutPhoto ? colors.buttonText : colors.onSurface }]}
+              >
+                {withoutPhoto ? t('completeModal.withoutPhotoSelected') : t('completeModal.markWithoutPhoto')}
               </ThemedText>
-            )}
-          </Pressable>
+            </Pressable>
 
-          <Pressable
-            style={[styles.button, { backgroundColor: colors.accent }]}
-            onPress={() => slot && onSelfReported(slot.id, sharedToFeed)}
-          >
-            <ThemedText style={styles.buttonText}>{t('completeModal.markWithoutPhoto')}</ThemedText>
-          </Pressable>
+            <Pressable
+              style={[
+                styles.button,
+                {
+                  backgroundColor: selectedPhoto || withoutPhoto ? colors.primary : colors.border,
+                  borderColor: selectedPhoto || withoutPhoto ? colors.primary : colors.border,
+                  borderRadius: radii.button,
+                },
+              ]}
+              onPress={submit}
+              disabled={!selectedPhoto && !withoutPhoto}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !selectedPhoto && !withoutPhoto }}
+            >
+              <ThemedText
+                style={[
+                  styles.buttonText,
+                  { color: selectedPhoto || withoutPhoto ? colors.buttonText : colors.muted },
+                ]}
+              >
+                {t('completeModal.upload')}
+              </ThemedText>
+            </Pressable>
 
-          <Pressable
-            style={[styles.cancelButton, { borderColor: colors.border }]}
-            onPress={onClose}
-          >
-            <ThemedText style={{ color: colors.muted }}>{t('common.cancel')}</ThemedText>
-          </Pressable>
-        </View>
-      </View>
+            <Pressable
+              style={[styles.cancelButton, { borderColor: colors.border, borderRadius: radii.button }]}
+              onPress={onClose}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ color: colors.muted }}>{t('common.cancel')}</ThemedText>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </AnimatedModal>
   );
 }
@@ -124,25 +275,41 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 32,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingBottom: 32,
+    paddingHorizontal: Spacing.screenHorizontal,
   },
   sheet: {
     width: '100%',
     maxWidth: 480,
+    maxHeight: '100%',
     borderRadius: 20,
     borderWidth: 1,
+  },
+  sheetContent: {
     padding: Spacing.lg,
     gap: Spacing.sm,
-    marginHorizontal: Spacing.screenHorizontal,
   },
   activityTitle: { fontSize: 17, fontWeight: '700' },
-  subtitle: { fontSize: 13, marginBottom: Spacing.sm },
+  preview: { width: '100%', height: 180 },
+  subtitle: { fontSize: 13, marginBottom: Spacing.xs },
+  fieldLabel: { fontSize: 12, fontWeight: '600' },
+  descriptionInput: {
+    minHeight: 76,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 14,
+  },
   shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: Spacing.sm, marginBottom: Spacing.xs },
   shareLabel: { fontSize: 14, fontWeight: '500' },
   buttons: { gap: Spacing.sm },
-  button: { height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  cancelButton: { height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  button: { height: 50, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontSize: 15, fontWeight: '600' },
+  cancelButton: { height: 44, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

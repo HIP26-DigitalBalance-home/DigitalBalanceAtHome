@@ -330,10 +330,16 @@ export const en = {
   },
   completeModal: {
     subtitle: '⏱ {{count}} min · Mark as done',
+    description: 'Description (optional)',
+    descriptionPlaceholder: 'What made this moment special?',
     shareToFeed: 'Share to group feed',
     choosePhoto: '📎 Choose photo',
     photoLibrary: '🖼 Photo library',
+    changePhoto: '📎 Change photo',
+    selectedPhoto: 'Selected activity photo',
     markWithoutPhoto: '✓ Mark without photo',
+    withoutPhotoSelected: '✓ Without photo selected',
+    upload: 'Upload',
   },
   explore: {
     headerTitle: 'Explore',

@@ -330,10 +330,16 @@ export const de = {
   },
   completeModal: {
     subtitle: '⏱ {{count}} Min · Als erledigt markieren',
+    description: 'Beschreibung (optional)',
+    descriptionPlaceholder: 'Was hat diesen Moment besonders gemacht?',
     shareToFeed: 'Im Gruppen-Feed teilen',
     choosePhoto: '📎 Foto auswählen',
     photoLibrary: '🖼 Fotomediathek',
+    changePhoto: '📎 Foto ändern',
+    selectedPhoto: 'Ausgewähltes Aktivitätsfoto',
     markWithoutPhoto: '✓ Ohne Foto markieren',
+    withoutPhotoSelected: '✓ Ohne Foto ausgewählt',
+    upload: 'Hochladen',
   },
   explore: {
     headerTitle: 'Entdecken',

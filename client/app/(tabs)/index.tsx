@@ -362,14 +362,14 @@ export default function HomeScreen() {
     });
   }
 
-  function handleSelfReported(slotId: string, sharedToFeed: boolean) {
+  function handleSelfReported(slotId: string, sharedToFeed: boolean, caption?: string) {
     if (!isOnline) {
       showAlert(t('common.offline'), t('common.noConnection'));
       return;
     }
     setActiveSlot(null);
     completionsApi
-      .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed })
+      .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed, caption })
       .then(() => {
         const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
         setLocalCompletions(updated);
@@ -380,7 +380,7 @@ export default function HomeScreen() {
       });
   }
 
-  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean) {
+  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean, caption?: string) {
     if (!isOnline) {
       showAlert(t('common.offline'), t('common.noConnection'));
       return;
@@ -388,7 +388,7 @@ export default function HomeScreen() {
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
     photosApi
-      .upload(slotId, imageUri, mimeType, undefined, sharedToFeed)
+      .upload(slotId, imageUri, mimeType, caption, sharedToFeed)
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch((e) => {
         setLocalCompletions((prev) => {
