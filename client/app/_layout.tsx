@@ -31,6 +31,13 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+// Screens that animate in from the bottom edge; the dismiss gesture must be
+// vertical too or an iOS edge-swipe would drag the "sheet" out sideways.
+const sheetOptions = {
+  animation: 'slide_from_bottom',
+  gestureDirection: 'vertical',
+} as const;
+
 function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { chosen: languageChosen } = useLanguage();
@@ -106,20 +113,20 @@ function RootLayoutNav() {
         <Stack.Screen name="sign-in" options={{ animation: 'fade' }} />
         <Stack.Screen name="(onboarding)" options={{ animation: 'fade' }} />
         {/* Create/join flows rise from the bottom like sheets (animation only —
-            presentation: 'modal' would change safe-area insets and shift layout). */}
-        <Stack.Screen name="create-group" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="join-group" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="join-family" options={{ animation: 'slide_from_bottom' }} />
+            presentation: 'modal' would change safe-area insets and shift layout).
+            gestureDirection keeps the iOS dismiss swipe vertical to match. */}
+        <Stack.Screen name="create-group" options={sheetOptions} />
+        <Stack.Screen name="join-group" options={sheetOptions} />
+        <Stack.Screen name="join-family" options={sheetOptions} />
         <Stack.Screen name="group/[id]" />
         <Stack.Screen name="activity/[id]" />
-        <Stack.Screen name="collage-builder" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="create-activity" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="collage-builder" options={sheetOptions} />
+        <Stack.Screen name="create-activity" options={sheetOptions} />
         <Stack.Screen name="challenges" />
         <Stack.Screen name="challenge/[id]" />
         <Stack.Screen name="celebration" options={{ animation: 'fade' }} />
         <Stack.Screen name="group-feed/[id]" />
         <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
       </Stack>
       <OfflineBanner />
       <CookieBanner />

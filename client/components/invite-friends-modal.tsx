@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AnimatedModal } from '@/components/ui/animated-modal';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -80,12 +81,14 @@ export function InviteFriendsModal({ visible, challengeId, selectedIds, onToggle
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}
-          onPress={(e) => e.stopPropagation()}
-        >
+    <AnimatedModal
+      visible={visible}
+      variant="dialog"
+      onRequestClose={onClose}
+      onBackdropPress={onClose}
+      contentContainerStyle={styles.container}
+    >
+      <View style={[styles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.titleRow}>
             <ThemedText style={[styles.title, { color: colors.onSurface }]}>{t('inviteFriends.title')}</ThemedText>
             <Pressable onPress={onClose} hitSlop={12} accessibilityLabel={t('common.cancel')}>
@@ -156,16 +159,15 @@ export function InviteFriendsModal({ visible, challengeId, selectedIds, onToggle
               }}
             />
           )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </AnimatedModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  // Backdrop dim + press handling live in AnimatedModal; this only positions
+  // the dialog card.
+  container: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.screenHorizontal,

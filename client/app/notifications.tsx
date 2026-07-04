@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -65,48 +67,50 @@ export default function NotificationsScreen() {
       ) : error ? (
         <View style={styles.center}><ErrorState message={error} /></View>
       ) : items.length === 0 ? (
-        <View style={styles.center}>
+        <Animated.View entering={fadeIn()} style={styles.center}>
           <ThemedText style={{ fontSize: 40 }}>🔔</ThemedText>
           <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>{t('notifications.empty')}</ThemedText>
-        </View>
+        </Animated.View>
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(n) => n.id}
-          contentContainerStyle={styles.content}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[
-                styles.row,
-                { backgroundColor: colors.surface, borderColor: item.read ? colors.border : colors.primary },
-              ]}
-              onPress={() => {
-                if (item.challenge_id) {
-                  router.push({ pathname: '/challenge/[id]', params: { id: item.challenge_id } } as any);
-                }
-              }}
-              disabled={!item.challenge_id}
-            >
-              <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
-                <ThemedText style={[styles.avatarText, { color: colors.primary }]}>
-                  {item.actor_display_name ? initialsOf(item.actor_display_name) : '👥'}
-                </ThemedText>
-              </View>
-              <View style={styles.rowInfo}>
-                <ThemedText style={styles.rowText}>
-                  {t('notifications.challengeInvite', {
-                    name: item.actor_display_name ?? t('notifications.someone'),
-                    title: item.challenge_title ?? t('notifications.aChallenge'),
-                  })}
-                </ThemedText>
-                <ThemedText style={[styles.rowTime, { color: colors.muted }]}>
-                  {relativeTime(item.created_at, t)}
-                </ThemedText>
-              </View>
-              {!item.read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-            </Pressable>
-          )}
-        />
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={items}
+            keyExtractor={(n) => n.id}
+            contentContainerStyle={styles.content}
+            renderItem={({ item }) => (
+              <Pressable
+                style={[
+                  styles.row,
+                  { backgroundColor: colors.surface, borderColor: item.read ? colors.border : colors.primary },
+                ]}
+                onPress={() => {
+                  if (item.challenge_id) {
+                    router.push({ pathname: '/challenge/[id]', params: { id: item.challenge_id } } as any);
+                  }
+                }}
+                disabled={!item.challenge_id}
+              >
+                <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
+                  <ThemedText style={[styles.avatarText, { color: colors.primary }]}>
+                    {item.actor_display_name ? initialsOf(item.actor_display_name) : '👥'}
+                  </ThemedText>
+                </View>
+                <View style={styles.rowInfo}>
+                  <ThemedText style={styles.rowText}>
+                    {t('notifications.challengeInvite', {
+                      name: item.actor_display_name ?? t('notifications.someone'),
+                      title: item.challenge_title ?? t('notifications.aChallenge'),
+                    })}
+                  </ThemedText>
+                  <ThemedText style={[styles.rowTime, { color: colors.muted }]}>
+                    {relativeTime(item.created_at, t)}
+                  </ThemedText>
+                </View>
+                {!item.read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+              </Pressable>
+            )}
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

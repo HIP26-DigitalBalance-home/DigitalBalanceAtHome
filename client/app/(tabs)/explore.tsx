@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/ui/error-state';
@@ -10,6 +11,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StampFrame } from '@/components/ui/stamp-frame';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { tabScreenPaddingBottom } from '@/constants/nav';
 import { useAppTheme } from '@/lib/app-theme-context';
@@ -132,21 +134,23 @@ export default function ExploreScreen() {
           </View>
         </View>
       ) : (
-        <FlatList
-          data={data}
-          keyExtractor={(item, i) => (item.kind === 'preset' ? item.preset.id : `${item.kind}-${i}`)}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={[styles.gridContent, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
-          renderItem={renderCard}
-          ListFooterComponent={
-            error ? (
-              <View style={styles.errorFooter}>
-                <ErrorState message={error} onRetry={fetchPresets} />
-              </View>
-            ) : null
-          }
-        />
+        <Animated.View entering={fadeIn()} style={{ flex: 1 }}>
+          <FlatList
+            data={data}
+            keyExtractor={(item, i) => (item.kind === 'preset' ? item.preset.id : `${item.kind}-${i}`)}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={[styles.gridContent, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}
+            renderItem={renderCard}
+            ListFooterComponent={
+              error ? (
+                <View style={styles.errorFooter}>
+                  <ErrorState message={error} onRetry={fetchPresets} />
+                </View>
+              ) : null
+            }
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );

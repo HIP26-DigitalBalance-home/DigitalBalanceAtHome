@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { fadeIn } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII, THEMES, type ColorMode, type ThemeId } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
@@ -294,7 +296,10 @@ export default function ProfileScreen() {
             {loading ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.lg }} />
             ) : family ? (
-              <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Animated.View
+                entering={fadeIn()}
+                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
                 <ThemedText style={styles.cardValue}>{family.name ?? t('profile.defaultFamilyName')}</ThemedText>
 
                 {family.members.map((m) => (
@@ -331,7 +336,7 @@ export default function ProfileScreen() {
                     </ThemedText>
                   )}
                 </Pressable>
-              </View>
+              </Animated.View>
             ) : (
               <ThemedText style={{ color: colors.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
                 {t('profile.noFamily')}
