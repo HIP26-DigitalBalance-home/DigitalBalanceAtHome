@@ -338,6 +338,8 @@ export const en = {
   },
   builder: {
     title: 'Design collage',
+    titleLabel: 'Collage title',
+    editTitle: 'Edit title',
     hint: 'Tap a slot to choose or change an activity.',
     hintLocked: 'These nine activities are ready to go.',
     presetUnavailable: 'This preset could not be loaded. Please try again later or design your own collage.',

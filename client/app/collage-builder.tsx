@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
+  TextInput,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
@@ -61,9 +62,11 @@ export default function CollageBuilderScreen() {
   // Only the custom collage lets the user pick/change activities per slot. Preset
   // and random collages arrive with all nine activities predefined and locked.
   const editable = mode === 'custom';
+  // Preset titles are fixed (the preset's own name); custom and random collages
+  // let the parent rename the collage via the pencil icon.
+  const titleEditable = mode !== 'preset';
 
-  // The stamp name is the challenge title — no custom titles.
-  const headerTitle =
+  const defaultTitle =
     mode === 'custom'
       ? t('explore.customName')
       : mode === 'random'
@@ -71,6 +74,9 @@ export default function CollageBuilderScreen() {
         : presetParam
           ? (JSON.parse(presetParam) as CollagePreset).name
           : t('builder.title');
+
+  const [title, setTitle] = useState(defaultTitle);
+  const [editingTitle, setEditingTitle] = useState(false);
 
   const [slots, setSlots] = useState<Slot[]>(() => Array(SLOT_COUNT).fill(null));
   const [loading, setLoading] = useState(mode !== 'custom');
@@ -194,7 +200,7 @@ export default function CollageBuilderScreen() {
     setSubmitting(true);
     try {
       const res = await challengesApi.create({
-        title: headerTitle,
+        title: title.trim() || defaultTitle,
         activity_ids: slots.map((s) => s!.id),
         is_private: isPrivate,
         shared_group_ids: isPrivate ? [] : selectedGroupIds,
@@ -259,7 +265,34 @@ export default function CollageBuilderScreen() {
         <Pressable onPress={() => router.back()} accessibilityRole="button">
           <ThemedText style={{ color: colors.primary }}>← {t('common.back')}</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle} numberOfLines={1}>{headerTitle}</ThemedText>
+        {editingTitle ? (
+          <TextInput
+            style={[styles.headerTitleInput, { color: colors.onSurface, borderBottomColor: colors.primary }]}
+            value={title}
+            onChangeText={setTitle}
+            onBlur={() => setEditingTitle(false)}
+            onSubmitEditing={() => setEditingTitle(false)}
+            autoFocus
+            selectTextOnFocus
+            returnKeyType="done"
+            maxLength={60}
+            accessibilityLabel={t('builder.titleLabel')}
+          />
+        ) : (
+          <View style={styles.headerTitleRow}>
+            <ThemedText style={styles.headerTitle} numberOfLines={1}>{title}</ThemedText>
+            {titleEditable && (
+              <Pressable
+                onPress={() => setEditingTitle(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('builder.editTitle')}
+              >
+                <IconSymbol name="pencil" size={14} color={colors.primary} />
+              </Pressable>
+            )}
+          </View>
+        )}
         <ThemedText style={[styles.counter, { color: colors.muted }]}>{filledCount}/{SLOT_COUNT}</ThemedText>
       </View>
 
@@ -406,7 +439,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flex: 1, justifyContent: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '600' },
+  headerTitleInput: { flex: 1, fontSize: 16, fontWeight: '600', textAlign: 'center', borderBottomWidth: 1, paddingVertical: 2 },
   counter: { fontSize: 13 },
   scrollContent: { paddingBottom: Spacing.lg },
   hint: { fontSize: 13, paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.sm },
