@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Dimensions,
-  FlatList,
   Pressable,
   StyleSheet,
   View,
@@ -79,7 +78,7 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
 
   const sortedSlots = [...slots].sort((a, b) => a.grid_position - b.grid_position);
 
-  function renderSlot({ item }: { item: ChallengeActivitySlot }) {
+  function renderSlot(item: ChallengeActivitySlot) {
     const local = localCompletions?.[item.id];
     const effectiveStatus = local?.status === 'deleted' ? null : (local?.status ?? item.completion?.status ?? null);
     const effectivePhotoUrl = local?.photoUrl ?? item.completion?.photo_url ?? null;
@@ -104,7 +103,7 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     return (
       // Outer cell: owns the grid dimensions and stays overflow-visible so
       // the rotated card's corners and shadow can bleed into the gap space.
-      <View style={{ width: slotSize, height: slotSize, overflow: 'visible' }}>
+      <View key={item.id} style={{ width: slotSize, height: slotSize, overflow: 'visible' }}>
         <Pressable
           onPress={handlePress}
           accessibilityRole="button"
@@ -198,23 +197,18 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
 
   return (
     <View onLayout={(e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width)}>
-      <FlatList
-        key={numColumns}
-        data={sortedSlots}
-        numColumns={numColumns}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
-        renderItem={renderSlot}
-        contentContainerStyle={styles.grid}
-      />
+      {/* Plain flex-wrap grid, not a FlatList: a nested scrollable (even with
+          scrollEnabled={false}) still intercepts the touch responder and
+          blocks the outer page ScrollView when a gesture starts on a tile. */}
+      <View style={styles.grid}>
+        {sortedSlots.map((item) => renderSlot(item))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  grid: { gap: Spacing.sm },
-  row: { gap: Spacing.xs },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: Spacing.sm, columnGap: Spacing.xs },
   card: {
     borderRadius: DEFAULT_RADII.sm,
     borderWidth: 0,
