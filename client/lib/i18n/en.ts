@@ -339,6 +339,7 @@ export const en = {
     title: 'Design collage',
     hint: 'Tap a slot to choose or change an activity.',
     hintLocked: 'These nine activities are ready to go.',
+    presetUnavailable: 'This preset could not be loaded. Please try again later or design your own collage.',
     create: 'Create',
     shareToGroups: 'SHARE TO THESE GROUP FEEDS',
     noGroups: 'You are not in any group yet.',

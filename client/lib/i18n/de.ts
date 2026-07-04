@@ -339,6 +339,7 @@ export const de = {
     title: 'Collage gestalten',
     hint: 'Tippe auf ein Feld, um eine Aktivität zu wählen oder zu ändern.',
     hintLocked: 'Diese neun Aktivitäten sind startklar.',
+    presetUnavailable: 'Diese Vorlage konnte nicht geladen werden. Bitte versuche es später erneut oder gestalte eine eigene Collage.',
     create: 'Erstellen',
     shareToGroups: 'IN DIESEN GRUPPEN-FEEDS TEILEN',
     noGroups: 'Du bist noch in keiner Gruppe.',

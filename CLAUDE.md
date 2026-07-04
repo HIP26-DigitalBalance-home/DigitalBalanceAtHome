@@ -325,6 +325,20 @@ VALUES
   ('Dem Kind Fahrradfahren beibringen','Geduldig, beständig, ein aufgeschürftes Knie — dann der Moment, in dem es alleine klappt. Jede Minute wert.',60,4,10,'free',ARRAY['spring','summer','autumn'],ARRAY['sunny','cloudy'],false,'de');
 ```
 
+### ⚠️ Re-link collage presets after restoring activities
+
+The restore above inserts activities with **new** `gen_random_uuid()` ids, but
+`collage_presets.activity_ids` still points at the old ids. Until you re-link
+them, preset/random collages load with empty slots and can't be created. Run:
+
+```bash
+docker compose exec api \
+  sh -c "PYTHONPATH=/app python /app/scripts/relink_collage_presets.py"
+```
+
+The script is idempotent — it resolves each preset's nine activities by title
+against whatever activities currently exist, so it's safe to run any time.
+
 ## Implementation Plan
 
 `docs/implementation-plan.md` — 13 milestones (M0–M12). Each milestone ships both backend routes and frontend screens together. Start with **Milestone 0: Server Skeleton**.

@@ -109,7 +109,14 @@ export default function CollageBuilderScreen() {
       } else if (mode === 'preset' && presetParam) {
         const preset: CollagePreset = JSON.parse(presetParam);
         const byId = new Map(all.map((a) => [a.id, a]));
-        setSlots(preset.activity_ids.slice(0, SLOT_COUNT).map((id) => byId.get(id) ?? null));
+        const resolved = preset.activity_ids.slice(0, SLOT_COUNT).map((id) => byId.get(id) ?? null);
+        // Preset slots are locked, so a partially-resolved preset is a dead end:
+        // the user can neither fill the gaps nor create. Surface an error instead.
+        if (resolved.length < SLOT_COUNT || resolved.some((s) => s === null)) {
+          setError(t('builder.presetUnavailable'));
+          return;
+        }
+        setSlots(resolved);
       }
     } catch (e) {
       setError(getGermanErrorMessage(e));
