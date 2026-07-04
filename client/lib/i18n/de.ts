@@ -150,6 +150,10 @@ export const de = {
     letsDoIt: "Los geht's →",
     noSuggestion: 'Derzeit kein Vorschlag verfügbar.',
     articleOfTheDay: 'ARTIKEL DES TAGES',
+    articleTeaser: {
+      readTime: '3 Min.',
+      read: 'Gelesen ✓',
+    },
     articleModal: {
       sources: 'Quellen',
       completed: 'Abgeschlossen',

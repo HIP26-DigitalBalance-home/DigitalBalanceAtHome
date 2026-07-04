@@ -1,18 +1,25 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  scrollTo,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ArticleOfTheDay } from '@/components/article-of-the-day';
+import { ArticleTeaser } from '@/components/article-teaser';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { JournalCard } from '@/components/journal-card';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Illustration, type IllustrationName } from '@/components/ui/illustration';
 import { ErrorState } from '@/components/ui/error-state';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
@@ -26,20 +33,16 @@ import { useTabBar } from '@/lib/tab-bar-context';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import {
-  activitiesApi,
   challengesApi,
-  collagePresetsApi,
   completionsApi,
   onboardingApi,
   photosApi,
   progressApi,
-  type ActivityItem,
   type ChallengeActivitySlot,
   type ChallengeWithProgress,
   type FamilyProgress,
 } from '@/lib/api';
 import { isChallengeComplete } from '@/lib/challenge-utils';
-import { PRESET_ILLUSTRATIONS } from '@/lib/preset-illustrations';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,46 +50,181 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
-const SUGGESTION_COUNT = 5;
-const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
-
-function collectUnfulfilledActivities(challenges: ChallengeWithProgress[]): ActivityItem[] {
-  const seen = new Set<string>();
-  const unfulfilled: ActivityItem[] = [];
-  for (const challenge of challenges) {
-    for (const slot of challenge.activities) {
-      if (slot.completion == null && !seen.has(slot.activity.id)) {
-        seen.add(slot.activity.id);
-        unfulfilled.push(slot.activity);
-      }
-    }
-  }
-  return unfulfilled;
-}
-
-function shuffle<T>(items: T[]): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
+const COLLAPSED_HERO_HEIGHT = 68;
+const HERO_COLLAPSE_DISTANCE = 128;
+// Upward movement pauses at the collage boundary for this distance before the
+// full hero returns. Downward movement is never delayed.
+const HERO_GRACE_DISTANCE = 160;
+const SCROLL_LOCK_TOLERANCE = 0.5;
 
 export default function HomeScreen() {
-  const { colors, radii } = useAppTheme();
+  const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const isOnline = useNetworkStatus();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { setHidden } = useTabBar();
+
+  const expandedHeroHeight = windowHeight - insets.top;
+  const heroOverlap = Math.max(
+    0,
+    expandedHeroHeight - COLLAPSED_HERO_HEIGHT - HERO_COLLAPSE_DISTANCE,
+  );
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useSharedValue(0);
+  const graceRemaining = useSharedValue(HERO_GRACE_DISTANCE);
+  const graceArmed = useSharedValue(false);
+  const graceLocked = useSharedValue(false);
+
+  const handleScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const offset = Math.max(0, event.contentOffset.y);
+
+      // Any downward movement beyond the boundary takes effect immediately
+      // and rearms the grace period for the next upward approach.
+      if (offset > HERO_COLLAPSE_DISTANCE) {
+        graceArmed.value = true;
+        graceLocked.value = false;
+        graceRemaining.value = HERO_GRACE_DISTANCE;
+        scrollY.value = offset;
+        return;
+      }
+
+      // Empty/short collage states may stop exactly at the boundary rather
+      // than travel beyond it, so arm the upward lock as we arrive from above.
+      if (
+        !graceLocked.value
+        && offset >= HERO_COLLAPSE_DISTANCE - SCROLL_LOCK_TOLERANCE
+        && offset > scrollY.value
+      ) {
+        graceArmed.value = true;
+        graceRemaining.value = HERO_GRACE_DISTANCE;
+        scrollY.value = offset;
+        return;
+      }
+
+      if (graceLocked.value) {
+        // scrollTo() emits an event at the lock position; keep the lock for
+        // that event, but release instantly if the user reverses downward.
+        if (offset >= HERO_COLLAPSE_DISTANCE) {
+          if (offset > HERO_COLLAPSE_DISTANCE) {
+            graceArmed.value = true;
+            graceLocked.value = false;
+            graceRemaining.value = HERO_GRACE_DISTANCE;
+            scrollY.value = offset;
+          } else {
+            scrollY.value = HERO_COLLAPSE_DISTANCE;
+          }
+          return;
+        }
+
+        graceRemaining.value -= HERO_COLLAPSE_DISTANCE - offset;
+        if (graceRemaining.value > 0) {
+          scrollY.value = HERO_COLLAPSE_DISTANCE;
+          scrollTo(scrollRef, 0, HERO_COLLAPSE_DISTANCE, false);
+          return;
+        }
+
+        // Carry any movement beyond the grace distance into the expanding
+        // hero so the gesture remains continuous once the lock releases.
+        const nextOffset = Math.max(
+          0,
+          HERO_COLLAPSE_DISTANCE + graceRemaining.value,
+        );
+        graceArmed.value = false;
+        graceLocked.value = false;
+        scrollY.value = nextOffset;
+        scrollTo(scrollRef, 0, nextOffset, false);
+        return;
+      }
+
+      if (
+        graceArmed.value
+        && offset < HERO_COLLAPSE_DISTANCE
+        && scrollY.value >= HERO_COLLAPSE_DISTANCE - SCROLL_LOCK_TOLERANCE
+      ) {
+        graceRemaining.value = Math.max(
+          0,
+          HERO_GRACE_DISTANCE - (HERO_COLLAPSE_DISTANCE - offset),
+        );
+
+        if (graceRemaining.value <= 0) {
+          const nextOffset = Math.max(
+            0,
+            HERO_COLLAPSE_DISTANCE
+              - ((HERO_COLLAPSE_DISTANCE - offset) - HERO_GRACE_DISTANCE),
+          );
+          graceArmed.value = false;
+          scrollY.value = nextOffset;
+          scrollTo(scrollRef, 0, nextOffset, false);
+          return;
+        }
+
+        graceLocked.value = true;
+        scrollY.value = HERO_COLLAPSE_DISTANCE;
+        scrollTo(scrollRef, 0, HERO_COLLAPSE_DISTANCE, false);
+        return;
+      }
+
+      scrollY.value = offset;
+    },
+  });
+
+  const heroAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(
+          scrollY.value,
+          [0, HERO_COLLAPSE_DISTANCE],
+          [0, -heroOverlap],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  const heroContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, HERO_COLLAPSE_DISTANCE * 0.72],
+      [1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateY: interpolate(
+          scrollY.value,
+          [0, HERO_COLLAPSE_DISTANCE],
+          [0, -Spacing.lg],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  const compactHeaderAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [HERO_COLLAPSE_DISTANCE * 0.58, HERO_COLLAPSE_DISTANCE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateY: interpolate(
+          scrollY.value,
+          [HERO_COLLAPSE_DISTANCE * 0.58, HERO_COLLAPSE_DISTANCE],
+          [-Spacing.sm, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [challengeError, setChallengeError] = useState<string | null>(null);
-  const [fallbackActivities, setFallbackActivities] = useState<ActivityItem[]>([]);
-  const [activityArt, setActivityArt] = useState<Record<string, IllustrationName>>({});
   const [familyProgress, setFamilyProgress] = useState<FamilyProgress | null>(null);
-  const [familyId, setFamilyId] = useState<string | null>(null);
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
@@ -132,7 +270,6 @@ export default function HomeScreen() {
         if (!cancelled) {
           setChallenges(challengesRes.data);
           const fid = familiesRes.data[0]?.id ?? null;
-          setFamilyId(fid);
           if (fid) {
             try {
               const progressRes = await progressApi.getProgress(fid);
@@ -152,63 +289,6 @@ export default function HomeScreen() {
     loadData();
     return () => { cancelled = true; };
   }, [i18n.language]));
-
-  // Map each activity to the artwork of the explore preset it belongs to,
-  // so suggestion cards match the collage cards in the Explore view.
-  useEffect(() => {
-    let cancelled = false;
-    async function loadPresetArt() {
-      try {
-        const res = await collagePresetsApi.list();
-        if (cancelled) return;
-        const map: Record<string, IllustrationName> = {};
-        for (const preset of res.data) {
-          const art = PRESET_ILLUSTRATIONS[preset.name] ?? 'stamp-custom';
-          for (const activityId of preset.activity_ids) {
-            if (!map[activityId]) map[activityId] = art;
-          }
-        }
-        setActivityArt(map);
-      } catch {
-        // best-effort; cards fall back to the custom stamp
-      }
-    }
-    loadPresetArt();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Fallback activities when the open challenge slots can't fill all suggestion cards
-  useEffect(() => {
-    if (loadingChallenges) return;
-    if (collectUnfulfilledActivities(challenges).length >= SUGGESTION_COUNT) return;
-
-    let cancelled = false;
-    async function loadFallback() {
-      let age: number | undefined;
-      try {
-        const childrenRes = await onboardingApi.getChildren();
-        const dob = childrenRes.data[0]?.date_of_birth;
-        if (dob) age = Math.max(0, Math.floor((Date.now() - new Date(dob).getTime()) / MS_PER_YEAR));
-      } catch {
-        // age filter is optional
-      }
-      try {
-        const res = await activitiesApi.list(age != null ? { age } : {});
-        if (!cancelled) setFallbackActivities(res.data);
-      } catch {
-        // best-effort
-      }
-    }
-    loadFallback();
-    return () => { cancelled = true; };
-  }, [loadingChallenges, challenges]);
-
-  const suggestions = useMemo(() => {
-    const fromChallenges = shuffle(collectUnfulfilledActivities(challenges));
-    const seen = new Set(fromChallenges.map((a) => a.id));
-    const fill = shuffle(fallbackActivities.filter((a) => !seen.has(a.id)));
-    return [...fromChallenges, ...fill].slice(0, SUGGESTION_COUNT);
-  }, [challenges, fallbackActivities]);
 
   function checkCelebration(slotId: string, updatedLocal: Record<string, LocalCompletion>) {
     const challenge = challengesRef.current.find((c) => c.activities.some((s) => s.id === slotId));
@@ -320,152 +400,187 @@ export default function HomeScreen() {
       });
   }
 
-  function openActivity(activity: ActivityItem) {
-    router.push({ pathname: '/activity/[id]', params: { id: activity.id, data: JSON.stringify(activity) } } as any);
-  }
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabScreenPaddingBottom(insets.bottom) }]}>
-        <View style={styles.titleRow}>
-          <View style={styles.brandRow}>
-            <Image
-              source={require('@/assets/images/bunny-logo.png')}
-              style={styles.brandLogo}
-              accessibilityLabel="Bond mascot"
-            />
-            <ThemedText type="title">Bond</ThemedText>
-          </View>
-          <Pressable onPress={() => router.push('/challenges' as any)}>
-            <ThemedText style={{ color: colors.primary, fontSize: 14 }}>{t('home.allChallenges')}</ThemedText>
-          </Pressable>
-        </View>
-
-        {/* Progress widget: streak + goal ring */}
-        {familyProgress && (
-          <PressableScale
-            style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => router.push('/progress' as any)}
-            accessibilityRole="button"
-            accessibilityLabel={t('progress.title')}
+      <Animated.ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Animated.View
+          style={[
+            styles.hero,
+            {
+              height: expandedHeroHeight,
+              marginBottom: -heroOverlap,
+              backgroundColor: colors.background,
+            },
+            heroAnimatedStyle,
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.heroContent,
+              { paddingBottom: tabScreenPaddingBottom(insets.bottom) },
+              heroContentAnimatedStyle,
+            ]}
           >
-            <View style={styles.progressRingBlock}>
-              <ProgressRing value={familyProgress.this_week.activities} goal={familyProgress.weekly_goal} size={52} />
-              <ThemedText style={[styles.progressRingLabel, { color: colors.muted }]}>
-                {t('progress.activitiesGoal', { value: familyProgress.this_week.activities, goal: familyProgress.weekly_goal })}
-              </ThemedText>
+            <View style={styles.brandHero}>
+              <Image
+                source={require('@/assets/images/bunny-logo.png')}
+                style={styles.brandHeroLogo}
+                accessibilityLabel="Bond mascot"
+              />
+              <ThemedText type="title" style={styles.brandHeroTitle}>Bond</ThemedText>
             </View>
-            <View style={styles.progressStreakBlock}>
-              <ThemedText style={[styles.progressStreakCount, { color: colors.onSurface }]}>
-                🔥 {familyProgress.streak.current_days}
-              </ThemedText>
-              <ThemedText style={[styles.progressStreakLabel, { color: colors.muted }]}>
-                {familyProgress.streak.frozen_today ? '❄️' : t('progress.streakDays', { count: familyProgress.streak.current_days })}
-              </ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-          </PressableScale>
-        )}
 
-        {/* Daily mood check-in — hides itself once answered */}
-        <JournalCard />
+            {/* Progress is the hero's primary action, ahead of supporting content. */}
+            {familyProgress && (
+              <PressableScale
+                style={[styles.progressWidget, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => router.push('/progress' as any)}
+                accessibilityRole="button"
+                accessibilityLabel={t('progress.title')}
+              >
+                <ProgressRing
+                  value={familyProgress.this_week.activities}
+                  goal={familyProgress.weekly_goal}
+                  size={88}
+                  strokeWidth={7}
+                />
+                <View style={styles.progressTextBlock}>
+                  <ThemedText
+                    style={[styles.progressGoal, { color: colors.onSurface }]}
+                  >
+                    {t('progress.activitiesGoal', {
+                      value: familyProgress.this_week.activities,
+                      goal: familyProgress.weekly_goal,
+                    })}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.progressStreak, { color: colors.muted }]}
+                  >
+                    {familyProgress.streak.frozen_today
+                      ? `🔥 ${familyProgress.streak.current_days} · ❄️`
+                      : `🔥 ${t('progress.streakDays', { count: familyProgress.streak.current_days })}`}
+                  </ThemedText>
+                </View>
+                <IconSymbol name="chevron.right" size={18} color={colors.muted} />
+              </PressableScale>
+            )}
 
-        {/* Suggestion carousel — full-bleed, not boxed in a section card */}
-        <View style={styles.suggestionSection}>
-          <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.todaysSuggestion')}</ThemedText>
-          {loadingChallenges ? (
-            <SkeletonList count={1} rowHeight={140} />
-          ) : suggestions.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.suggestionScroll}
-              contentContainerStyle={styles.suggestionRow}
+            <ArticleTeaser />
+
+            {/* Daily mood check-in stays in the hero, even after it is answered. */}
+            <JournalCard />
+          </Animated.View>
+        </Animated.View>
+
+        <View
+          style={[
+            styles.collageContent,
+            {
+              minHeight: expandedHeroHeight - COLLAPSED_HERO_HEIGHT,
+              paddingBottom: tabScreenPaddingBottom(insets.bottom),
+              backgroundColor: colors.background,
+            },
+          ]}
+        >
+          <View style={styles.collageHeading}>
+            <ThemedText
+              style={[styles.sectionLabel, { color: colors.primary + '99' }]}
             >
-              {suggestions.map((activity) => (
-                <Pressable
-                  key={activity.id}
-                  style={[styles.suggestionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  onPress={() => openActivity(activity)}
-                  accessibilityRole="button"
-                  accessibilityLabel={activity.title}
-                >
-                  <Illustration name={activityArt[activity.id] ?? 'stamp-custom'} size={56} />
-                  <View style={styles.suggestionCardFooter}>
-                    <ThemedText style={[styles.suggestionCardMeta, { color: colors.primary }]}>
-                      {t('common.minutes', { count: activity.estimated_duration_minutes })} ·{' '}
-                      {activity.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost')}
-                    </ThemedText>
-                    <ThemedText style={[styles.suggestionCardTitle, { color: colors.onSurface }]} numberOfLines={2}>
-                      {activity.title}
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              ))}
-            </ScrollView>
-          ) : (
-            <ThemedText style={{ color: colors.muted, fontSize: 14 }}>
-              {t('home.noSuggestion')}
+              {t('home.yourCollages')}
             </ThemedText>
-          )}
-        </View>
+            <Pressable
+              onPress={() => router.push('/challenges' as any)}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ color: colors.primary, fontSize: 14 }}>
+                {t('home.allChallenges')}
+              </ThemedText>
+            </Pressable>
+          </View>
 
-        {/* Active challenge collages */}
-        {loadingChallenges ? (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
-            <SkeletonList count={2} rowHeight={180} />
-          </View>
-        ) : challengeError ? (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
-            <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
-          </View>
-        ) : challenges.length > 0 ? (
-          challenges.map((challenge) => (
-            <Animated.View
-              key={challenge.id}
-              entering={fadeIn()}
+          {/* Active challenge collages */}
+          {loadingChallenges ? (
+            <View
               style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
             >
-              <View style={styles.sectionHeader}>
-                <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>
-                  {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
-                </ThemedText>
-                <Pressable
-                  onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('home.viewDetails')}
-                >
-                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
-                </Pressable>
-              </View>
-              <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
-              <CollageGrid
-                slots={challenge.activities}
-                groupFamiliesCount={challenge.group_families_count}
-                localCompletions={localCompletions}
-                onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
-                onPhotoPress={makePhotoHandler(challenge.group_families_count ?? null)}
+              <SkeletonList count={2} rowHeight={180} />
+            </View>
+          ) : challengeError ? (
+            <View
+              style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <ErrorState message={challengeError} onRetry={() => { setLoadingChallenges(true); }} />
+            </View>
+          ) : challenges.length > 0 ? (
+            challenges.map((challenge) => (
+              <Animated.View
+                key={challenge.id}
+                entering={fadeIn()}
+                style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <View style={styles.sectionHeader}>
+                  <ThemedText
+                    style={[styles.sectionLabel, { color: colors.primary + '99' }]}
+                  >
+                    {challenge.status === 'completed' ? t('home.completedChallenge') : t('home.activeChallenge')}
+                  </ThemedText>
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/challenge/[id]', params: { id: challenge.id } } as any)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.viewDetails')}
+                  >
+                    <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+                  </Pressable>
+                </View>
+                <ThemedText style={[styles.challengeTitle, { color: colors.onSurface }]}>{challenge.title}</ThemedText>
+                <CollageGrid
+                  slots={challenge.activities}
+                  groupFamiliesCount={challenge.group_families_count}
+                  localCompletions={localCompletions}
+                  onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
+                  onPhotoPress={makePhotoHandler(challenge.group_families_count ?? null)}
+                />
+              </Animated.View>
+            ))
+          ) : (
+            <View
+              style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <EmptyState
+                illustration="elephant-star"
+                title={t('home.emptyTitle')}
+                body={t('home.emptyBody')}
+                actionLabel={t('home.emptyAction')}
+                onAction={() => router.push('/(tabs)/explore' as any)}
               />
-            </Animated.View>
-          ))
-        ) : (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ThemedText style={[styles.sectionLabel, { color: colors.primary + '99' }]}>{t('home.yourCollages')}</ThemedText>
-            <EmptyState
-              illustration="elephant-star"
-              title={t('home.emptyTitle')}
-              body={t('home.emptyBody')}
-              actionLabel={t('home.emptyAction')}
-              onAction={() => router.push('/(tabs)/explore' as any)}
-            />
-          </View>
-        )}
+            </View>
+          )}
+        </View>
+      </Animated.ScrollView>
 
-        <ArticleOfTheDay />
-      </ScrollView>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.compactHeader,
+          {
+            height: COLLAPSED_HERO_HEIGHT,
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+          compactHeaderAnimatedStyle,
+        ]}
+      >
+        <Image source={require('@/assets/images/bunny-logo.png')} style={styles.compactLogo} />
+        <ThemedText type="title" style={styles.compactTitle}>Bond</ThemedText>
+      </Animated.View>
 
       <CompleteActivityModal
         visible={activeSlot !== null}
@@ -492,10 +607,39 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.screenHorizontal, gap: Spacing.lg, paddingTop: Spacing.lg },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  brandLogo: { width: 32, height: 32, borderRadius: 16 },
+  scrollContent: { flexGrow: 1 },
+  hero: { zIndex: 2 },
+  heroContent: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.screenHorizontal,
+    gap: Spacing.md,
+  },
+  brandHero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  brandHeroLogo: { width: 80, height: 80, borderRadius: 40 },
+  brandHeroTitle: { fontSize: 38, lineHeight: 44 },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  compactLogo: { width: 36, height: 36, borderRadius: 18 },
+  compactTitle: { fontSize: 24, lineHeight: 30 },
+  collageContent: {
+    zIndex: 1,
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.screenHorizontal,
+    gap: Spacing.lg,
+  },
+  collageHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { borderRadius: DEFAULT_RADII.card, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
@@ -505,24 +649,17 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14 },
   createButton: { height: 44, paddingHorizontal: Spacing.lg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   createButtonText: { fontSize: 14, fontWeight: '600' },
-  suggestionSection: { gap: Spacing.sm },
-  suggestionScroll: { marginHorizontal: -Spacing.screenHorizontal },
-  suggestionRow: { paddingHorizontal: Spacing.screenHorizontal, gap: Spacing.sm },
-  suggestionCard: {
-    width: 148,
-    minHeight: 150,
+  progressWidget: {
+    minHeight: 112,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
-    padding: Spacing.md,
-    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
   },
-  suggestionCardFooter: { gap: 2 },
-  suggestionCardMeta: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  suggestionCardTitle: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
-  progressWidget: { flexDirection: 'row', alignItems: 'center', borderRadius: DEFAULT_RADII.card, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.lg },
-  progressRingBlock: { alignItems: 'center', gap: 2, paddingTop: Spacing.sm },
-  progressRingLabel: { fontSize: 11 },
-  progressStreakBlock: { flex: 1, gap: 2 },
-  progressStreakCount: { fontSize: 22, fontWeight: '600' },
-  progressStreakLabel: { fontSize: 12 },
+  progressTextBlock: { flex: 1, gap: Spacing.xs },
+  progressGoal: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
+  progressStreak: { fontSize: 13, lineHeight: 18 },
 });

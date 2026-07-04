@@ -150,6 +150,10 @@ export const en = {
     letsDoIt: "Let's do it →",
     noSuggestion: 'No suggestion available right now.',
     articleOfTheDay: 'ARTICLE OF THE DAY',
+    articleTeaser: {
+      readTime: '3 min',
+      read: 'Read ✓',
+    },
     articleModal: {
       sources: 'Sources',
       completed: 'Completed',
