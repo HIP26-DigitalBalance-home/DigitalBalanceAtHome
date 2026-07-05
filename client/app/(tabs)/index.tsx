@@ -42,7 +42,8 @@ import {
   type ChallengeWithProgress,
   type FamilyProgress,
 } from '@/lib/api';
-import { isChallengeComplete } from '@/lib/challenge-utils';
+import { computePotentialPoints, isChallengeComplete } from '@/lib/challenge-utils';
+import { ReuploadModal } from '@/components/reupload-modal';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -228,10 +229,21 @@ export default function HomeScreen() {
 
   const [localCompletions, setLocalCompletions] = useState<Record<string, LocalCompletion>>({});
   const [activeSlot, setActiveSlot] = useState<ChallengeActivitySlot | null>(null);
-  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; completionId: string; title: string; familiesCompletedCount: number | null; groupFamiliesCount: number | null } | null>(null);
+  const [viewerPhoto, setViewerPhoto] = useState<{
+    url: string;
+    completionId: string;
+    slotId: string;
+    title: string;
+    familiesCompletedCount: number | null;
+    groupFamiliesCount: number | null;
+    status: string | null;
+    rejectionReason: string | null;
+    potentialPoints: number;
+  } | null>(null);
+  const [reuploadTarget, setReuploadTarget] = useState<{ slotId: string; completionId: string; rejectionReason: string | null; title: string } | null>(null);
 
   // Hide the tab bar while any action modal is open
-  const anyModalOpen = activeSlot !== null || viewerPhoto !== null;
+  const anyModalOpen = activeSlot !== null || viewerPhoto !== null || reuploadTarget !== null;
   useEffect(() => {
     setHidden(anyModalOpen);
   }, [anyModalOpen, setHidden]);
@@ -318,9 +330,18 @@ export default function HomeScreen() {
       try {
         const res = await completionsApi.getById(completionId);
         const { status } = res.data;
-        if (status === 'ready') {
+        if (status !== 'processing') {
           stopPolling();
-          const updated: Record<string, LocalCompletion> = { ...localCompletionsRef.current, [slotId]: { status: 'ready', photoUrl: res.data.photo_url ?? null, completionId } };
+          const updated: Record<string, LocalCompletion> = {
+            ...localCompletionsRef.current,
+            [slotId]: {
+              status,
+              photoUrl: res.data.photo_url ?? null,
+              completionId,
+              rejectionReason: res.data.rejection_reason ?? null,
+              durationMinutes: res.data.duration_minutes ?? null,
+            },
+          };
           setLocalCompletions(updated);
           checkCelebration(slotId, updated);
         }
@@ -339,16 +360,44 @@ export default function HomeScreen() {
     setActiveSlot(slot);
   }
 
-  function makePhotoHandler(groupFamiliesCount: number | null) {
+  function makePhotoHandler(challenge: ChallengeWithProgress) {
     return (slot: ChallengeActivitySlot, photoUrl: string, completionId: string) => {
+      const local = localCompletions[slot.id];
+      const status = local?.status ?? slot.completion?.status ?? null;
+      const rejectionReason = local?.rejectionReason ?? slot.completion?.rejection_reason ?? null;
+      const durationMinutes = local?.durationMinutes ?? slot.completion?.duration_minutes ?? null;
       setViewerPhoto({
         url: photoUrl,
         completionId,
+        slotId: slot.id,
         title: slot.activity.title,
         familiesCompletedCount: slot.families_completed_count ?? null,
-        groupFamiliesCount,
+        groupFamiliesCount: challenge.group_families_count ?? null,
+        status,
+        rejectionReason,
+        potentialPoints: computePotentialPoints(slot.activity, challenge.is_featured, durationMinutes),
       });
     };
+  }
+
+  function handleViewerReupload(completionId: string) {
+    if (!viewerPhoto) return;
+    setReuploadTarget({
+      slotId: viewerPhoto.slotId,
+      completionId,
+      rejectionReason: viewerPhoto.rejectionReason,
+      title: viewerPhoto.title,
+    });
+    setViewerPhoto(null);
+  }
+
+  function handleReuploaded(completionId: string) {
+    const slotId = reuploadTarget?.slotId;
+    if (!slotId) return;
+    // Rejected photos re-enter the compression pipeline server-side — show the
+    // slot as processing and poll until it lands in pending_verification.
+    setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
+    startPolling(slotId, completionId);
   }
 
   function handlePhotoDeleted(completionId: string) {
@@ -380,15 +429,15 @@ export default function HomeScreen() {
       });
   }
 
-  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean, caption?: string) {
+  function handlePhotoSelected(slotId: string, imageUri: string, mimeType: string, sharedToFeed: boolean, caption?: string, durationMinutes?: number | null) {
     if (!isOnline) {
       showAlert(t('common.offline'), t('common.noConnection'));
       return;
     }
     setActiveSlot(null);
-    setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing' } }));
+    setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing', durationMinutes } }));
     photosApi
-      .upload(slotId, imageUri, mimeType, caption, sharedToFeed)
+      .upload(slotId, imageUri, mimeType, caption, sharedToFeed, durationMinutes)
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch((e) => {
         setLocalCompletions((prev) => {
@@ -546,7 +595,7 @@ export default function HomeScreen() {
                   groupFamiliesCount={challenge.group_families_count}
                   localCompletions={localCompletions}
                   onSlotPress={challenge.status === 'completed' ? undefined : handleSlotPress}
-                  onPhotoPress={makePhotoHandler(challenge.group_families_count ?? null)}
+                  onPhotoPress={makePhotoHandler(challenge)}
                 />
               </Animated.View>
             ))
@@ -598,8 +647,21 @@ export default function HomeScreen() {
         activityTitle={viewerPhoto?.title ?? ''}
         familiesCompletedCount={viewerPhoto?.familiesCompletedCount ?? null}
         groupFamiliesCount={viewerPhoto?.groupFamiliesCount ?? null}
+        status={viewerPhoto?.status ?? null}
+        rejectionReason={viewerPhoto?.rejectionReason ?? null}
+        potentialPoints={viewerPhoto?.potentialPoints ?? null}
+        onReupload={handleViewerReupload}
         onClose={() => setViewerPhoto(null)}
         onDeleted={handlePhotoDeleted}
+      />
+
+      <ReuploadModal
+        visible={reuploadTarget !== null}
+        completionId={reuploadTarget?.completionId ?? null}
+        rejectionReason={reuploadTarget?.rejectionReason ?? null}
+        activityTitle={reuploadTarget?.title}
+        onClose={() => setReuploadTarget(null)}
+        onReuploaded={handleReuploaded}
       />
     </SafeAreaView>
   );

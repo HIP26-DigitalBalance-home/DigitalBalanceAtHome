@@ -348,7 +348,9 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         await session.flush()
         return ch
 
-    def _ch(title, desc, group_id, start_offset=None, end_offset=None, title_en=None, desc_en=None) -> Challenge:
+    def _ch(
+        title, desc, group_id, start_offset=None, end_offset=None, title_en=None, desc_en=None, is_featured=False
+    ) -> Challenge:
         # Base columns hold German; *_en hold English so content negotiation can
         # serve either language (see app/services/localization.py).
         # Challenges no longer have dates; offsets kept for call-site compatibility.
@@ -360,6 +362,7 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             group_id=group_id,
             created_by_family_id=family.id,
             display_mode="collage",
+            is_featured=is_featured,
         )
 
     c1 = await _add_challenge(
@@ -371,6 +374,8 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             14,
             title_en="Spring Outdoor Adventures",
             desc_en="Explore nature and spend quality time together this spring!",
+            # featured challenge → visible +5 bonus-point path in the demo
+            is_featured=True,
         ),
         activities[:9],
     )
@@ -509,9 +514,10 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
                 challenge_activity_id=slot.id,
                 family_id=fam.id,
                 completed_by_user_id=u.id,
-                status="ready" if photo_key else "self_reported",
+                status="verified" if photo_key else "self_reported",
                 photo_key=photo_key,
                 caption=caption,
+                duration_minutes=45 if photo_key else None,
                 shared_to_feed=shared,
                 completed_at=_ts(days_ago),
             )

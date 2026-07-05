@@ -23,6 +23,13 @@ interface Props {
   activityTitle: string;
   familiesCompletedCount?: number | null;
   groupFamiliesCount?: number | null;
+  /** Verification status of the completion (pending_verification | verified | rejected) */
+  status?: string | null;
+  rejectionReason?: string | null;
+  /** Points this completion earns once verified (base + featured bonus) */
+  potentialPoints?: number | null;
+  /** Present when re-uploading is possible — renders the re-upload button for rejected photos */
+  onReupload?: (completionId: string) => void;
   onClose: () => void;
   onDeleted: (completionId: string) => void;
 }
@@ -48,7 +55,7 @@ async function downloadPhoto(url: string, filename: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
-export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, onClose, onDeleted }: Props) {
+export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, status, rejectionReason, potentialPoints, onReupload, onClose, onDeleted }: Props) {
   const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
   const { width } = Dimensions.get('window');
@@ -56,16 +63,16 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
   const [downloading, setDownloading] = useState(false);
   // The parent nulls the photo props at the moment it closes the modal — latch
   // the last values so the card stays rendered while the exit animation plays.
-  const [latched, setLatched] = useState({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount });
+  const [latched, setLatched] = useState({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, status, rejectionReason, potentialPoints });
   const content = photoUrl || completionId
-    ? { photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount }
+    ? { photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, status, rejectionReason, potentialPoints }
     : latched;
 
   useEffect(() => {
     if (photoUrl || completionId) {
-      setLatched({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount });
+      setLatched({ photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, status, rejectionReason, potentialPoints });
     }
-  }, [photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount]);
+  }, [photoUrl, completionId, activityTitle, familiesCompletedCount, groupFamiliesCount, status, rejectionReason, potentialPoints]);
 
   async function handleDelete() {
     if (!completionId) return;
@@ -135,11 +142,61 @@ export function PhotoViewerModal({ visible, photoUrl, completionId, activityTitl
             </Pressable>
           </View>
 
-          {/* Title + group progress + buttons */}
+          {/* Title + review status + group progress + buttons */}
           <View style={styles.body}>
             <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
               {content.activityTitle}
             </ThemedText>
+
+            {/* Review status: state, points, and (when rejected) the reason + re-upload */}
+            {(content.status === 'pending_verification' || content.status === 'verified' || content.status === 'rejected') && (
+              <View style={[styles.statusSection, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                <View style={styles.statusRow}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      {
+                        backgroundColor:
+                          content.status === 'verified' ? colors.accent
+                          : content.status === 'rejected' ? colors.destructiveMuted
+                          : colors.muted,
+                      },
+                    ]}
+                  />
+                  <ThemedText style={[styles.statusLabel, { color: colors.onSurface }]}>
+                    {content.status === 'verified' ? t('verification.verified')
+                      : content.status === 'rejected' ? t('verification.rejected')
+                      : t('verification.pending')}
+                  </ThemedText>
+                  {content.potentialPoints != null && (
+                    <ThemedText style={[styles.pointsLabel, { color: colors.accent }]}>
+                      {content.status === 'verified'
+                        ? t('verification.pointsEarned', { count: content.potentialPoints })
+                        : t('verification.pointsPending', { count: content.potentialPoints })}
+                    </ThemedText>
+                  )}
+                </View>
+
+                {content.status === 'rejected' && (
+                  <>
+                    <ThemedText style={[styles.reasonText, { color: colors.muted }]}>
+                      {content.rejectionReason || t('verification.noReason')}
+                    </ThemedText>
+                    {onReupload && content.completionId && (
+                      <Pressable
+                        style={[styles.reuploadButton, { backgroundColor: colors.primary, borderRadius: radii.button }]}
+                        onPress={() => onReupload(content.completionId!)}
+                        accessibilityRole="button"
+                      >
+                        <ThemedText style={[styles.reuploadText, { color: colors.buttonText }]}>
+                          {t('verification.reuploadButton')}
+                        </ThemedText>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
 
             {content.groupFamiliesCount != null && content.groupFamiliesCount > 0 && content.familiesCompletedCount != null && (
               <View style={styles.progressSection}>
@@ -218,6 +275,24 @@ const styles = StyleSheet.create({
   closeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   body: { padding: Spacing.md, gap: Spacing.sm },
   title: { fontSize: 15, fontWeight: '600' },
+  statusSection: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusDot: { width: 10, height: 10, borderRadius: 5 },
+  statusLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
+  pointsLabel: { fontSize: 13, fontWeight: '700' },
+  reasonText: { fontSize: 13, lineHeight: 18 },
+  reuploadButton: {
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  reuploadText: { fontSize: 14, fontWeight: '600' },
   progressSection: { gap: 6 },
   progressTrack: {
     height: 5,

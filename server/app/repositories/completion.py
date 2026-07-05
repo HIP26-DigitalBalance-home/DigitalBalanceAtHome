@@ -23,6 +23,7 @@ class CompletionRepository:
         caption: str | None = None,
         shared_to_feed: bool = False,
         photo_key: str | None = None,
+        duration_minutes: int | None = None,
     ) -> Completion:
         completion = Completion(
             challenge_activity_id=challenge_activity_id,
@@ -32,6 +33,7 @@ class CompletionRepository:
             caption=caption,
             shared_to_feed=shared_to_feed,
             photo_key=photo_key,
+            duration_minutes=duration_minutes,
             completed_at=datetime.now(timezone.utc),
         )
         self.session.add(completion)
@@ -39,13 +41,13 @@ class CompletionRepository:
         return completion
 
     async def count_photo_completions(self, family_id: uuid.UUID) -> int:
-        """Count completions with a photo (processing or ready) for a family."""
+        """Count completions with a photo (any non-self_reported status) for a family."""
         result = await self.session.execute(
             select(func.count())
             .select_from(Completion)
             .where(
                 Completion.family_id == family_id,
-                Completion.status.in_(["processing", "ready"]),
+                Completion.status.in_(["processing", "pending_verification", "verified", "rejected"]),
             )
         )
         return result.scalar_one()

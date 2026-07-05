@@ -14,4 +14,10 @@ from app.models.family import Family, FamilyInvite, FamilyMembership  # noqa: F4
 from app.models.group import Group, GroupAdmin, GroupInvite, GroupMembership  # noqa: F401
 from app.models.journal_entry import JournalEntry  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
+from app.models.rewards import (  # noqa: F401
+    PhotoVerification,
+    PointLedgerEntry,
+    Redemption,
+    RewardLevel,
+)
 from app.models.user import User  # noqa: F401

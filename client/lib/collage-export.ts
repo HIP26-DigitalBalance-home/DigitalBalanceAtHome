@@ -45,7 +45,10 @@ async function renderCollageToCanvas(slots: ChallengeActivitySlot[]): Promise<HT
     const y = row * (slotSize + SLOT_GAP);
 
     const completion = slot.completion;
-    const hasPhoto = completion?.status === 'ready' && completion.photo_url;
+    const hasPhoto =
+      completion != null &&
+      ['pending_verification', 'verified', 'rejected'].includes(completion.status) &&
+      completion.photo_url;
     const isSelfReported = completion?.status === 'self_reported';
 
     ctx.save();

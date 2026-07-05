@@ -14,10 +14,12 @@ import {
 } from 'react-native';
 import { useEffect, useState } from 'react';
 
+import { DurationPicker } from '@/components/duration-picker';
 import { ThemedText } from '@/components/themed-text';
 import { AnimatedModal } from '@/components/ui/animated-modal';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
+import { resolveEffortTier } from '@/lib/challenge-utils';
 import type { ChallengeActivitySlot } from '@/lib/api';
 
 interface Props {
@@ -33,6 +35,7 @@ interface Props {
     mimeType: string,
     sharedToFeed: boolean,
     caption?: string,
+    durationMinutes?: number | null,
   ) => void;
 }
 
@@ -49,6 +52,7 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
   const [caption, setCaption] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [withoutPhoto, setWithoutPhoto] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
   // The parent nulls `slot` at the moment it closes the modal — latch the last
   // value so the content stays rendered while the exit animation plays.
   const [latchedSlot, setLatchedSlot] = useState(slot);
@@ -64,8 +68,14 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
       setCaption('');
       setSelectedPhoto(null);
       setWithoutPhoto(false);
+      setDurationMinutes(null);
     }
   }, [visible, defaultShared]);
+
+  // The 30-minute point gate (FR-006) only applies to casual-tier photo
+  // completions — the server rejects those without a reported duration.
+  const isCasual = renderSlot ? resolveEffortTier(renderSlot.activity) === 'casual' : false;
+  const durationMissing = isCasual && selectedPhoto !== null && durationMinutes === null;
 
   async function pickImage() {
     setPicking(true);
@@ -101,12 +111,14 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
     const normalizedCaption = caption.trim() || undefined;
 
     if (selectedPhoto) {
+      if (durationMissing) return;
       onPhotoSelected(
         slot.id,
         selectedPhoto.uri,
         selectedPhoto.mimeType,
         sharedToFeed,
         normalizedCaption,
+        isCasual ? durationMinutes : null,
       );
     } else if (withoutPhoto) {
       onSelfReported(slot.id, sharedToFeed, normalizedCaption);
@@ -149,6 +161,15 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
           <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
             {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
           </ThemedText>
+
+          {isCasual && selectedPhoto && (
+            <>
+              <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>
+                {t('completeModal.durationQuestion')}
+              </ThemedText>
+              <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
+            </>
+          )}
 
           <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>
             {t('completeModal.description')}
@@ -234,24 +255,29 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
               </ThemedText>
             </Pressable>
 
+            {durationMissing && (
+              <ThemedText style={[styles.durationHint, { color: colors.muted }]}>
+                {t('completeModal.durationRequired')}
+              </ThemedText>
+            )}
             <Pressable
               style={[
                 styles.button,
                 {
-                  backgroundColor: selectedPhoto || withoutPhoto ? colors.primary : colors.border,
-                  borderColor: selectedPhoto || withoutPhoto ? colors.primary : colors.border,
+                  backgroundColor: (selectedPhoto || withoutPhoto) && !durationMissing ? colors.primary : colors.border,
+                  borderColor: (selectedPhoto || withoutPhoto) && !durationMissing ? colors.primary : colors.border,
                   borderRadius: radii.button,
                 },
               ]}
               onPress={submit}
-              disabled={!selectedPhoto && !withoutPhoto}
+              disabled={(!selectedPhoto && !withoutPhoto) || durationMissing}
               accessibilityRole="button"
-              accessibilityState={{ disabled: !selectedPhoto && !withoutPhoto }}
+              accessibilityState={{ disabled: (!selectedPhoto && !withoutPhoto) || durationMissing }}
             >
               <ThemedText
                 style={[
                   styles.buttonText,
-                  { color: selectedPhoto || withoutPhoto ? colors.buttonText : colors.muted },
+                  { color: (selectedPhoto || withoutPhoto) && !durationMissing ? colors.buttonText : colors.muted },
                 ]}
               >
                 {t('completeModal.upload')}
@@ -309,6 +335,7 @@ const styles = StyleSheet.create({
   shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: Spacing.sm, marginBottom: Spacing.xs },
   shareLabel: { fontSize: 14, fontWeight: '500' },
   buttons: { gap: Spacing.sm },
+  durationHint: { fontSize: 12, textAlign: 'center' },
   button: { height: 50, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   buttonText: { fontSize: 15, fontWeight: '600' },
   cancelButton: { height: 44, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

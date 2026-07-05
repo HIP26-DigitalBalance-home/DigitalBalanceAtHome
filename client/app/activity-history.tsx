@@ -99,7 +99,7 @@ export default function ActivityHistoryScreen() {
     const date = new Date(item.completed_at).toLocaleDateString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric',
     });
-    const isPhoto = item.status === 'ready' && item.photo_url;
+    const isPhoto = item.status !== 'processing' && item.status !== 'self_reported' && item.photo_url;
 
     return (
       <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>

@@ -303,7 +303,9 @@ async def seed():
                     await session.delete(existing)
             await session.flush()
 
-            def _make_challenge(title, description, group_id, family_id, start_offset=None, end_offset=None):
+            def _make_challenge(
+                title, description, group_id, family_id, start_offset=None, end_offset=None, is_featured=False
+            ):
                 # Challenges no longer have dates; offsets kept for call-site compatibility.
                 return Challenge(
                     title=title,
@@ -311,6 +313,7 @@ async def seed():
                     group_id=group_id,
                     created_by_family_id=family_id,
                     display_mode="collage",
+                    is_featured=is_featured,
                 )
 
             async def _add_challenge(challenge, activities):
@@ -335,6 +338,8 @@ async def seed():
                     admin_family.id,
                     -7,
                     14,
+                    # featured challenge → visible +5 bonus-point path in the demo
+                    is_featured=True,
                 ),
                 all_activities[:6],
             )
@@ -461,9 +466,10 @@ async def seed():
                         challenge_activity_id=slot.id,
                         family_id=fam.id,
                         completed_by_user_id=u.id,
-                        status="ready" if photo_key else "self_reported",
+                        status="verified" if photo_key else "self_reported",
                         photo_key=photo_key,
                         caption=caption,
+                        duration_minutes=45 if photo_key else None,
                         shared_to_feed=shared,
                         completed_at=_ts(days_ago),
                     )

@@ -23,6 +23,7 @@ async def upload_photo(
     image: UploadFile = File(...),
     caption: str | None = Form(None),
     shared_to_feed: bool = Form(False),
+    duration_minutes: int | None = Form(None),
     current_user: User = Depends(get_current_user_with_consent_check),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -41,6 +42,7 @@ async def upload_photo(
         image.content_type or "image/jpeg",
         caption,
         shared_to_feed,
+        duration_minutes,
     )
 
     background_tasks.add_task(

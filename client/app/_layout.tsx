@@ -118,11 +118,13 @@ function RootLayoutNav() {
         <Stack.Screen name="create-group" options={sheetOptions} />
         <Stack.Screen name="join-group" options={sheetOptions} />
         <Stack.Screen name="join-family" options={sheetOptions} />
-        <Stack.Screen name="group/[id]" />
+        <Stack.Screen name="group/[id]/index" />
+        <Stack.Screen name="group/[id]/admin" />
         <Stack.Screen name="activity/[id]" />
         <Stack.Screen name="collage-builder" options={sheetOptions} />
         <Stack.Screen name="create-activity" options={sheetOptions} />
         <Stack.Screen name="challenges" />
+        <Stack.Screen name="rewards" />
         <Stack.Screen name="challenge/[id]" />
         <Stack.Screen name="celebration" options={{ animation: 'fade' }} />
         <Stack.Screen name="group-feed/[id]" />

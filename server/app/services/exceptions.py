@@ -151,3 +151,48 @@ class NotFriend(DomainError):
 class AlreadyParticipant(DomainError):
     status_code = 409
     code = "already_participant"
+
+
+class CannotReuploadSelfReported(DomainError):
+    status_code = 400
+    code = "cannot_reupload_self_reported"
+
+
+class PhotoStillProcessing(DomainError):
+    status_code = 409
+    code = "photo_still_processing"
+
+
+class DurationRequired(DomainError):
+    status_code = 400
+    code = "duration_required"
+
+
+class CompletionNotPending(DomainError):
+    status_code = 409
+    code = "completion_not_pending"
+
+
+class RewardLevelNotFound(DomainError):
+    status_code = 404
+    code = "reward_level_not_found"
+
+
+class LevelLocked(DomainError):
+    status_code = 409
+    code = "level_locked"
+
+
+class AlreadyRedeemedThisQuarter(DomainError):
+    status_code = 409
+    code = "already_redeemed_this_quarter"
+
+
+class AnnualCapReached(DomainError):
+    status_code = 409
+    code = "annual_cap_reached"
+
+
+class ChoiceRequired(DomainError):
+    status_code = 400
+    code = "choice_required"

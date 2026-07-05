@@ -27,6 +27,7 @@ def _activity_schema(a, language: str = "de") -> dict:
         "season_relevance": a.season_relevance,
         "weather_suitability": a.weather_suitability,
         "is_partner_content": a.is_partner_content,
+        "effort_tier": a.effort_tier,
         "language": a.language,
     }
 

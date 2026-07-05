@@ -12,21 +12,28 @@ from app.models.challenge import ChallengeActivity
 from app.models.completion import Completion
 from app.repositories.challenge import _accessible_predicate
 from app.repositories.completion import CompletionRepository
+from app.repositories.rewards import RewardsRepository
 from app.services.exceptions import (
     AlreadyCompleted,
+    CannotReuploadSelfReported,
     ChallengeNotFound,
+    DurationRequired,
     GroupNotFound,
     NoFamilyError,
     NotGroupMember,
     PhotoLimitReached,
+    PhotoStillProcessing,
 )
 from app.services.family import get_user_family
 from app.services.localization import pick
 
+# Statuses whose photo_key points at a servable photo (raw or compressed)
+_PHOTO_STATUSES = ("pending_verification", "verified", "rejected")
 
-def _completion_dict(c: Completion) -> dict:
+
+def _completion_dict(c: Completion, rejection_reason: str | None = None) -> dict:
     photo_url = None
-    if c.status == "ready" and c.photo_key:
+    if c.status in _PHOTO_STATUSES and c.photo_key:
         try:
             photo_url = storage.generate_presigned_url(c.photo_key, expires=900)
         except Exception:
@@ -39,6 +46,8 @@ def _completion_dict(c: Completion) -> dict:
         "status": c.status,
         "photo_url": photo_url,
         "caption": c.caption,
+        "rejection_reason": rejection_reason if c.status == "rejected" else None,
+        "duration_minutes": c.duration_minutes,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,
         "updated_at": c.updated_at,
@@ -128,7 +137,7 @@ async def get_group_feed(
     entries = []
     for completion, activity_title, activity_title_en, family_name in rows:
         photo_url = None
-        if completion.status == "ready" and completion.photo_key:
+        if completion.status in _PHOTO_STATUSES and completion.photo_key:
             try:
                 photo_url = storage.generate_presigned_url(completion.photo_key, expires=900)
             except Exception:
@@ -155,11 +164,14 @@ async def get_completion(session: AsyncSession, user_id: uuid.UUID, completion_i
     repo = CompletionRepository(session)
     completion = await repo.get_by_id(completion_id)
     if not completion or completion.family_id != fm.family_id:
-        from app.services.exceptions import ChallengeNotFound
-
         raise ChallengeNotFound("Completion not found")
 
-    return _completion_dict(completion)
+    rejection_reason = None
+    if completion.status == "rejected":
+        reasons = await RewardsRepository(session).get_latest_rejection_reasons([completion.id])
+        rejection_reason = reasons.get(completion.id)
+
+    return _completion_dict(completion, rejection_reason)
 
 
 async def get_photo_url(session: AsyncSession, user_id: uuid.UUID, completion_id: uuid.UUID) -> dict:
@@ -170,11 +182,9 @@ async def get_photo_url(session: AsyncSession, user_id: uuid.UUID, completion_id
     repo = CompletionRepository(session)
     completion = await repo.get_by_id(completion_id)
     if not completion or completion.family_id != fm.family_id:
-        from app.services.exceptions import ChallengeNotFound
-
         raise ChallengeNotFound("Completion not found")
 
-    if completion.status != "ready" or not completion.photo_key:
+    if completion.status not in _PHOTO_STATUSES or not completion.photo_key:
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Photo not ready yet")
@@ -194,7 +204,7 @@ async def get_photo_key(session: AsyncSession, user_id: uuid.UUID, completion_id
     if not completion or completion.family_id != fm.family_id:
         raise ChallengeNotFound("Completion not found")
 
-    if completion.status != "ready" or not completion.photo_key:
+    if completion.status not in _PHOTO_STATUSES or not completion.photo_key:
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Photo not ready yet")
@@ -212,7 +222,8 @@ async def delete_completion(session: AsyncSession, user_id: uuid.UUID, completio
     if not completion or completion.family_id != fm.family_id:
         raise ChallengeNotFound("Completion not found")
 
-    photo_key = completion.photo_key if completion.status in ("ready", "processing") else None
+    has_photo = completion.status in ("processing", *_PHOTO_STATUSES)
+    photo_key = completion.photo_key if has_photo else None
 
     await session.delete(completion)
     await session.commit()
@@ -234,10 +245,13 @@ async def get_my_history(
     repo = CompletionRepository(session)
     rows = await repo.get_by_family(fm.family_id, limit, offset)
 
+    rejected_ids = [c.id for c, *_ in rows if c.status == "rejected"]
+    reasons = await RewardsRepository(session).get_latest_rejection_reasons(rejected_ids)
+
     result = []
     for completion, activity_title, activity_title_en, challenge_title, challenge_title_en in rows:
         photo_url = None
-        if completion.status == "ready" and completion.photo_key:
+        if completion.status in _PHOTO_STATUSES and completion.photo_key:
             try:
                 photo_url = storage.generate_presigned_url(completion.photo_key, expires=900)
             except Exception:
@@ -250,6 +264,8 @@ async def get_my_history(
                 "status": completion.status,
                 "photo_url": photo_url,
                 "caption": completion.caption,
+                "rejection_reason": reasons.get(completion.id) if completion.status == "rejected" else None,
+                "duration_minutes": completion.duration_minutes,
                 "completed_at": completion.completed_at,
             }
         )
@@ -264,8 +280,11 @@ async def start_photo_completion(
     content_type: str,
     caption: str | None,
     shared_to_feed: bool,
+    duration_minutes: int | None = None,
 ) -> tuple[Completion, str, str]:
     """Upload raw photo to S3, create processing completion. Returns (completion, raw_key, final_key)."""
+    from app.services.points import get_activity_for_slot, resolve_tier
+
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family to complete activities")
@@ -277,6 +296,11 @@ async def start_photo_completion(
         raise PhotoLimitReached(f"Your family has reached the photo limit of {limit}")
 
     await _resolve_slot(session, challenge_activity_id, fm.family_id)
+
+    # 30-minute point gate (FR-006): casual-tier activities must report a duration
+    activity = await get_activity_for_slot(session, challenge_activity_id)
+    if activity and resolve_tier(activity) == "casual" and duration_minutes is None:
+        raise DurationRequired("Please select how long the activity took")
 
     photo_id = uuid.uuid4()
     raw_key = f"raw/{fm.family_id}/{photo_id}.jpg"
@@ -293,6 +317,7 @@ async def start_photo_completion(
             caption=caption,
             shared_to_feed=shared_to_feed,
             photo_key=raw_key,
+            duration_minutes=duration_minutes,
         )
         await session.commit()
         await session.refresh(completion)
@@ -304,15 +329,86 @@ async def start_photo_completion(
     return completion, raw_key, final_key
 
 
-def compress_photo(completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
+async def update_photo(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    completion_id: uuid.UUID,
+    photo_data: bytes,
+    content_type: str,
+) -> tuple[Completion, str, str, bool, str | None]:
+    """Replace the photo on an existing completion.
+
+    Returns (completion, raw_key, final_key, preserve_status, old_photo_key).
+    preserve_status is True for verified completions: the photo is swapped but
+    status and points stay untouched (FR-004). rejected / pending completions
+    re-enter the pipeline as processing → pending_verification (FR-005)."""
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        raise NoFamilyError("You must be in a family")
+
+    repo = CompletionRepository(session)
+    completion = await repo.get_by_id(completion_id)
+    if not completion or completion.family_id != fm.family_id:
+        raise ChallengeNotFound("Completion not found")
+
+    if completion.status == "self_reported":
+        raise CannotReuploadSelfReported("Self-reported completions have no photo to replace")
+    if completion.status == "processing":
+        raise PhotoStillProcessing("The previous photo is still being processed")
+
+    old_photo_key = completion.photo_key
+    photo_id = uuid.uuid4()
+    raw_key = f"raw/{fm.family_id}/{photo_id}.jpg"
+    final_key = f"photos/{fm.family_id}/{photo_id}.jpg"
+
+    storage.upload_bytes(raw_key, photo_data, content_type)
+
+    preserve_status = completion.status == "verified"
+    if not preserve_status:
+        # rejected or pending_verification: back through the pipeline
+        completion.status = "processing"
+        completion.photo_key = raw_key
+    await session.commit()
+    await session.refresh(completion)
+
+    return completion, raw_key, final_key, preserve_status, old_photo_key
+
+
+def compress_photo(
+    completion_id: uuid.UUID,
+    raw_key: str,
+    final_key: str,
+    db_url: str,
+    preserve_status: bool = False,
+    update_streak: bool = True,
+    delete_key: str | None = None,
+) -> None:
     """Background task (sync thread): compress photo and update completion status.
     Uses asyncio.run() so we can reuse the async engine + asyncpg driver."""
     import asyncio
 
-    asyncio.run(_compress_async(completion_id, raw_key, final_key, db_url))
+    asyncio.run(
+        _compress_async(
+            completion_id,
+            raw_key,
+            final_key,
+            db_url,
+            preserve_status=preserve_status,
+            update_streak=update_streak,
+            delete_key=delete_key,
+        )
+    )
 
 
-async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
+async def _compress_async(
+    completion_id: uuid.UUID,
+    raw_key: str,
+    final_key: str,
+    db_url: str,
+    preserve_status: bool = False,
+    update_streak: bool = True,
+    delete_key: str | None = None,
+) -> None:
     try:
         from PIL import Image, ImageOps
         from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -340,11 +436,20 @@ async def _compress_async(completion_id: uuid.UUID, raw_key: str, final_key: str
             result = await session.execute(sa_select(Completion).where(Completion.id == completion_id))
             completion = result.scalar_one_or_none()
             if completion:
-                completion.status = "ready"
+                if not preserve_status:
+                    completion.status = "pending_verification"
                 completion.photo_key = final_key
-                await update_streak_on_completion(completion.family_id, session)
+                if update_streak:
+                    await update_streak_on_completion(completion.family_id, session)
                 await session.commit()
         await engine.dispose()
+
+        # Re-uploads leave a superseded compressed photo behind — clean it up
+        if delete_key and delete_key not in (raw_key, final_key):
+            try:
+                storage.delete_object(delete_key)
+            except Exception:
+                pass
 
     except Exception:
         # On failure: leave completion in "processing" state; client polls and times out

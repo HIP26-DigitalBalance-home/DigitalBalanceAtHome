@@ -11,6 +11,7 @@ export interface ActivityItem {
   season_relevance: string[] | null;
   weather_suitability: string[] | null;
   is_partner_content: boolean;
+  effort_tier?: 'casual' | 'dedicated';
 }
 
 export interface ActivityFilters {

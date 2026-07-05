@@ -215,6 +215,14 @@ export default function GroupDetailScreen() {
                   {t('groupDetail.generateInvite')}
                 </ThemedText>
               </Pressable>
+              <Pressable
+                style={[styles.adminButton, { borderColor: colors.primary, opacity: isOnline ? 1 : 0.4, marginTop: Spacing.sm }]}
+                onPress={() => router.push({ pathname: '/group/[id]/admin', params: { id: id! } } as any)}
+                disabled={!isOnline}>
+                <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
+                  {t('verificationQueue.openQueue')}
+                </ThemedText>
+              </Pressable>
             </View>
           ) : null
         }

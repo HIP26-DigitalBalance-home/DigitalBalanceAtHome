@@ -20,7 +20,7 @@ import { useLanguage } from '@/lib/i18n/language-context';
 import type { AppLanguage } from '@/lib/i18n/language-preloader';
 import { useAuth } from '@/lib/auth';
 import { useNetworkStatus } from '@/hooks/use-network-status';
-import { onboardingApi, devApi, usersApi, notificationsApi, apiClient } from '@/lib/api';
+import { onboardingApi, devApi, usersApi, notificationsApi, apiClient, rewardsApi } from '@/lib/api';
 import { resetOnboardingStatus } from '@/hooks/use-onboarding-status';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
@@ -72,6 +72,8 @@ export default function ProfileScreen() {
   const [seeding, setSeeding] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  // Family quarter balance from the rewards ledger (FR-019: users.points_balance is dead)
+  const [quarterPoints, setQuarterPoints] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setFetchError(null);
@@ -84,6 +86,9 @@ export default function ProfileScreen() {
       if (familiesRes.data.length > 0) setFamily(familiesRes.data[0]);
       setChildren(childrenRes.data);
       await updateCurrentUser(userRes.data);
+      rewardsApi.getRewardsBalance()
+        .then((r) => setQuarterPoints(r.data.balance))
+        .catch(() => {}); // rewards are cosmetic here — never block the profile
     } catch (e) {
       setFetchError(getGermanErrorMessage(e));
     } finally {
@@ -225,7 +230,7 @@ export default function ProfileScreen() {
                   <ThemedText style={styles.displayName}>{currentUser?.display_name ?? '—'}</ThemedText>
                   <ThemedText style={[styles.email, { color: colors.muted }]}>{currentUser?.email}</ThemedText>
                   <ThemedText style={[styles.points, { color: colors.accent }]}>
-                    {currentUser?.points_balance ?? 0} {t('profile.pts')}
+                    {quarterPoints ?? 0} {t('profile.pts')}
                   </ThemedText>
                 </View>
               </View>
@@ -234,6 +239,12 @@ export default function ProfileScreen() {
                 style={[styles.outlineButton, { borderColor: colors.primary }]}
                 onPress={() => router.push('/edit-profile' as any)}>
                 <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>{t('profile.editProfile')}</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[styles.outlineButton, { borderColor: colors.border }]}
+                onPress={() => router.push('/rewards' as any)}>
+                <ThemedText style={{ fontWeight: '600' }}>{t('rewards.title')}</ThemedText>
               </Pressable>
 
               <Pressable

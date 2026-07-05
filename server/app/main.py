@@ -25,6 +25,7 @@ from app.api import (
     notifications,
     photos,
     progress,
+    rewards,
     users,
 )
 from app.core.config import settings
@@ -65,12 +66,27 @@ async def _freeze_job_loop() -> None:
             logger.exception("freeze_job_failed")
 
 
+async def _auto_approval_loop() -> None:
+    """Hourly timed auto-approval of pending photos on personal challenges."""
+    from app.services.verification import run_auto_approvals
+
+    while True:
+        try:
+            async with AsyncSessionLocal() as session:
+                await run_auto_approvals(session)
+        except Exception:
+            logger.exception("auto_approval_failed")
+        await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_freeze_job_loop())
+    auto_approval_task = asyncio.create_task(_auto_approval_loop())
     logger.info("startup")
     yield
     task.cancel()
+    auto_approval_task.cancel()
     logger.info("shutdown")
 
 
@@ -142,6 +158,8 @@ app.include_router(progress.router, prefix="/families", tags=["families"])
 app.include_router(journal.router, prefix="/journal", tags=["journal"])
 app.include_router(friends.router, prefix="/friends", tags=["friends"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+# Rewards router declares full paths (spans /groups/... and /rewards/...) — no prefix
+app.include_router(rewards.router, tags=["rewards"])
 
 if settings.SEED_ENABLED:
     from app.api import dev

@@ -26,6 +26,8 @@ const MAPPING = {
   'xmark': 'close',
   'checkmark': 'check',
   'checkmark.circle.fill': 'check-circle',
+  'clock.fill': 'schedule',
+  'exclamationmark': 'priority-high',
   'info.circle.fill': 'info',
   'pencil': 'edit',
 

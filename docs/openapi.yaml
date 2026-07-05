@@ -43,6 +43,10 @@ tags:
     description: Photo upload and pre-signed URL retrieval
   - name: Completions
     description: Family completions of challenge activities
+  - name: Verification
+    description: Group-admin photo verification queue
+  - name: Rewards
+    description: Family-level point balance and reward-level redemption
 
 # ─────────────────────────────────────────────────────────────
 # Paths
@@ -1187,6 +1191,191 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /completions/{completionId}/photo:
+    patch:
+      operationId: reuploadCompletionPhoto
+      tags: [Completions]
+      summary: Replace the photo on an existing completion
+      description: >
+        On a verified completion, updates only the stored photo (status and
+        points unchanged). On a rejected or pending completion, re-triggers
+        the compression pipeline and resets status to processing (then
+        pending_verification). Not permitted on self_reported completions.
+      parameters:
+        - $ref: "#/components/parameters/CompletionId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/PhotoReuploadRequest"
+      responses:
+        "202":
+          description: Photo accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReuploadResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Verification ────────────────────────────────────────────
+
+  /groups/{groupId}/verification-queue:
+    get:
+      operationId: getVerificationQueue
+      tags: [Verification]
+      summary: List pending-verification completions for the group (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+        - $ref: "#/components/parameters/GroupId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Paginated verification queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationQueue"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /groups/{groupId}/verification-queue/{completionId}/approve:
+    post:
+      operationId: approveCompletionPhoto
+      tags: [Verification]
+      summary: Approve a pending completion photo (group admin only)
+      description: Sets status to verified, awards points to the family's ledger, records an audit entry.
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/CompletionId"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationActionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /groups/{groupId}/verification-queue/{completionId}/reject:
+    post:
+      operationId: rejectCompletionPhoto
+      tags: [Verification]
+      summary: Reject a pending completion photo with a reason (group admin only)
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/CompletionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectPayload"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationActionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # ── Rewards ─────────────────────────────────────────────────
+
+  /rewards/balance:
+    get:
+      operationId: getRewardsBalance
+      tags: [Rewards]
+      summary: Get the current family's quarter point balance and reward-level progress
+      description: >
+        Family-scoped, resolved from the authenticated user's family. The
+        balance derives from the point ledger for the current calendar
+        quarter (UTC); nothing carries over between quarters. Levels are
+        milestones — redeeming does not reduce the balance.
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+      responses:
+        "200":
+          description: Balance and level progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardsBalance"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /rewards/levels/{levelId}/redeem:
+    post:
+      operationId: redeemRewardLevel
+      tags: [Rewards]
+      summary: Redeem an unlocked reward level for the current family
+      description: >
+        Milestone redemption — does not debit the point balance. Fails if the
+        level is locked, already redeemed this quarter, or (capped levels)
+        already redeemed the maximum number of times this calendar year.
+        Levels with choice_options require chosen_option.
+      parameters:
+        - name: levelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedeemPayload"
+      responses:
+        "201":
+          description: Redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /journal/entries:
     post:
       operationId: createJournalEntry
@@ -1397,7 +1586,14 @@ components:
 
     CompletionStatus:
       type: string
-      enum: [processing, ready, self_reported]
+      enum: [processing, pending_verification, verified, rejected, self_reported]
+
+    EffortTier:
+      type: string
+      description: >
+        Point tier of an activity. Marketplace tier is derived server-side
+        (cost_indicator == paid or is_partner_content) and never stored.
+      enum: [casual, dedicated]
 
     Mood:
       type: string
@@ -1859,7 +2055,7 @@ components:
 
     Activity:
       type: object
-      required: [id, title, description, estimated_duration_minutes, age_min, age_max, cost_indicator, is_partner_content, language]
+      required: [id, title, description, estimated_duration_minutes, age_min, age_max, cost_indicator, is_partner_content, effort_tier, language]
       properties:
         id:
           type: string
@@ -1892,6 +2088,8 @@ components:
           nullable: true
         is_partner_content:
           type: boolean
+        effort_tier:
+          $ref: "#/components/schemas/EffortTier"
         language:
           type: string
           minLength: 2
@@ -1983,6 +2181,10 @@ components:
           type: boolean
           default: true
           description: When true, photos uploaded to this challenge default to NOT being shared to group feeds
+        is_featured:
+          type: boolean
+          default: false
+          description: Featured challenges grant +5 bonus points per verified completion
         display_mode:
           type: string
           enum: [collage]
@@ -2155,6 +2357,13 @@ components:
         shared_to_feed:
           type: boolean
           default: false
+        duration_minutes:
+          type: integer
+          nullable: true
+          description: >
+            Minutes the family reports spending on the activity, from a fixed
+            dropdown. Required when the activity's resolved point tier is
+            casual (server-enforced); optional otherwise.
 
     PhotoUploadResponse:
       type: object
@@ -2200,10 +2409,18 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Pre-signed S3 URL; only present when status is ready
+          description: Pre-signed S3 URL; present when status is pending_verification, verified, or rejected
         caption:
           type: string
           nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Set when status is rejected; null otherwise
+        duration_minutes:
+          type: integer
+          nullable: true
+          description: Minutes the family reported spending on the activity
         shared_to_feed:
           type: boolean
         completed_at:
@@ -2247,7 +2464,174 @@ components:
         caption:
           type: string
           nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Set when status is rejected; null otherwise
+        duration_minutes:
+          type: integer
+          nullable: true
         completed_at:
+          type: string
+          format: date-time
+
+    PhotoReuploadRequest:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          format: binary
+          description: JPEG or PNG; maximum 10 MB
+
+    ReuploadResponse:
+      type: object
+      required: [completion_id, status]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/CompletionStatus"
+
+    # Verification
+
+    PendingVerificationItem:
+      type: object
+      required: [completion_id, family_name, activity_title, submitted_at]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+        family_name:
+          type: string
+          description: Family display name only — no child names or child-identifiable data
+        activity_title:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Pre-signed S3 URL for the submitted photo
+        duration_minutes:
+          type: integer
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+
+    VerificationQueue:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PendingVerificationItem"
+        total:
+          type: integer
+
+    RejectPayload:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+
+    VerificationActionResponse:
+      type: object
+      required: [completion_id, status]
+      properties:
+        completion_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/CompletionStatus"
+        points_awarded:
+          type: integer
+          nullable: true
+          description: Total points credited on approval (base + bonus); null on reject
+
+    # Rewards
+
+    RewardLevelState:
+      type: string
+      enum: [locked, unlocked, redeemed_this_quarter]
+
+    RewardLevelProgress:
+      type: object
+      required: [id, level_number, points_threshold, title, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+        level_number:
+          type: integer
+        points_threshold:
+          type: integer
+        title:
+          type: string
+          description: Localised via Accept-Language (German base, English fallback)
+        description:
+          type: string
+          nullable: true
+        choice_options:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Present when redemption requires choosing one option
+        annual_redemption_cap:
+          type: integer
+          nullable: true
+        state:
+          $ref: "#/components/schemas/RewardLevelState"
+        redemptions_this_year:
+          type: integer
+          nullable: true
+          description: Only set for levels with an annual redemption cap
+
+    RewardsBalance:
+      type: object
+      required: [quarter_key, balance, levels]
+      properties:
+        quarter_key:
+          type: string
+          example: "2026-Q3"
+        balance:
+          type: integer
+          description: Sum of ledger points awarded in the current calendar quarter (UTC)
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/RewardLevelProgress"
+
+    RedeemPayload:
+      type: object
+      properties:
+        chosen_option:
+          type: string
+          nullable: true
+          description: Required when the level has choice_options
+
+    RedemptionResult:
+      type: object
+      required: [redemption_id, reward_level_id, voucher_code, redeemed_at]
+      properties:
+        redemption_id:
+          type: string
+          format: uuid
+        reward_level_id:
+          type: string
+          format: uuid
+        chosen_option:
+          type: string
+          nullable: true
+        voucher_code:
+          type: string
+          example: "BOND-7K2P9Q"
+        redeemed_at:
           type: string
           format: date-time
 

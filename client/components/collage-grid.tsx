@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
@@ -20,6 +21,8 @@ export interface LocalCompletion {
   status: string;
   photoUrl?: string | null;
   completionId?: string;
+  rejectionReason?: string | null;
+  durationMinutes?: number | null;
 }
 
 interface Props {
@@ -87,13 +90,17 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
     const isEmpty = effectiveStatus === null;
     const isProcessing = effectiveStatus === 'processing';
     const isSelfReported = effectiveStatus === 'self_reported';
-    const isReady = effectiveStatus === 'ready';
+    const isPending = effectiveStatus === 'pending_verification';
+    const isVerified = effectiveStatus === 'verified';
+    const isRejected = effectiveStatus === 'rejected';
+    // Any status whose card is a photo card (server only exposes photo_url for these).
+    const hasPhotoStatus = isPending || isVerified || isRejected;
     const isCompleted = !isEmpty;
     const hasGroupBar = groupFamiliesCount != null && groupFamiliesCount > 0;
 
     function handlePress() {
       if (isEmpty) { onSlotPress?.(item); return; }
-      if (isReady && effectivePhotoUrl && effectiveCompletionId) {
+      if (hasPhotoStatus && effectivePhotoUrl && effectiveCompletionId) {
         onPhotoPress?.(item, effectivePhotoUrl, effectiveCompletionId);
       }
     }
@@ -107,7 +114,12 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
         <Pressable
           onPress={handlePress}
           accessibilityRole="button"
-          accessibilityLabel={isEmpty ? t('collage.slotFill', { title: item.activity.title }) : t('collage.slotDone', { title: item.activity.title })}
+          accessibilityLabel={
+            isEmpty ? t('collage.slotFill', { title: item.activity.title })
+            : isRejected ? t('verification.slotRejected', { title: item.activity.title })
+            : isPending ? t('verification.slotPending', { title: item.activity.title })
+            : t('collage.slotDone', { title: item.activity.title })
+          }
           // Not PressableScale: its animated transform would override the
           // card's static rotation, so press feedback is opacity-only here.
           style={({ pressed }) => [
@@ -134,13 +146,13 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               shadowOffset: { width: 0, height: 2 },
               elevation: (theme.cardShadowOpacity ?? 0.12) > 0 ? 3 : 0,
               // Reserve space for the bar only on non-photo cards (photo fills the card).
-              paddingBottom: (hasGroupBar && !(isReady && effectivePhotoUrl)) ? 22 : Spacing.sm,
+              paddingBottom: (hasGroupBar && !(hasPhotoStatus && effectivePhotoUrl)) ? 22 : Spacing.sm,
             },
           ]}
         >
           {/* Bar first so text always paints above it. Hidden for photo cards — the
               viewer modal shows title + progress when the user taps the photo. */}
-          {hasGroupBar && !(isReady && effectivePhotoUrl) && (
+          {hasGroupBar && !(hasPhotoStatus && effectivePhotoUrl) && (
             <ProgressBar
               filled={item.families_completed_count ?? 0}
               total={groupFamiliesCount!}
@@ -148,9 +160,9 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
             />
           )}
 
-          {isReady && effectivePhotoUrl && effectiveCompletionId ? (
+          {hasPhotoStatus && effectivePhotoUrl && effectiveCompletionId ? (
             // Photo fills the card cleanly — no title overlay, no progress bar.
-            // Tap opens the viewer which shows both.
+            // Tap opens the viewer (or the re-upload modal when rejected).
             <View style={[StyleSheet.absoluteFillObject, styles.photoClip, { borderRadius: radii.sm }]}>
               <ImageWithFallback
                 uri={effectivePhotoUrl}
@@ -159,6 +171,21 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
                 resizeMode="cover"
                 accessibilityLabel={item.activity.title}
               />
+              {isPending && (
+                <View style={[styles.statusBadge, { backgroundColor: colors.muted }]}>
+                  <IconSymbol name="clock.fill" color="#FFFFFF" size={14} />
+                </View>
+              )}
+              {isVerified && (
+                <View style={[styles.statusBadge, { backgroundColor: colors.accent }]}>
+                  <IconSymbol name="checkmark" color="#FFFFFF" size={14} />
+                </View>
+              )}
+              {isRejected && (
+                <View style={[styles.statusBadge, { backgroundColor: colors.destructive }]}>
+                  <IconSymbol name="exclamationmark" color="#FFFFFF" size={14} />
+                </View>
+              )}
             </View>
           ) : isProcessing ? (
             <>
@@ -176,8 +203,8 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
                 {item.activity.title}
               </ThemedText>
             </>
-          ) : isReady ? (
-            // ready but photo URL still loading
+          ) : hasPhotoStatus ? (
+            // photo status but photo URL still loading
             <>
               <ActivityIndicator color={colors.accent} />
               <ThemedText style={[styles.slotTitleSmall, { color: colors.onSurface }]} numberOfLines={2}>
@@ -223,6 +250,18 @@ const styles = StyleSheet.create({
   photoClip: {
     borderRadius: DEFAULT_RADII.sm,
     overflow: 'hidden',
+  },
+  // Verification badge pinned to the photo's top-right corner. White icon on a
+  // solid status-colored circle stays legible over any photo content.
+  statusBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   slotTitle: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
   slotTitleSmall: { fontSize: 10, textAlign: 'center', lineHeight: 13 },

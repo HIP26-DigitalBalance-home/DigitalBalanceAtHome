@@ -26,6 +26,8 @@ class Challenge(Base, TimestampMixin):
     display_mode: Mapped[str] = mapped_column(String, nullable=False, default="collage")
     # Private collages default uploads to shared_to_feed=false (opt-in sharing)
     is_private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+    # Featured community challenge: verified completions earn +5 bonus points
+    is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
 
 
 class ChallengeActivity(Base, TimestampMixin):

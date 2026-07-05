@@ -20,6 +20,9 @@ class Activity(Base, TimestampMixin):
     age_min: Mapped[int] = mapped_column(Integer, nullable=False)
     age_max: Mapped[int] = mapped_column(Integer, nullable=False)
     cost_indicator: Mapped[str] = mapped_column(String, nullable=False)  # free | low_cost | paid
+    # casual | dedicated — point tier for the rewards system. Marketplace tier is
+    # derived (cost_indicator == "paid" or is_partner_content), never stored here.
+    effort_tier: Mapped[str] = mapped_column(String, nullable=False, default="casual", server_default="casual")
     season_relevance: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     weather_suitability: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     is_partner_content: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

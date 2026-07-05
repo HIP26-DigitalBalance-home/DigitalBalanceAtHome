@@ -1,14 +1,23 @@
 import { apiClient } from './client';
 import type { ActivityItem } from './activities';
 
+export type CompletionStatus =
+  | 'processing'
+  | 'pending_verification'
+  | 'verified'
+  | 'rejected'
+  | 'self_reported';
+
 export interface Completion {
   id: string;
   challenge_activity_id: string;
   family_id: string;
   completed_by_user_id: string;
-  status: 'processing' | 'ready' | 'self_reported';
+  status: CompletionStatus;
   photo_url?: string | null;
   caption?: string | null;
+  rejection_reason?: string | null;
+  duration_minutes?: number | null;
   shared_to_feed: boolean;
   completed_at: string;
   updated_at: string;
@@ -28,6 +37,8 @@ export interface ChallengeSummary {
   title: string;
   description?: string | null;
   group_id?: string | null;
+  /** Featured challenges grant +5 bonus points per verified completion */
+  is_featured: boolean;
   display_mode: 'collage';
   status: 'active' | 'completed';
   is_private: boolean;

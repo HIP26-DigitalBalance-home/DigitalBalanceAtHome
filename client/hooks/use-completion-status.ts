@@ -28,10 +28,10 @@ export function useCompletionStatus(completionId: string | null): CompletionStat
       try {
         const res = await completionsApi.getById(completionId!);
         const { status } = res.data;
-        if (status === 'ready') {
+        if (status !== 'processing') {
           stop();
           // photo_url is now included in the polling response from the server
-          setState({ status: 'ready', photoUrl: res.data.photo_url ?? null });
+          setState({ status, photoUrl: res.data.photo_url ?? null });
         } else {
           setState({ status, photoUrl: null });
         }

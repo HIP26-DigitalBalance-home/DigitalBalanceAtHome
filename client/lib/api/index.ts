@@ -15,6 +15,16 @@ export { notificationsApi } from './notifications';
 export type { NotificationItem } from './notifications';
 export { completionsApi, photosApi } from './completions';
 export type { PhotoUrlResponse } from './completions';
+export { rewardsApi } from './rewards';
+export type {
+  PendingVerificationItem,
+  VerificationQueue,
+  VerificationActionResponse,
+  RewardLevelProgress,
+  RewardLevelState,
+  RewardsBalance,
+  RedemptionResult,
+} from './rewards';
 export { devApi } from './dev';
 export { usersApi } from './users';
 export type { CompletionHistoryItem } from './completions';

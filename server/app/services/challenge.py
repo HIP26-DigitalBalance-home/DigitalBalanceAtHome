@@ -30,13 +30,14 @@ def _activity_dict(a: Activity, language: str = "de") -> dict:
         "season_relevance": a.season_relevance,
         "weather_suitability": a.weather_suitability,
         "is_partner_content": a.is_partner_content,
+        "effort_tier": a.effort_tier,
         "language": a.language,
     }
 
 
 def _completion_dict(c: Completion) -> dict:
     photo_url = None
-    if c.status == "ready" and c.photo_key:
+    if c.status in ("pending_verification", "verified", "rejected") and c.photo_key:
         try:
             photo_url = storage.generate_presigned_url(c.photo_key, expires=900)
         except Exception:
@@ -49,6 +50,7 @@ def _completion_dict(c: Completion) -> dict:
         "status": c.status,
         "photo_url": photo_url,
         "caption": c.caption,
+        "duration_minutes": c.duration_minutes,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,
         "updated_at": c.updated_at,
@@ -65,6 +67,7 @@ def _challenge_summary_dict(c: Challenge, all_slots_filled: bool = False, langua
         "display_mode": c.display_mode,
         "status": "completed" if all_slots_filled else "active",
         "is_private": c.is_private,
+        "is_featured": c.is_featured,
         "created_at": c.created_at,
     }
 
