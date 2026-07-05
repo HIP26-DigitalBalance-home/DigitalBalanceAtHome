@@ -1,0 +1,33 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- happy butterfly fluttering over a flower meadow -->
+  <!-- sun rays -->
+  <path d="M170 26L178 34M186 54L175 52M158 38L164 28" stroke="#F49E66" stroke-width="6" stroke-linecap="round"/>
+  <!-- upper wings -->
+  <ellipse cx="70" cy="72" rx="27" ry="23" fill="#FC6591"/>
+  <ellipse cx="130" cy="72" rx="27" ry="23" fill="#FC6591"/>
+  <!-- lower wings -->
+  <ellipse cx="77" cy="105" rx="20" ry="16" fill="#FF99B6"/>
+  <ellipse cx="123" cy="105" rx="20" ry="16" fill="#FF99B6"/>
+  <!-- wing spots -->
+  <circle cx="70" cy="72" r="8" fill="#FEED52"/>
+  <circle cx="130" cy="72" r="8" fill="#FEED52"/>
+  <!-- body -->
+  <rect x="91" y="56" width="18" height="60" rx="9" fill="#914EDB"/>
+  <!-- antennae -->
+  <path d="M96 58C93 50 88 45 82 42M104 58C107 50 112 45 118 42" stroke="#1D004B" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="82" cy="42" r="4" fill="#7F2BCD"/>
+  <circle cx="118" cy="42" r="4" fill="#7F2BCD"/>
+  <!-- face -->
+  <circle cx="96" cy="78" r="2.5" fill="#F8F3FF"/>
+  <circle cx="104" cy="78" r="2.5" fill="#F8F3FF"/>
+  <path d="M95 87C97 89.5 103 89.5 105 87" stroke="#F8F3FF" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- meadow -->
+  <path d="M-4 200C30 180 70 174 100 176C136 178 172 184 204 200H-4Z" fill="#7FE7B3"/>
+  <!-- flowers -->
+  <path d="M42 180V158" stroke="#25C876" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="42" cy="150" r="10" fill="#FEED52"/>
+  <circle cx="42" cy="150" r="4" fill="#F49E66"/>
+  <path d="M158 184V162" stroke="#25C876" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="158" cy="154" r="10" fill="#98B1F8"/>
+  <circle cx="158" cy="154" r="4" fill="#1246DA"/>
+</svg>

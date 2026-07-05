@@ -19,7 +19,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArticleTeaser } from '@/components/article-teaser';
-import { ActivitySuggestionCard } from '@/components/activity-suggestion-card';
+import { ActivitySuggestionsRow } from '@/components/activity-suggestions-row';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { JournalCard } from '@/components/journal-card';
@@ -576,7 +576,7 @@ export default function HomeScreen() {
               </PressableScale>
             )}
 
-            <ActivitySuggestionCard />
+            <ActivitySuggestionsRow />
 
             <ArticleTeaser />
 

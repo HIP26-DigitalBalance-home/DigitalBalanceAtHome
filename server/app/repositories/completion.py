@@ -64,10 +64,17 @@ class CompletionRepository:
 
     async def get_by_family(
         self, family_id: uuid.UUID, limit: int = 20, offset: int = 0
-    ) -> list[tuple["Completion", str, str | None, str, str | None]]:
-        """Return (Completion, activity_title, activity_title_en, challenge_title, challenge_title_en)."""
+    ) -> list[tuple["Completion", uuid.UUID, str, str | None, str, str | None]]:
+        """Return (Completion, activity_id, activity_title, activity_title_en, challenge_title, challenge_title_en)."""
         stmt = (
-            select(Completion, Activity.title, Activity.title_en, Challenge.title, Challenge.title_en)
+            select(
+                Completion,
+                ChallengeActivity.activity_id,
+                Activity.title,
+                Activity.title_en,
+                Challenge.title,
+                Challenge.title_en,
+            )
             .join(ChallengeActivity, Completion.challenge_activity_id == ChallengeActivity.id)
             .join(Challenge, ChallengeActivity.challenge_id == Challenge.id)
             .join(Activity, ChallengeActivity.activity_id == Activity.id)

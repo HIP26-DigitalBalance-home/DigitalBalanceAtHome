@@ -1,0 +1,24 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- happy cupcake with a cherry on top -->
+  <!-- cherry -->
+  <circle cx="100" cy="46" r="11" fill="#FC6591"/>
+  <path d="M100 36C102 28 108 24 114 22" stroke="#25C876" stroke-width="4" stroke-linecap="round"/>
+  <!-- frosting -->
+  <ellipse cx="100" cy="68" rx="24" ry="13" fill="#FF99B6"/>
+  <ellipse cx="100" cy="82" rx="38" ry="16" fill="#FF99B6"/>
+  <ellipse cx="100" cy="98" rx="52" ry="20" fill="#FF99B6"/>
+  <!-- sprinkles -->
+  <path d="M82 90L88 86" stroke="#FEED52" stroke-width="4" stroke-linecap="round"/>
+  <path d="M112 94L118 90" stroke="#25C876" stroke-width="4" stroke-linecap="round"/>
+  <path d="M96 72L102 69" stroke="#914EDB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M124 80L130 77" stroke="#FEED52" stroke-width="4" stroke-linecap="round"/>
+  <path d="M70 100L76 97" stroke="#914EDB" stroke-width="4" stroke-linecap="round"/>
+  <!-- cup -->
+  <path d="M56 112L64 168C65 174 70 178 76 178H124C130 178 135 174 136 168L144 112H56Z" fill="#1246DA"/>
+  <!-- cup stripes -->
+  <path d="M74 114L78 176M126 114L122 176" stroke="#98B1F8" stroke-width="6" stroke-linecap="round"/>
+  <!-- face -->
+  <circle cx="88" cy="136" r="4" fill="#F8F3FF"/>
+  <circle cx="112" cy="136" r="4" fill="#F8F3FF"/>
+  <path d="M90 148C94 153 106 153 110 148" stroke="#F8F3FF" stroke-width="3.5" stroke-linecap="round"/>
+</svg>

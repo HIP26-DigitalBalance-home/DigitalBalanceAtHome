@@ -4,6 +4,7 @@ import type { Completion, CompletionStatus } from './challenges';
 
 export interface CompletionHistoryItem {
   id: string;
+  activity_id: string;
   activity_title: string;
   challenge_title: string;
   status: CompletionStatus;

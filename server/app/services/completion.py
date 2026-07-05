@@ -249,7 +249,7 @@ async def get_my_history(
     reasons = await RewardsRepository(session).get_latest_rejection_reasons(rejected_ids)
 
     result = []
-    for completion, activity_title, activity_title_en, challenge_title, challenge_title_en in rows:
+    for completion, activity_id, activity_title, activity_title_en, challenge_title, challenge_title_en in rows:
         photo_url = None
         if completion.status in _PHOTO_STATUSES and completion.photo_key:
             try:
@@ -259,6 +259,7 @@ async def get_my_history(
         result.append(
             {
                 "id": completion.id,
+                "activity_id": activity_id,
                 "activity_title": pick(activity_title, activity_title_en, language),
                 "challenge_title": pick(challenge_title, challenge_title_en, language),
                 "status": completion.status,

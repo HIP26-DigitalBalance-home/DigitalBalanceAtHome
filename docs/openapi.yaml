@@ -2448,11 +2448,15 @@ components:
 
     CompletionHistoryItem:
       type: object
-      required: [id, activity_title, challenge_title, status, completed_at]
+      required: [id, activity_id, activity_title, challenge_title, status, completed_at]
       properties:
         id:
           type: string
           format: uuid
+        activity_id:
+          type: string
+          format: uuid
+          description: The underlying activity, stable across challenges and languages
         activity_title:
           type: string
         challenge_title:

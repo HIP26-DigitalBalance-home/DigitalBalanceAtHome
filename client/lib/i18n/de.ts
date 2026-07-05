@@ -147,6 +147,7 @@ export const de = {
     emptyBody: 'Erstelle deine erste Herausforderung.',
     emptyAction: 'Herausforderung erstellen',
     todaysSuggestion: 'VORSCHLAG DES TAGES',
+    todaysSuggestions: 'VORSCHLÄGE DES TAGES',
     letsDoIt: "Los geht's →",
     noSuggestion: 'Derzeit kein Vorschlag verfügbar.',
     articleOfTheDay: 'ARTIKEL DES TAGES',
