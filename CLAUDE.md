@@ -339,6 +339,22 @@ docker compose exec api \
 The script is idempotent — it resolves each preset's nine activities by title
 against whatever activities currently exist, so it's safe to run any time.
 
+### ⚠️ Backfill English translations after restoring activities
+
+The restore SQL above only sets German `title`/`description`. It never
+repopulates `title_en`/`description_en`, so `pick()` (see
+`app/services/localization.py`) falls back to German for every activity
+regardless of the client's language — English-language clients will see
+German activity titles. Run:
+
+```bash
+docker compose exec api \
+  sh -c "PYTHONPATH=/app python /app/scripts/backfill_activity_translations.py"
+```
+
+The script is idempotent — it re-applies the same German-title → English-text
+mapping used by migration `d4e5f6a7b8c9`, so it's safe to run any time.
+
 ## Implementation Plan
 
 `docs/implementation-plan.md` — 13 milestones (M0–M12). Each milestone ships both backend routes and frontend screens together. Start with **Milestone 0: Server Skeleton**.
@@ -357,5 +373,5 @@ against whatever activities currently exist, so it's safe to run any time.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/003-rewards-system/plan.md`.
+at specs/003-rewards-system/plan.md
 <!-- SPECKIT END -->
