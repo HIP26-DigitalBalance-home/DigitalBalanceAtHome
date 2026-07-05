@@ -559,8 +559,8 @@ export default function HomeScreen() {
                 <ProgressRing
                   value={familyProgress.this_week.activities}
                   goal={familyProgress.weekly_goal}
-                  size={88}
-                  strokeWidth={7}
+                  size={64}
+                  strokeWidth={6}
                 />
                 <View style={styles.progressTextBlock}>
                   <ThemedText
@@ -583,9 +583,9 @@ export default function HomeScreen() {
               </PressableScale>
             )}
 
-            <ActivitySuggestionsRow />
-
-            <ArticleTeaser />
+            <ActivitySuggestionsRow>
+              <ArticleTeaser />
+            </ActivitySuggestionsRow>
 
             <TimeSpentCard />
 
@@ -751,13 +751,13 @@ const styles = StyleSheet.create({
   heroContent: {
     flex: 1,
     justifyContent: 'center',
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     paddingHorizontal: Spacing.screenHorizontal,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  brandHero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
-  brandHeroLogo: { width: 80, height: 80, borderRadius: 40 },
-  brandHeroTitle: { fontSize: 38, lineHeight: 44 },
+  brandHero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
+  brandHeroLogo: { width: 48, height: 48, borderRadius: 24 },
+  brandHeroTitle: { fontSize: 26, lineHeight: 32 },
   scrollHint: {
     position: 'absolute',
     left: 0,
@@ -795,16 +795,16 @@ const styles = StyleSheet.create({
   createButton: { height: 44, paddingHorizontal: Spacing.lg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   createButtonText: { fontSize: 14, fontWeight: '600' },
   progressWidget: {
-    minHeight: 112,
+    minHeight: 80,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  progressTextBlock: { flex: 1, gap: Spacing.xs },
-  progressGoal: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
-  progressStreak: { fontSize: 13, lineHeight: 18 },
+  progressTextBlock: { flex: 1, gap: 2 },
+  progressGoal: { fontSize: 15, fontWeight: '700', lineHeight: 19 },
+  progressStreak: { fontSize: 12, lineHeight: 16 },
 });

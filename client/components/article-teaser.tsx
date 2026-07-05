@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ArticleDetailModal } from '@/components/article-detail-modal';
+import { CARD_WIDTH } from '@/components/activity-suggestions-row';
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Illustration } from '@/components/ui/illustration';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Spacing } from '@/constants/theme';
@@ -108,18 +108,18 @@ export function ArticleTeaser() {
         accessibilityRole="button"
         accessibilityLabel={`${t('home.articleOfTheDay')}: ${featured.title}`}
       >
-        <View style={[styles.iconBubble, { backgroundColor: colors.accent + '22' }]}>
-          <Illustration name={featured.icon} size={30} />
+        <View style={[styles.iconRow, { backgroundColor: colors.accent + '22' }]}>
+          <Illustration name={featured.icon} size={28} />
         </View>
-        <View style={styles.textBlock}>
-          <ThemedText style={[styles.label, { color: colors.primary + '99' }]} numberOfLines={1}>
-            {t('home.articleOfTheDay')} · {metaText}
-          </ThemedText>
-          <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={1}>
-            {featured.title}
-          </ThemedText>
-        </View>
-        <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+        <ThemedText style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
+          {t('home.articleOfTheDay')}
+        </ThemedText>
+        <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
+          {featured.title}
+        </ThemedText>
+        <ThemedText style={[styles.meta, { color: colors.muted }]} numberOfLines={1}>
+          {metaText}
+        </ThemedText>
       </PressableScale>
 
       <ArticleDetailModal
@@ -136,16 +136,20 @@ export function ArticleTeaser() {
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: CARD_WIDTH,
     borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    padding: Spacing.sm,
+    gap: 2,
   },
-  iconBubble: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  textBlock: { flex: 1, gap: 2 },
-  label: { fontSize: 10, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
-  title: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
+  iconRow: {
+    height: 44,
+    borderRadius: DEFAULT_RADII.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  title: { fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  meta: { fontSize: 11, lineHeight: 15, marginTop: 2 },
 });

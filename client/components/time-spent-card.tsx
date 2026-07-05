@@ -79,8 +79,8 @@ export function TimeSpentCard({ onSaved }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
+  card: { borderWidth: 1, padding: Spacing.sm, gap: Spacing.xs },
   sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2 },
-  title: { fontSize: 17, fontWeight: '700' },
+  title: { fontSize: 15, fontWeight: '700' },
   message: { fontSize: 12 },
 });

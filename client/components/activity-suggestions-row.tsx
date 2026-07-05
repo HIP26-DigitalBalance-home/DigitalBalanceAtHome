@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -22,7 +22,7 @@ import {
 } from '@/lib/api';
 import { PRESET_SUGGEST_ILLUSTRATIONS } from '@/lib/preset-illustrations';
 
-const CARD_WIDTH = 168;
+export const CARD_WIDTH = 168;
 
 // Shared with the profile screen's location preference — keep the key in sync so
 // a city set from either place shows up in both.
@@ -46,7 +46,12 @@ interface Suggestion {
  * dedicated endpoint. Tapping a card opens that topic's locked 3×3 grid, where
  * the parent can see every activity in the bingo card and start the collage.
  */
-export function ActivitySuggestionsRow() {
+interface Props {
+  /** Extra card(s) rendered at the end of the same scrollable row, e.g. the article-of-the-day teaser */
+  children?: ReactNode;
+}
+
+export function ActivitySuggestionsRow({ children }: Props = {}) {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const [suggestions, setSuggestions] = useState<Suggestion[] | undefined>();
@@ -140,8 +145,9 @@ export function ActivitySuggestionsRow() {
     };
   }, [i18n.language]));
 
-  // Hide the whole section if nothing resolved — never leave a broken heading.
-  if (suggestions !== undefined && suggestions.length === 0) return null;
+  // Hide the whole section if nothing resolved and there's no trailing card either
+  // (e.g. the article teaser) — never leave a broken heading.
+  if (suggestions !== undefined && suggestions.length === 0 && !children) return null;
 
   const loading = suggestions === undefined;
 
@@ -185,12 +191,13 @@ export function ActivitySuggestionsRow() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
+        {children}
         {loading
           ? Array.from({ length: 3 }, (_, i) => (
               <Skeleton
                 key={i}
                 width={CARD_WIDTH}
-                height={160}
+                height={132}
                 borderRadius={DEFAULT_RADII.card}
               />
             ))
@@ -206,7 +213,7 @@ export function ActivitySuggestionsRow() {
                 accessibilityLabel={`${suggestion.preset.name}: ${suggestion.activity.title}`}
               >
                 <View style={styles.illustrationRow}>
-                  <Illustration name={suggestion.illustration} size={64} />
+                  <Illustration name={suggestion.illustration} size={44} />
                 </View>
                 <ThemedText
                   style={[styles.cardEyebrow, { color: colors.primary }]}
@@ -352,16 +359,16 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     borderRadius: DEFAULT_RADII.card,
     borderWidth: 1,
-    padding: Spacing.md,
-    gap: 4,
+    padding: Spacing.sm,
+    gap: 2,
   },
-  illustrationRow: { height: 64, justifyContent: 'center', marginBottom: 4 },
+  illustrationRow: { height: 44, justifyContent: 'center', marginBottom: 2 },
   cardEyebrow: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', lineHeight: 20 },
+  cardTitle: { fontSize: 14, fontWeight: '700', lineHeight: 18 },
   cardMeta: { fontSize: 11, lineHeight: 15, marginTop: 2 },
 });
