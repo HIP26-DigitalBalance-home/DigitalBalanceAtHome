@@ -173,17 +173,12 @@ export function CollageGrid({ slots, groupFamiliesCount, localCompletions, onSlo
               />
               {isPending && (
                 <View style={[styles.statusBadge, { backgroundColor: colors.muted }]}>
-                  <IconSymbol name="clock.fill" color="#FFFFFF" size={14} />
-                </View>
-              )}
-              {isVerified && (
-                <View style={[styles.statusBadge, { backgroundColor: colors.accent }]}>
-                  <IconSymbol name="checkmark" color="#FFFFFF" size={14} />
+                  <IconSymbol name="clock.fill" color="#FFFFFF" size={12} />
                 </View>
               )}
               {isRejected && (
                 <View style={[styles.statusBadge, { backgroundColor: colors.destructive }]}>
-                  <IconSymbol name="exclamationmark" color="#FFFFFF" size={14} />
+                  <IconSymbol name="exclamationmark" color="#FFFFFF" size={12} />
                 </View>
               )}
             </View>
@@ -251,15 +246,15 @@ const styles = StyleSheet.create({
     borderRadius: DEFAULT_RADII.sm,
     overflow: 'hidden',
   },
-  // Verification badge pinned to the photo's top-right corner. White icon on a
-  // solid status-colored circle stays legible over any photo content.
+  // Pending/rejected badge pinned to the photo's top-right corner. Verified
+  // photos intentionally stay clean; their status remains in the photo viewer.
   statusBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
