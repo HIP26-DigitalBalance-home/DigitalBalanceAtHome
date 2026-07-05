@@ -34,6 +34,8 @@ async def create_completion(
         uuid.UUID(str(payload.challenge_activity_id)),
         payload.caption,
         payload.shared_to_feed or False,
+        payload.duration_minutes,
+        payload.completed_on,
     )
 
 

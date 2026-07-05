@@ -399,6 +399,7 @@ async def main() -> None:
                 family_id=actor_family_id,
                 completed_by_user_id=actor_id,
                 status="self_reported",
+                completed_on=now.date(),
                 shared_to_feed=False,
                 completed_at=now,
             )
@@ -496,6 +497,7 @@ async def main() -> None:
                 family_id=actor_family_id,
                 completed_by_user_id=actor_id,
                 status="self_reported",
+                completed_on=now.date(),
                 shared_to_feed=False,
                 completed_at=now,
             )

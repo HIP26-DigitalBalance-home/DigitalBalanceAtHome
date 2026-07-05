@@ -1,6 +1,6 @@
 import io
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -48,6 +48,7 @@ def _completion_dict(c: Completion, rejection_reason: str | None = None) -> dict
         "caption": c.caption,
         "rejection_reason": rejection_reason if c.status == "rejected" else None,
         "duration_minutes": c.duration_minutes,
+        "completed_on": c.completed_on,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,
         "updated_at": c.updated_at,
@@ -80,6 +81,8 @@ async def create_self_reported(
     challenge_activity_id: uuid.UUID,
     caption: str | None,
     shared_to_feed: bool,
+    duration_minutes: int,
+    completed_on: date,
 ) -> dict:
     from app.services.progress import update_streak_on_completion
 
@@ -98,6 +101,8 @@ async def create_self_reported(
             status="self_reported",
             caption=caption,
             shared_to_feed=shared_to_feed,
+            duration_minutes=duration_minutes,
+            completed_on=completed_on,
         )
         await update_streak_on_completion(fm.family_id, session)
         await session.commit()
@@ -267,6 +272,7 @@ async def get_my_history(
                 "caption": completion.caption,
                 "rejection_reason": reasons.get(completion.id) if completion.status == "rejected" else None,
                 "duration_minutes": completion.duration_minutes,
+                "completed_on": completion.completed_on,
                 "completed_at": completion.completed_at,
             }
         )
@@ -282,6 +288,7 @@ async def start_photo_completion(
     caption: str | None,
     shared_to_feed: bool,
     duration_minutes: int | None = None,
+    completed_on: date | None = None,
 ) -> tuple[Completion, str, str]:
     """Upload raw photo to S3, create processing completion. Returns (completion, raw_key, final_key)."""
     from app.services.points import get_activity_for_slot, resolve_tier
@@ -319,6 +326,7 @@ async def start_photo_completion(
             shared_to_feed=shared_to_feed,
             photo_key=raw_key,
             duration_minutes=duration_minutes,
+            completed_on=completed_on,
         )
         await session.commit()
         await session.refresh(completion)

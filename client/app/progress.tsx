@@ -6,6 +6,7 @@ import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProgressRing } from '@/components/progress-ring';
+import { TimeSpentChart } from '@/components/time-spent-chart';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorState } from '@/components/ui/error-state';
@@ -88,6 +89,8 @@ export default function ProgressScreen() {
         ) : progress ? (
           // gap mirrors styles.content so the wrapper doesn't collapse spacing
           <Animated.View entering={fadeIn()} style={{ gap: Spacing.lg }}>
+            <TimeSpentChart />
+
             {/* This Week */}
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeader}>

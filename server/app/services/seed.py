@@ -545,7 +545,8 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             duration = _DURATIONS[photo_i % len(_DURATIONS)]
             photo_i += 1
         else:
-            status, duration = "self_reported", None
+            status = "self_reported"
+            duration = slot_activity[slot.id].estimated_duration_minutes
 
         completed_at = _ts(days_ago)
         completion = Completion(
@@ -556,6 +557,7 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             photo_key=photo_key,
             caption=caption,
             duration_minutes=duration,
+            completed_on=completed_at.date(),
             shared_to_feed=shared,
             completed_at=completed_at,
         )

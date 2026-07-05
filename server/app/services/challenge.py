@@ -52,6 +52,7 @@ def _completion_dict(c: Completion, rejection_reason: str | None = None) -> dict
         "caption": c.caption,
         "rejection_reason": rejection_reason if c.status == "rejected" else None,
         "duration_minutes": c.duration_minutes,
+        "completed_on": c.completed_on,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,
         "updated_at": c.updated_at,

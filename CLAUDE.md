@@ -373,5 +373,5 @@ mapping used by migration `d4e5f6a7b8c9`, so it's safe to run any time.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/003-rewards-system/plan.md
+at specs/004-time-spent-insights/plan.md
 <!-- SPECKIT END -->

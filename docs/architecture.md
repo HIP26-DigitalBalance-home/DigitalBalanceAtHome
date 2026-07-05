@@ -536,3 +536,11 @@ The prototype is deliberately simple, but the architecture avoids patterns that 
 | TLS / reverse proxy | Caddy | nginx, Traefik | Automatic certificate renewal; zero-config HTTPS; simpler config than nginx. |
 | Linter / formatter | ruff | black + flake8 + isort | Single tool replacing three; significantly faster; actively maintained. |
 | Python version | 3.12 | 3.11 | Latest stable; improved async performance; better error messages. |
+
+---
+
+## 13. Journal Phase-Out and Time-Spent Insight
+
+The mood journal is intentionally phased out of the current frontend. Home no longer renders the journal card, and History no longer exposes the former Analyze/mood view. The journal API routes, OpenAPI schemas, database model and records, repository, service, integration tests, client API module, mood constants, and dormant `JournalCard` component remain in place for possible future reactivation. Journal data is not migrated into or used to infer time spent.
+
+Time spent is a separate, private parent-level insight. It combines activity durations attributed to the authenticated parent with one replaceable manual value per local calendar day. Activity completions retain UTC audit timestamps and also store their original local completion date so historical chart values do not move when a parent changes timezone. No time-spent value is exposed in family, group, feed, ranking, or leaderboard responses.

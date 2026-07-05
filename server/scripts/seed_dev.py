@@ -493,7 +493,8 @@ async def seed():
                     duration = durations[photo_count % len(durations)]
                     photo_count += 1
                 else:
-                    status, duration = "self_reported", None
+                    status = "self_reported"
+                    duration = slot_activity[slot.id].estimated_duration_minutes
 
                 completed_at = _ts(days_ago)
                 completion = Completion(
@@ -504,6 +505,7 @@ async def seed():
                     photo_key=photo_key,
                     caption=caption,
                     duration_minutes=duration,
+                    completed_on=completed_at.date(),
                     shared_to_feed=shared,
                     completed_at=completed_at,
                 )

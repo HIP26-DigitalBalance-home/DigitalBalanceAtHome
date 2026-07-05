@@ -28,7 +28,7 @@ interface Props {
   /** Initial state of the share switch — public collages default to sharing. */
   defaultShared?: boolean;
   onClose: () => void;
-  onSelfReported: (slotId: string, sharedToFeed: boolean, caption?: string) => void;
+  onSelfReported: (slotId: string, sharedToFeed: boolean, durationMinutes: number, caption?: string) => void;
   onPhotoSelected: (
     slotId: string,
     imageUri: string,
@@ -72,10 +72,11 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
     }
   }, [visible, defaultShared]);
 
-  // The 30-minute point gate (FR-006) only applies to casual-tier photo
-  // completions — the server rejects those without a reported duration.
+  // Self-reported completions always require time. The existing 30-minute
+  // point gate additionally requires it for casual-tier photo completions.
   const isCasual = renderSlot ? resolveEffortTier(renderSlot.activity) === 'casual' : false;
-  const durationMissing = isCasual && selectedPhoto !== null && durationMinutes === null;
+  const durationRequired = withoutPhoto || (isCasual && selectedPhoto !== null);
+  const durationMissing = durationRequired && durationMinutes === null;
 
   async function pickImage() {
     setPicking(true);
@@ -120,8 +121,8 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
         normalizedCaption,
         isCasual ? durationMinutes : null,
       );
-    } else if (withoutPhoto) {
-      onSelfReported(slot.id, sharedToFeed, normalizedCaption);
+    } else if (withoutPhoto && durationMinutes != null) {
+      onSelfReported(slot.id, sharedToFeed, durationMinutes, normalizedCaption);
     }
   }
 
@@ -162,7 +163,7 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
             {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
           </ThemedText>
 
-          {isCasual && selectedPhoto && (
+          {(withoutPhoto || (isCasual && selectedPhoto)) && (
             <>
               <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>
                 {t('completeModal.durationQuestion')}

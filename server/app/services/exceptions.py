@@ -168,6 +168,11 @@ class DurationRequired(DomainError):
     code = "duration_required"
 
 
+class InvalidDuration(DomainError):
+    status_code = 400
+    code = "invalid_duration"
+
+
 class CompletionNotPending(DomainError):
     status_code = 409
     code = "completion_not_pending"

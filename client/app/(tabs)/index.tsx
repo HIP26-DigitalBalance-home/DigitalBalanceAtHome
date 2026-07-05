@@ -22,7 +22,7 @@ import { ArticleTeaser } from '@/components/article-teaser';
 import { ActivitySuggestionsRow } from '@/components/activity-suggestions-row';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
-import { JournalCard } from '@/components/journal-card';
+import { TimeSpentCard } from '@/components/time-spent-card';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { ProgressRing } from '@/components/progress-ring';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -52,6 +52,7 @@ import { computePotentialPoints, isChallengeComplete } from '@/lib/challenge-uti
 import { ReuploadModal } from '@/components/reupload-modal';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert } from '@/lib/utils/alert';
+import { localDateString } from '@/lib/time-spent-utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const POLL_INTERVAL_MS = 3000;
@@ -467,14 +468,20 @@ export default function HomeScreen() {
     });
   }
 
-  function handleSelfReported(slotId: string, sharedToFeed: boolean, caption?: string) {
+  function handleSelfReported(slotId: string, sharedToFeed: boolean, durationMinutes: number, caption?: string) {
     if (!isOnline) {
       showAlert(t('common.offline'), t('common.noConnection'));
       return;
     }
     setActiveSlot(null);
     completionsApi
-      .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed, caption })
+      .createSelfReported({
+        challenge_activity_id: slotId,
+        shared_to_feed: sharedToFeed,
+        caption,
+        duration_minutes: durationMinutes,
+        completed_on: localDateString(),
+      })
       .then(() => {
         const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
         setLocalCompletions(updated);
@@ -493,7 +500,7 @@ export default function HomeScreen() {
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing', durationMinutes } }));
     photosApi
-      .upload(slotId, imageUri, mimeType, caption, sharedToFeed, durationMinutes)
+      .upload(slotId, imageUri, mimeType, caption, sharedToFeed, durationMinutes, localDateString())
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch((e) => {
         setLocalCompletions((prev) => {
@@ -580,8 +587,7 @@ export default function HomeScreen() {
 
             <ArticleTeaser />
 
-            {/* Daily mood check-in stays in the hero, even after it is answered. */}
-            <JournalCard />
+            <TimeSpentCard />
 
             <Animated.View
               pointerEvents="none"

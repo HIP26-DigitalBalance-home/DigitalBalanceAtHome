@@ -26,6 +26,7 @@ from app.api import (
     photos,
     progress,
     rewards,
+    time_spent,
     users,
 )
 from app.core.config import settings
@@ -156,6 +157,7 @@ app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(completions.router, prefix="/completions", tags=["completions"])
 app.include_router(progress.router, prefix="/families", tags=["families"])
 app.include_router(journal.router, prefix="/journal", tags=["journal"])
+app.include_router(time_spent.router, prefix="/time-spent", tags=["time-spent"])
 app.include_router(friends.router, prefix="/friends", tags=["friends"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 # Rewards router declares full paths (spans /groups/... and /rewards/...) — no prefix

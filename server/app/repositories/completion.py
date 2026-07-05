@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,9 @@ class CompletionRepository:
         shared_to_feed: bool = False,
         photo_key: str | None = None,
         duration_minutes: int | None = None,
+        completed_on: date | None = None,
     ) -> Completion:
+        now = datetime.now(timezone.utc)
         completion = Completion(
             challenge_activity_id=challenge_activity_id,
             family_id=family_id,
@@ -34,7 +36,8 @@ class CompletionRepository:
             shared_to_feed=shared_to_feed,
             photo_key=photo_key,
             duration_minutes=duration_minutes,
-            completed_at=datetime.now(timezone.utc),
+            completed_on=completed_on or now.date(),
+            completed_at=now,
         )
         self.session.add(completion)
         await self.session.flush()

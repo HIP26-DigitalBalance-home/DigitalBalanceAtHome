@@ -47,6 +47,8 @@ tags:
     description: Group-admin photo verification queue
   - name: Rewards
     description: Family-level point balance and reward-level redemption
+  - name: Time Spent
+    description: Private time-spent tracking for the authenticated parent
 
 # ─────────────────────────────────────────────────────────────
 # Paths
@@ -1378,6 +1380,66 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  # ── Time Spent ─────────────────────────────────────────────
+
+  /time-spent:
+    get:
+      operationId: getTimeSpentInsight
+      tags: [Time Spent]
+      summary: Get the authenticated parent's weekly or monthly time-spent insight
+      description: >
+        Combines activity durations attributed to the authenticated parent with
+        that parent's manual daily time. No user or family identifier is accepted.
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TimeSpentPeriod"
+        - name: anchor_date
+          in: query
+          required: true
+          description: Parent's local calendar date anchoring the requested week or month.
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Personal time-spent series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeSpentInsight"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /time-spent/manual:
+    put:
+      operationId: upsertManualTime
+      tags: [Time Spent]
+      summary: Set or replace the authenticated parent's manual time for a local date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertManualTimeRequest"
+      responses:
+        "200":
+          description: Manual value created or replaced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManualTimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Journal (retained, frontend phased out) ────────────────
+
   /journal/entries:
     post:
       operationId: createJournalEntry
@@ -1567,6 +1629,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   # ── Schemas ─────────────────────────────────────────────────
 
@@ -1601,6 +1669,10 @@ components:
       type: string
       description: Daily self-reported mood, from worst to best
       enum: [bad, not_good, okay, good, super]
+
+    TimeSpentPeriod:
+      type: string
+      enum: [weekly, monthly]
 
     # Shared
 
@@ -2344,7 +2416,7 @@ components:
 
     PhotoUploadRequest:
       type: object
-      required: [challenge_activity_id, image]
+      required: [challenge_activity_id, image, completed_on]
       properties:
         challenge_activity_id:
           type: string
@@ -2361,11 +2433,17 @@ components:
           default: false
         duration_minutes:
           type: integer
+          minimum: 1
+          maximum: 1440
           nullable: true
           description: >
             Minutes the family reports spending on the activity, from a fixed
             dropdown. Required when the activity's resolved point tier is
             casual (server-enforced); optional otherwise.
+        completed_on:
+          type: string
+          format: date
+          description: Parent's local calendar date when the activity was completed
 
     PhotoUploadResponse:
       type: object
@@ -2390,7 +2468,7 @@ components:
 
     Completion:
       type: object
-      required: [id, challenge_activity_id, family_id, completed_by_user_id, status, shared_to_feed, completed_at, updated_at]
+      required: [id, challenge_activity_id, family_id, completed_by_user_id, status, completed_on, shared_to_feed, completed_at, updated_at]
       properties:
         id:
           type: string
@@ -2421,8 +2499,14 @@ components:
           description: Set when status is rejected; null otherwise
         duration_minutes:
           type: integer
+          minimum: 1
+          maximum: 1440
           nullable: true
           description: Minutes the family reported spending on the activity
+        completed_on:
+          type: string
+          format: date
+          description: Parent's local calendar date when the activity was completed
         shared_to_feed:
           type: boolean
         completed_at:
@@ -2434,7 +2518,7 @@ components:
 
     CreateCompletionRequest:
       type: object
-      required: [challenge_activity_id]
+      required: [challenge_activity_id, duration_minutes, completed_on]
       properties:
         challenge_activity_id:
           type: string
@@ -2445,10 +2529,19 @@ components:
         shared_to_feed:
           type: boolean
           default: false
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          description: Required time spent for a self-reported completion
+        completed_on:
+          type: string
+          format: date
+          description: Parent's local calendar date when the activity was completed
 
     CompletionHistoryItem:
       type: object
-      required: [id, activity_id, activity_title, challenge_title, status, completed_at]
+      required: [id, activity_id, activity_title, challenge_title, status, completed_on, completed_at]
       properties:
         id:
           type: string
@@ -2476,7 +2569,12 @@ components:
           description: Set when status is rejected; null otherwise
         duration_minutes:
           type: integer
+          minimum: 1
+          maximum: 1440
           nullable: true
+        completed_on:
+          type: string
+          format: date
         completed_at:
           type: string
           format: date-time
@@ -2717,6 +2815,113 @@ components:
           type: integer
           minimum: 1
           example: 3
+
+    # Time Spent
+
+    UpsertManualTimeRequest:
+      type: object
+      required: [entry_date, minutes]
+      additionalProperties: false
+      properties:
+        entry_date:
+          type: string
+          format: date
+          description: Parent's local calendar date; active UI sends local today
+        minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+
+    ManualTimeEntry:
+      type: object
+      required: [id, entry_date, minutes, created_at, updated_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        entry_date:
+          type: string
+          format: date
+        minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DailyTimeTotal:
+      type: object
+      required: [date, activity_minutes, manual_minutes, total_minutes]
+      additionalProperties: false
+      properties:
+        date:
+          type: string
+          format: date
+        activity_minutes:
+          type: integer
+          minimum: 0
+        manual_minutes:
+          type: integer
+          minimum: 0
+        total_minutes:
+          type: integer
+          minimum: 0
+
+    WeeklyTimeTotal:
+      type: object
+      required: [start_date, end_date, total_minutes]
+      additionalProperties: false
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        total_minutes:
+          type: integer
+          minimum: 0
+
+    TimeSpentInsight:
+      type: object
+      required: [period, range_start, range_end, elapsed_end, daily_totals, weekly_totals, average_weekly_minutes]
+      additionalProperties: false
+      properties:
+        period:
+          $ref: "#/components/schemas/TimeSpentPeriod"
+        range_start:
+          type: string
+          format: date
+          description: Start of the full displayed week/month, regardless of today's date
+        range_end:
+          type: string
+          format: date
+          description: End of the full displayed week/month, regardless of today's date — may be in the future
+        elapsed_end:
+          type: string
+          format: date
+          description: min(range_end, today) — the last non-future date in range; use to exclude not-yet-happened days from averages
+        daily_totals:
+          type: array
+          description: One entry per day in the full range; days after elapsed_end are always zero
+          items:
+            $ref: "#/components/schemas/DailyTimeTotal"
+        weekly_totals:
+          type: array
+          description: Empty for weekly view; one Monday-based bucket per calendar week in the month for monthly view, clipped only at month boundaries (not at today)
+          items:
+            $ref: "#/components/schemas/WeeklyTimeTotal"
+        average_weekly_minutes:
+          anyOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+          description: Null for weekly view; rounded average of monthly weekly totals
 
     # Journal
 

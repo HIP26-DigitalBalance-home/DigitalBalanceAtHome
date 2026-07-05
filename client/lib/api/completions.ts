@@ -12,6 +12,7 @@ export interface CompletionHistoryItem {
   caption: string | null;
   rejection_reason?: string | null;
   duration_minutes?: number | null;
+  completed_on: string;
   completed_at: string;
 }
 
@@ -42,6 +43,8 @@ export const completionsApi = {
 
   createSelfReported: (payload: {
     challenge_activity_id: string;
+    duration_minutes: number;
+    completed_on: string;
     caption?: string | null;
     shared_to_feed?: boolean;
   }) => apiClient.post<Completion>('/completions', payload),
@@ -61,6 +64,7 @@ export const photosApi = {
     caption?: string | null,
     sharedToFeed?: boolean,
     durationMinutes?: number | null,
+    completedOn?: string,
   ) => {
     const form = new FormData();
     form.append('challenge_activity_id', challengeActivityId);
@@ -69,6 +73,7 @@ export const photosApi = {
     if (caption) form.append('caption', caption);
     form.append('shared_to_feed', String(sharedToFeed ?? false));
     if (durationMinutes != null) form.append('duration_minutes', String(durationMinutes));
+    if (completedOn) form.append('completed_on', completedOn);
     return apiClient.post<{ completion_id: string }>('/photos', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

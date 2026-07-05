@@ -32,3 +32,5 @@ export { progressApi } from './progress';
 export type { FamilyProgress, WeekStats, StreakStats, AllTimeStats, FamilySettingsUpdate } from './progress';
 export { journalApi } from './journal';
 export type { JournalEntry } from './journal';
+export { timeSpentApi } from './time-spent';
+export type { DailyTimeTotal, WeeklyTimeTotal, TimeSpentInsight, ManualTimeEntry, TimeSpentPeriod } from './time-spent';

@@ -13,6 +13,7 @@ from app.models.consent import ConsentRecord  # noqa: F401
 from app.models.family import Family, FamilyInvite, FamilyMembership  # noqa: F401
 from app.models.group import Group, GroupAdmin, GroupInvite, GroupMembership  # noqa: F401
 from app.models.journal_entry import JournalEntry  # noqa: F401
+from app.models.manual_time_entry import ManualTimeEntry  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
 from app.models.rewards import (  # noqa: F401
     PhotoVerification,

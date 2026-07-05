@@ -34,6 +34,7 @@ import { computePotentialPoints, isChallengeComplete } from '@/lib/challenge-uti
 import { saveCollagePng, shareCollagePng } from '@/lib/collage-export';
 import { getGermanErrorMessage } from '@/lib/utils/api-error';
 import { showAlert, confirmDestructive } from '@/lib/utils/alert';
+import { localDateString } from '@/lib/time-spent-utils';
 
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 
@@ -183,11 +184,17 @@ export default function ChallengeDetailScreen() {
     pollingRef.current[slotId] = { interval, timeout };
   }
 
-  function handleSelfReported(slotId: string, sharedToFeed: boolean, caption?: string) {
+  function handleSelfReported(slotId: string, sharedToFeed: boolean, durationMinutes: number, caption?: string) {
     if (!isOnline) { showAlert(t('common.offline'), t('common.noConnection')); return; }
     setActiveSlot(null);
     completionsApi
-      .createSelfReported({ challenge_activity_id: slotId, shared_to_feed: sharedToFeed, caption })
+      .createSelfReported({
+        challenge_activity_id: slotId,
+        shared_to_feed: sharedToFeed,
+        caption,
+        duration_minutes: durationMinutes,
+        completed_on: localDateString(),
+      })
       .then(() => {
         const updated = { ...localCompletionsRef.current, [slotId]: { status: 'self_reported' } };
         setLocalCompletions(updated);
@@ -270,7 +277,7 @@ export default function ChallengeDetailScreen() {
     setActiveSlot(null);
     setLocalCompletions((prev) => ({ ...prev, [slotId]: { status: 'processing', durationMinutes } }));
     photosApi
-      .upload(slotId, imageUri, mimeType, caption, sharedToFeed, durationMinutes)
+      .upload(slotId, imageUri, mimeType, caption, sharedToFeed, durationMinutes, localDateString())
       .then((r) => startPolling(slotId, r.data.completion_id))
       .catch((e) => {
         setLocalCompletions((prev) => { const next = { ...prev }; delete next[slotId]; return next; });

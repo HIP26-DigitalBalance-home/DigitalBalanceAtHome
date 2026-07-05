@@ -18,6 +18,7 @@ export interface Completion {
   caption?: string | null;
   rejection_reason?: string | null;
   duration_minutes?: number | null;
+  completed_on: string;
   shared_to_feed: boolean;
   completed_at: string;
   updated_at: string;

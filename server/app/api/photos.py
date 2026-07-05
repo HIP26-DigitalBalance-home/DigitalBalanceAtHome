@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,8 @@ async def upload_photo(
     image: UploadFile = File(...),
     caption: str | None = Form(None),
     shared_to_feed: bool = Form(False),
-    duration_minutes: int | None = Form(None),
+    duration_minutes: int | None = Form(None, ge=1, le=1440),
+    completed_on: date = Form(...),
     current_user: User = Depends(get_current_user_with_consent_check),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -43,6 +45,7 @@ async def upload_photo(
         caption,
         shared_to_feed,
         duration_minutes,
+        completed_on,
     )
 
     background_tasks.add_task(
