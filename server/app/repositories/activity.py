@@ -4,6 +4,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity import Activity
+from app.models.challenge import ChallengeActivity
+from app.models.completion import Completion
 
 
 class ActivityRepository:
@@ -18,6 +20,7 @@ class ActivityRepository:
         cost: str | None = None,
         exclude_paid: bool = True,
         family_id: uuid.UUID | None = None,
+        exclude_completed_for_family_id: uuid.UUID | None = None,
     ) -> list[Activity]:
         q = select(Activity)
 
@@ -46,6 +49,13 @@ class ActivityRepository:
                     Activity.weather_suitability.contains([weather]),
                 )
             )
+        if exclude_completed_for_family_id:
+            completed_activity_ids = (
+                select(ChallengeActivity.activity_id)
+                .join(Completion, Completion.challenge_activity_id == ChallengeActivity.id)
+                .where(Completion.family_id == exclude_completed_for_family_id)
+            )
+            q = q.where(Activity.id.not_in(completed_activity_ids))
 
         result = await self.session.execute(q)
         return list(result.scalars().all())

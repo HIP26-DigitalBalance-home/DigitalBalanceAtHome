@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Extrapolation,
   interpolate,
   scrollTo,
@@ -10,10 +11,15 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArticleTeaser } from '@/components/article-teaser';
+import { ActivitySuggestionCard } from '@/components/activity-suggestion-card';
 import { CollageGrid, type LocalCompletion } from '@/components/collage-grid';
 import { CompleteActivityModal } from '@/components/complete-activity-modal';
 import { JournalCard } from '@/components/journal-card';
@@ -25,7 +31,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { fadeIn } from '@/constants/motion';
+import { fadeIn, timing } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { DEFAULT_RADII } from '@/constants/themes';
 import { tabScreenPaddingBottom } from '@/constants/nav';
@@ -53,10 +59,12 @@ const POLL_TIMEOUT_MS = 60000;
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 const COLLAPSED_HERO_HEIGHT = 68;
 const HERO_COLLAPSE_DISTANCE = 128;
+const HERO_SNAP_THRESHOLD = HERO_COLLAPSE_DISTANCE / 2;
 // Upward movement pauses at the collage boundary for this distance before the
-// full hero returns. Downward movement is never delayed.
+// full hero starts returning. Downward movement is never delayed.
 const HERO_GRACE_DISTANCE = 160;
 const SCROLL_LOCK_TOLERANCE = 0.5;
+const SCROLL_HINT_PAUSE_MS = 6500;
 
 export default function HomeScreen() {
   const { colors } = useAppTheme();
@@ -76,13 +84,14 @@ export default function HomeScreen() {
   const graceRemaining = useSharedValue(HERO_GRACE_DISTANCE);
   const graceArmed = useSharedValue(false);
   const graceLocked = useSharedValue(false);
+  const arrowOffset = useSharedValue(0);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
       const offset = Math.max(0, event.contentOffset.y);
 
-      // Any downward movement beyond the boundary takes effect immediately
-      // and rearms the grace period for the next upward approach.
+      // Scrolling into the collage rearms the grace distance for the next
+      // upward approach to the collapsed hero boundary.
       if (offset > HERO_COLLAPSE_DISTANCE) {
         graceArmed.value = true;
         graceLocked.value = false;
@@ -91,8 +100,8 @@ export default function HomeScreen() {
         return;
       }
 
-      // Empty/short collage states may stop exactly at the boundary rather
-      // than travel beyond it, so arm the upward lock as we arrive from above.
+      // Short collage states may stop exactly at the boundary, so arm the
+      // grace period when arriving there from the expanded hero too.
       if (
         !graceLocked.value
         && offset >= HERO_COLLAPSE_DISTANCE - SCROLL_LOCK_TOLERANCE
@@ -105,8 +114,8 @@ export default function HomeScreen() {
       }
 
       if (graceLocked.value) {
-        // scrollTo() emits an event at the lock position; keep the lock for
-        // that event, but release instantly if the user reverses downward.
+        // scrollTo() emits an event at the lock position. Keep holding there
+        // until the full grace distance is consumed, unless direction flips.
         if (offset >= HERO_COLLAPSE_DISTANCE) {
           if (offset > HERO_COLLAPSE_DISTANCE) {
             graceArmed.value = true;
@@ -126,8 +135,8 @@ export default function HomeScreen() {
           return;
         }
 
-        // Carry any movement beyond the grace distance into the expanding
-        // hero so the gesture remains continuous once the lock releases.
+        // Preserve movement beyond the grace distance so the hero reveal
+        // starts continuously instead of swallowing the rest of the gesture.
         const nextOffset = Math.max(
           0,
           HERO_COLLAPSE_DISTANCE + graceRemaining.value,
@@ -169,7 +178,44 @@ export default function HomeScreen() {
 
       scrollY.value = offset;
     },
+    onEndDrag: () => {
+      const offset = scrollY.value;
+      if (offset <= 0 || offset >= HERO_COLLAPSE_DISTANCE) return;
+
+      const target = offset <= HERO_SNAP_THRESHOLD
+        ? 0
+        : HERO_COLLAPSE_DISTANCE;
+      graceArmed.value = target === HERO_COLLAPSE_DISTANCE;
+      graceLocked.value = false;
+      graceRemaining.value = HERO_GRACE_DISTANCE;
+      scrollTo(scrollRef, 0, target, true);
+    },
+    onMomentumEnd: () => {
+      const offset = scrollY.value;
+      if (offset <= 0 || offset >= HERO_COLLAPSE_DISTANCE) return;
+
+      const target = offset <= HERO_SNAP_THRESHOLD
+        ? 0
+        : HERO_COLLAPSE_DISTANCE;
+      graceArmed.value = target === HERO_COLLAPSE_DISTANCE;
+      graceLocked.value = false;
+      graceRemaining.value = HERO_GRACE_DISTANCE;
+      scrollTo(scrollRef, 0, target, true);
+    },
   });
+
+  useEffect(() => {
+    arrowOffset.value = withRepeat(
+      withSequence(
+        withTiming(3, timing(450)),
+        withTiming(0, timing(450)),
+        withDelay(SCROLL_HINT_PAUSE_MS, withTiming(0, timing(0))),
+      ),
+      -1,
+    );
+
+    return () => cancelAnimation(arrowOffset);
+  }, [arrowOffset]);
 
   const heroAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -220,6 +266,16 @@ export default function HomeScreen() {
         ),
       },
     ],
+  }));
+
+  const scrollHintAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, HERO_COLLAPSE_DISTANCE * 0.35],
+      [0.55, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [{ translateY: arrowOffset.value }],
   }));
 
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
@@ -520,10 +576,25 @@ export default function HomeScreen() {
               </PressableScale>
             )}
 
+            <ActivitySuggestionCard />
+
             <ArticleTeaser />
 
             {/* Daily mood check-in stays in the hero, even after it is answered. */}
             <JournalCard />
+
+            <Animated.View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[
+                styles.scrollHint,
+                { bottom: tabScreenPaddingBottom(insets.bottom) },
+                scrollHintAnimatedStyle,
+              ]}
+            >
+              <IconSymbol name="chevron.down" size={26} color={colors.muted} />
+            </Animated.View>
           </Animated.View>
         </Animated.View>
 
@@ -681,6 +752,12 @@ const styles = StyleSheet.create({
   brandHero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   brandHeroLogo: { width: 80, height: 80, borderRadius: 40 },
   brandHeroTitle: { fontSize: 38, lineHeight: 44 },
+  scrollHint: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
   compactHeader: {
     position: 'absolute',
     top: 0,

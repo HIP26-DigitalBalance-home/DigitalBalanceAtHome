@@ -68,9 +68,9 @@ async def get_suggestion(
     session: AsyncSession = Depends(get_db),
     language: str = Depends(get_request_language),
 ) -> dict:
-    activity = await activity_service.get_suggestion(session, child_id=child_id)
-    if not activity:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=404, detail="No suitable activity found")
+    activity = await activity_service.get_suggestion(
+        session,
+        user_id=current_user.id,
+        child_id=child_id,
+    )
     return _activity_schema(activity, language)

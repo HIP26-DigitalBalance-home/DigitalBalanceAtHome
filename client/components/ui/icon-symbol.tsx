@@ -23,6 +23,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'chevron.left': 'chevron-left',
+  'chevron.down': 'keyboard-arrow-down',
   'xmark': 'close',
   'checkmark': 'check',
   'checkmark.circle.fill': 'check-circle',

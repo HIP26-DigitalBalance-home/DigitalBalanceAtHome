@@ -8,7 +8,7 @@ from app.models.activity import Activity
 from app.repositories.activity import ActivityRepository
 from app.repositories.child_profile import ChildProfileRepository
 from app.schemas.generated import CreateActivityRequest
-from app.services.exceptions import NoFamilyError
+from app.services.exceptions import ActivityNotFound, NoFamilyError
 from app.services.family import get_user_family
 
 
@@ -68,15 +68,20 @@ async def create_activity(
 
 async def get_suggestion(
     session: AsyncSession,
+    user_id: uuid.UUID,
     child_id: uuid.UUID | None,
-) -> Activity | None:
-    """Return a single suggested activity.
+) -> Activity:
+    """Return a random incomplete activity for the caller's family.
 
-    Filters by the child's age + current season.
-    Interest matching is a simple keyword check against title/description.
-    Falls back to a random age-appropriate free activity if no filtered matches found.
+    This is the intentionally small first version of the suggestion engine.
+    Its candidate/ranking stages are the extension points for weather,
+    preferences, and LLM input later. For now it filters by age and season,
+    boosts simple interest matches, and never returns an activity the family
+    has already completed.
     """
     activity_repo = ActivityRepository(session)
+    membership = await get_user_family(session, user_id)
+    family_id = membership.family_id if membership else None
     season = _current_season()
 
     child_age: int | None = None
@@ -94,6 +99,8 @@ async def get_suggestion(
         age=child_age,
         season=season,
         exclude_paid=True,
+        family_id=family_id,
+        exclude_completed_for_family_id=family_id,
     )
 
     # Boost activities that match any child interest keyword
@@ -108,5 +115,13 @@ async def get_suggestion(
         return random.choice(candidates)
 
     # Hard fallback: anything free and age-appropriate (ignore season)
-    fallback = await activity_repo.get_all(age=child_age, exclude_paid=True)
-    return random.choice(fallback) if fallback else None
+    fallback = await activity_repo.get_all(
+        age=child_age,
+        exclude_paid=True,
+        family_id=family_id,
+        exclude_completed_for_family_id=family_id,
+    )
+    if fallback:
+        return random.choice(fallback)
+
+    raise ActivityNotFound("No incomplete activity is available for this family")

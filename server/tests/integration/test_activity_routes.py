@@ -1,7 +1,7 @@
 import uuid
 from unittest.mock import MagicMock
 
-from app.services.exceptions import NoFamilyError
+from app.services.exceptions import ActivityNotFound, NoFamilyError
 
 
 def _fake_activity(family_id: uuid.UUID | None = None) -> MagicMock:
@@ -108,3 +108,26 @@ class TestCreateActivity:
     async def test_missing_title_returns_422(self, auth_client):
         response = await auth_client.post("/activities", json={"description": "no title"})
         assert response.status_code == 422
+
+
+class TestActivitySuggestion:
+    async def test_returns_suggested_activity(self, auth_client, mocker):
+        activity = _fake_activity()
+        spy = mocker.patch("app.api.activities.activity_service.get_suggestion", return_value=activity)
+
+        response = await auth_client.get("/activities/suggestions")
+
+        assert response.status_code == 200
+        assert response.json()["id"] == str(activity.id)
+        assert spy.await_args.kwargs["user_id"] is not None
+
+    async def test_returns_404_when_every_activity_is_complete(self, auth_client, mocker):
+        mocker.patch(
+            "app.api.activities.activity_service.get_suggestion",
+            side_effect=ActivityNotFound("No incomplete activity is available for this family"),
+        )
+
+        response = await auth_client.get("/activities/suggestions")
+
+        assert response.status_code == 404
+        assert response.json()["code"] == "activity_not_found"
