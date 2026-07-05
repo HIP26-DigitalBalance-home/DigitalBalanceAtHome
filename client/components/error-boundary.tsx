@@ -1,9 +1,30 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/ui/empty-state';
+import { useAppTheme } from '@/lib/app-theme-context';
 import i18n from '@/lib/i18n';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('ErrorBoundary');
+
+// Standalone function component so the fallback can read theme colours via
+// hooks — the class boundary itself can mount above every provider,
+// including AppThemeProvider, so useAppTheme()'s context default carries it.
+function ErrorFallback({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <EmptyState
+        illustration="error-mascot"
+        title={i18n.t('errorBoundary.title')}
+        body={error?.message || i18n.t('errorBoundary.message')}
+        actionLabel={i18n.t('common.retry')}
+        onAction={onRetry}
+      />
+    </SafeAreaView>
+  );
+}
 
 interface Props {
   children: ReactNode;
@@ -50,52 +71,9 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      return (
-        <View style={styles.container}>
-          <Text style={styles.title}>{i18n.t('errorBoundary.title')}</Text>
-          <Text style={styles.message}>
-            {this.state.error?.message || i18n.t('errorBoundary.message')}
-          </Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
-            <Text style={styles.buttonText}>{i18n.t('common.retry')}</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return <ErrorFallback error={this.state.error} onRetry={this.handleRetry} />;
     }
 
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#11181C',
-  },
-  message: {
-    fontSize: 14,
-    color: '#687076',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: '#8C1515',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

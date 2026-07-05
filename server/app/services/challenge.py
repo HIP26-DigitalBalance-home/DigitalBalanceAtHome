@@ -35,7 +35,7 @@ def _activity_dict(a: Activity, language: str = "de") -> dict:
     }
 
 
-def _completion_dict(c: Completion) -> dict:
+def _completion_dict(c: Completion, rejection_reason: str | None = None) -> dict:
     photo_url = None
     if c.status in ("pending_verification", "verified", "rejected") and c.photo_key:
         try:
@@ -50,6 +50,7 @@ def _completion_dict(c: Completion) -> dict:
         "status": c.status,
         "photo_url": photo_url,
         "caption": c.caption,
+        "rejection_reason": rejection_reason if c.status == "rejected" else None,
         "duration_minutes": c.duration_minutes,
         "shared_to_feed": c.shared_to_feed,
         "completed_at": c.completed_at,
@@ -108,6 +109,13 @@ async def _build_challenge_with_progress(
 
     count_map = await repo.get_families_completed_count_per_slot(ca_ids)
 
+    # Rejected slots carry the admin's latest rejection reason so the family
+    # sees it in the photo viewer without an extra per-completion fetch.
+    from app.repositories.rewards import RewardsRepository
+
+    rejected_ids = [c.id for c in completion_map.values() if c.status == "rejected"]
+    reasons = await RewardsRepository(repo.session).get_latest_rejection_reasons(rejected_ids)
+
     group_families_count = None
     if challenge.group_id:
         group_families_count = await repo.get_group_family_count(challenge.group_id)
@@ -121,7 +129,7 @@ async def _build_challenge_with_progress(
             "activity_id": ca.activity_id,
             "activity": _activity_dict(activity, language) if activity else {},
             "grid_position": ca.grid_position,
-            "completion": _completion_dict(completion) if completion else None,
+            "completion": _completion_dict(completion, reasons.get(completion.id)) if completion else None,
             "families_completed_count": count_map.get(ca.id, 0) if challenge.group_id else None,
         }
         slots.append(slot)

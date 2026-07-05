@@ -73,9 +73,9 @@ export const rewardsApi = {
       `/groups/${groupId}/verification-queue/${completionId}/approve`,
     ),
 
-  rejectPhoto: (groupId: string, completionId: string, reason: string) =>
+  rejectPhoto: (groupId: string, completionId: string, reason?: string | null) =>
     apiClient.post<VerificationActionResponse>(
       `/groups/${groupId}/verification-queue/${completionId}/reject`,
-      { reason },
+      { reason: reason?.trim() || null },
     ),
 };

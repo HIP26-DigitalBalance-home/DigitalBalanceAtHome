@@ -53,11 +53,12 @@ async def approve_completion_photo(
 async def reject_completion_photo(
     group_id: uuid.UUID,
     completion_id: uuid.UUID,
-    payload: RejectPayload,
+    payload: RejectPayload | None = None,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    return await verification_service.reject(session, current_user.id, completion_id, group_id, payload.reason)
+    reason = payload.reason if payload else None
+    return await verification_service.reject(session, current_user.id, completion_id, group_id, reason)
 
 
 @router.get("/rewards/balance", response_model=RewardsBalance)

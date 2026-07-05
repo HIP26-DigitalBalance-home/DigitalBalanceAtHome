@@ -19,7 +19,9 @@ from app.models.completion import Completion
 from app.models.consent import ConsentRecord
 from app.models.family import Family, FamilyMembership
 from app.models.group import Group, GroupAdmin, GroupMembership
+from app.models.rewards import PhotoVerification, PointLedgerEntry
 from app.models.user import User
+from app.services.points import compute_points
 
 _SEED_PHOTOS_DIR = Path(__file__).parent.parent.parent / "scripts" / "seed_photos"
 
@@ -429,10 +431,14 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     )
 
     slot_activity_title: dict[uuid.UUID, str] = {}
+    slot_activity: dict[uuid.UUID, Activity] = {}
     for i, ca in enumerate(c1_slots):
         slot_activity_title[ca.id] = activities[i].title
+        slot_activity[ca.id] = activities[i]
     for i, ca in enumerate(c3_slots):
         slot_activity_title[ca.id] = activities[18 + i].title
+        slot_activity[ca.id] = activities[18 + i]
+    challenge_by_id: dict[uuid.UUID, Challenge] = {c1.id: c1, c3.id: c3}
 
     def _ts(days_ago: float) -> datetime:
         return datetime.now(timezone.utc) - timedelta(days=days_ago)
@@ -502,6 +508,30 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         (bauer, bauer_user, c3_slots[5], 15.0, True, "Kapitel für Kapitel zusammen gelesen"),
     ]
 
+    # Photo completions rotate through review outcomes so the demo shows the
+    # whole verification loop: mostly verified (with ledger points + audit
+    # rows), a few pending, a few rejected (with and without a reason).
+    _REVIEW_CYCLE = [
+        "verified",
+        "verified",
+        "verified",
+        "pending_verification",
+        "verified",
+        "rejected",
+        "verified",
+        "verified",
+        "pending_verification",
+        "verified",
+        "rejected",
+        "verified",
+    ]
+    # Mix of durations: the 20-minute entries show the casual 30-minute gate
+    # (verified but 0 points).
+    _DURATIONS = [45, 60, 20, 90, 35]
+    _REJECTION_REASONS: list[str | None] = ["Das Foto zeigt die Aktivität leider nicht.", None]
+
+    photo_i = 0
+    reject_i = 0
     for fam, u, slot, days_ago, shared, caption in completions_data:
         photo_file: str | None = None
         if shared:
@@ -509,18 +539,60 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         photo_key: str | None = None
         if photo_file:
             photo_key = await _upload_seed_photo(fam.id, photo_file)
-        session.add(
-            Completion(
-                challenge_activity_id=slot.id,
-                family_id=fam.id,
-                completed_by_user_id=u.id,
-                status="verified" if photo_key else "self_reported",
-                photo_key=photo_key,
-                caption=caption,
-                duration_minutes=45 if photo_key else None,
-                shared_to_feed=shared,
-                completed_at=_ts(days_ago),
-            )
+
+        if photo_key:
+            status = _REVIEW_CYCLE[photo_i % len(_REVIEW_CYCLE)]
+            duration = _DURATIONS[photo_i % len(_DURATIONS)]
+            photo_i += 1
+        else:
+            status, duration = "self_reported", None
+
+        completed_at = _ts(days_ago)
+        completion = Completion(
+            challenge_activity_id=slot.id,
+            family_id=fam.id,
+            completed_by_user_id=u.id,
+            status=status,
+            photo_key=photo_key,
+            caption=caption,
+            duration_minutes=duration,
+            shared_to_feed=shared,
+            completed_at=completed_at,
         )
+        session.add(completion)
+        await session.flush()
+
+        if status == "verified":
+            base, bonus = compute_points(slot_activity[slot.id], challenge_by_id[slot.challenge_id], duration)
+            session.add(
+                PointLedgerEntry(
+                    family_id=fam.id,
+                    completion_id=completion.id,
+                    base_points=base,
+                    bonus_points=bonus,
+                    awarded_at=completed_at,
+                )
+            )
+            session.add(
+                PhotoVerification(
+                    completion_id=completion.id,
+                    reviewer_user_id=user.id,
+                    action="approved",
+                    policy_type="manual",
+                    reviewed_at=completed_at,
+                )
+            )
+        elif status == "rejected":
+            session.add(
+                PhotoVerification(
+                    completion_id=completion.id,
+                    reviewer_user_id=user.id,
+                    action="rejected",
+                    rejection_reason=_REJECTION_REASONS[reject_i % len(_REJECTION_REASONS)],
+                    policy_type="manual",
+                    reviewed_at=completed_at,
+                )
+            )
+            reject_i += 1
 
     await session.commit()

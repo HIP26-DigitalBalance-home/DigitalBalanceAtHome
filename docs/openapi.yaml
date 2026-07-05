@@ -1286,12 +1286,12 @@ paths:
     post:
       operationId: rejectCompletionPhoto
       tags: [Verification]
-      summary: Reject a pending completion photo with a reason (group admin only)
+      summary: Reject a pending completion photo, optionally with a reason (group admin only)
       parameters:
         - $ref: "#/components/parameters/GroupId"
         - $ref: "#/components/parameters/CompletionId"
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -2533,11 +2533,11 @@ components:
 
     RejectPayload:
       type: object
-      required: [reason]
       properties:
         reason:
           type: string
-          minLength: 1
+          nullable: true
+          description: Optional. When given, it is shown to the family alongside the rejected photo.
 
     VerificationActionResponse:
       type: object

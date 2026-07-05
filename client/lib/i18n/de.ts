@@ -575,7 +575,7 @@ export const de = {
     approve: 'Freigeben',
     reject: 'Ablehnen',
     confirmReject: 'Ablehnung senden',
-    reasonPlaceholder: 'Grund für die Ablehnung (für die Familie sichtbar)',
+    reasonPlaceholder: 'Grund für die Ablehnung – optional, für die Familie sichtbar',
     durationReported: '⏱ {{count}} Min angegeben',
     noDuration: 'Keine Dauer angegeben',
     submittedAt: 'Eingereicht am {{date}}',

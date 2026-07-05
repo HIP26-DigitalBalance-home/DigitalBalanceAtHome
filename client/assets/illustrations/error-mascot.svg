@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Friendly Rabbit Mascot</title>
+  <desc id="desc">Editable flat vector rabbit mascot with waving paw, blue clothes, yellow shoulder bag and heart badge.</desc>
+
+  <!-- transparent background -->
+
+  <g id="rabbit-mascot" transform="translate(20 20)">
+    <!-- ears -->
+    <g id="ears">
+      <ellipse fill="#F6EBD2" cx="502" cy="196" rx="72" ry="192" transform="rotate(-11 502 196)"/>
+      <ellipse fill="#F6EBD2" cx="696" cy="211" rx="77" ry="201" transform="rotate(29 696 211)"/>
+      <ellipse fill="#FF7F9C" cx="512" cy="203" rx="39" ry="127" transform="rotate(-11 512 203)"/>
+      <ellipse fill="#FF7F9C" cx="706" cy="218" rx="42" ry="132" transform="rotate(29 706 218)"/>
+    </g>
+
+    <!-- waving arm behind head -->
+    <g id="waving-arm">
+      <path fill="#A9D7E8" d="M424 496 C379 471 333 445 287 413 C267 399 263 375 278 355 C294 333 321 333 344 350 C390 385 432 413 468 431 Z"/>
+      <g id="raised-paw" transform="translate(243 325) rotate(-20)">
+        <path fill="#F6EBD2" d="M63 85 C40 92 20 81 16 62 C13 47 22 37 36 34 C25 22 31 5 47 1 C59 -2 68 5 73 17 C77 3 94 -4 106 5 C117 13 117 26 110 39 C126 33 142 42 144 57 C147 75 132 88 111 88 C96 108 76 104 63 85 Z"/>
+      </g>
+    </g>
+
+    <!-- body -->
+    <g id="body">
+      <path fill="#A9D7E8" d="M411 451 C464 421 579 420 644 454 C699 483 731 548 733 648 C735 733 713 820 651 840 C588 860 475 859 411 838 C355 819 343 753 347 655 C351 560 365 478 411 451 Z"/>
+    </g>
+
+    <!-- tail -->
+    <g id="tail" transform="translate(695 684)">
+      <path fill="#F6EBD2" d="M23 31 C10 14 23 -5 48 1 C63 4 73 14 76 28 C91 29 102 41 100 55 C98 73 78 80 60 75 C45 88 21 82 15 64 C-2 58 0 38 23 31 Z"/>
+      <path fill="#FFFFFF" d="M42 20 C49 23 56 25 62 29" opacity="0.8"/>
+      <path fill="#FFFFFF" d="M30 48 C39 52 47 55 56 58" opacity="0.8"/>
+      <path fill="#FFFFFF" d="M67 48 C75 52 82 55 89 58" opacity="0.8"/>
+    </g>
+
+    <!-- legs -->
+    <g id="legs">
+      <path fill="#075CCB" d="M433 784 L542 784 L533 974 C530 996 493 1001 480 982 L441 883 C428 845 424 814 433 784 Z"/>
+      <path fill="#075CCB" d="M574 784 L681 784 L711 971 C715 996 676 1011 657 989 L594 879 C578 847 573 817 574 784 Z"/>
+      <path fill="#F6EBD2" d="M410 979 C431 947 511 947 529 978 C542 1001 522 1019 479 1020 C432 1020 400 1007 410 979 Z"/>
+      <path fill="#F6EBD2" d="M646 989 C664 957 743 950 764 978 C781 1001 757 1023 708 1024 C662 1025 634 1010 646 989 Z"/>
+      <path fill="#FF7F9C" d="M439 784 L537 784 L538 818 C508 829 463 827 436 814 Z"/>
+      <path fill="#FF7F9C" d="M574 784 L676 784 L682 817 C655 832 608 830 577 815 Z"/>
+      <path fill="none" stroke="#FF7F9C" stroke-width="5" stroke-linecap="round" d="M448 990 C449 978 453 967 462 960"/>
+      <path fill="none" stroke="#FF7F9C" stroke-width="5" stroke-linecap="round" d="M480 995 C481 982 487 970 497 963"/>
+      <path fill="none" stroke="#FF7F9C" stroke-width="5" stroke-linecap="round" d="M694 997 C692 983 696 971 705 962"/>
+      <path fill="none" stroke="#FF7F9C" stroke-width="5" stroke-linecap="round" d="M729 993 C725 979 730 968 739 960"/>
+    </g>
+
+    <!-- bag strap behind face/body front -->
+    <g id="bag">
+      <path fill="#FFE84E" d="M438 448 C475 492 507 543 533 600 C561 660 581 717 594 785 L557 790 C545 728 523 669 493 611 C466 558 434 509 397 466 Z"/>
+      <rect fill="#FFE84E" x="546" y="675" width="200" height="173" rx="34" transform="rotate(-3 646 762)"/>
+      <circle fill="#FFFFFF" cx="646" cy="759" r="45"/>
+      <path fill="#FF7F9C" d="M646 786 C615 764 604 745 619 730 C631 719 643 725 648 740 C656 725 674 719 686 733 C702 753 676 772 646 786 Z"/>
+    </g>
+
+    <!-- scarf -->
+    <g id="scarf">
+      <path fill="#075CCB" d="M454 405 C497 429 584 432 636 407 C625 456 584 481 533 480 C485 479 458 456 454 405 Z"/>
+      <path fill="#075CCB" d="M531 468 C511 508 495 552 500 596 C529 570 548 532 549 482 Z"/>
+      <path fill="#075CCB" d="M555 471 C590 498 621 528 658 535 C651 498 614 474 565 459 Z"/>
+      <circle fill="#075CCB" cx="537" cy="467" r="20"/>
+    </g>
+
+    <!-- head -->
+    <g id="head">
+      <ellipse fill="#F6EBD2" cx="584" cy="360" rx="159" ry="145"/>
+      <circle fill="#FFFFFF" cx="530" cy="333" r="43"/>
+      <circle fill="#FFFFFF" cx="650" cy="346" r="43"/>
+      <ellipse fill="#000000" stroke="#000000" cx="534" cy="348" rx="24" ry="32"/>
+      <ellipse fill="#000000" stroke="#000000" cx="650" cy="361" rx="24" ry="32"/>
+      <ellipse fill="#FF7F9C" cx="590" cy="399" rx="29" ry="18"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M589 420 C588 442 571 449 557 431"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M590 420 C592 442 613 449 626 429"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M496 398 C455 393 422 396 388 404"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M501 422 C458 423 423 431 389 447"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M506 444 C468 455 438 469 409 490"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M681 407 C721 405 754 413 786 430"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M678 431 C718 439 749 455 778 477"/>
+      <path fill="none" stroke="#0B0B0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M670 452 C706 469 732 491 756 519"/>
+    </g>
+  </g>
+</svg>

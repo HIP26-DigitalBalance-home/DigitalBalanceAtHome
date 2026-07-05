@@ -575,7 +575,7 @@ export const en = {
     approve: 'Approve',
     reject: 'Reject',
     confirmReject: 'Send rejection',
-    reasonPlaceholder: 'Reason for rejection (visible to the family)',
+    reasonPlaceholder: 'Reason for rejection – optional, visible to the family',
     durationReported: '⏱ {{count}} min reported',
     noDuration: 'No duration reported',
     submittedAt: 'Submitted {{date}}',

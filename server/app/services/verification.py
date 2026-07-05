@@ -117,13 +117,10 @@ async def reject(
     admin_user_id: uuid.UUID,
     completion_id: uuid.UUID,
     group_id: uuid.UUID,
-    reason: str,
+    reason: str | None,
 ) -> dict:
-    # RejectPayload enforces min_length=1 at the boundary; guard against
-    # whitespace-only reasons here (FR-011: rejection always carries a reason).
-    reason = reason.strip()
-    if not reason:
-        raise CompletionNotPending("A rejection reason is required")
+    # A reason is optional; whitespace-only collapses to "no reason given"
+    reason = (reason or "").strip() or None
 
     await _require_group_admin(session, group_id, admin_user_id)
     completion = await _get_pending_group_completion(session, group_id, completion_id)

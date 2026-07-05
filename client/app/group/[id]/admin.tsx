@@ -67,11 +67,10 @@ export default function VerificationQueueScreen() {
   }
 
   async function handleReject(item: PendingVerificationItem) {
-    const reason = rejectReason.trim();
-    if (!id || actingId || !reason) return;
+    if (!id || actingId) return;
     setActingId(item.completion_id);
     try {
-      await rewardsApi.rejectPhoto(id, item.completion_id, reason);
+      await rewardsApi.rejectPhoto(id, item.completion_id, rejectReason);
       removeItem(item.completion_id);
       setRejectingId(null);
       setRejectReason('');
@@ -141,13 +140,13 @@ export default function VerificationQueueScreen() {
                 style={[
                   styles.button,
                   {
-                    backgroundColor: rejectReason.trim() ? colors.destructive : colors.border,
-                    borderColor: rejectReason.trim() ? colors.destructive : colors.border,
+                    backgroundColor: colors.destructive,
+                    borderColor: colors.destructive,
                     borderRadius: radii.button,
                   },
                 ]}
                 onPress={() => handleReject(item)}
-                disabled={isActing || !rejectReason.trim()}
+                disabled={isActing}
                 accessibilityRole="button"
               >
                 {isActing
