@@ -24,6 +24,7 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'chevron.left': 'chevron-left',
   'chevron.down': 'keyboard-arrow-down',
+  'mappin.and.ellipse': 'location-on',
   'xmark': 'close',
   'checkmark': 'check',
   'checkmark.circle.fill': 'check-circle',

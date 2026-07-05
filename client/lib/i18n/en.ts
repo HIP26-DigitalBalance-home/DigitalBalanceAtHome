@@ -148,6 +148,7 @@ export const en = {
     emptyAction: 'Create challenge',
     todaysSuggestion: "TODAY'S SUGGESTION",
     todaysSuggestions: "TODAY'S SUGGESTIONS",
+    setLocation: 'Set location',
     letsDoIt: "Let's do it →",
     noSuggestion: 'No suggestion available right now.',
     articleOfTheDay: 'ARTICLE OF THE DAY',

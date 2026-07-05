@@ -148,6 +148,7 @@ export const de = {
     emptyAction: 'Herausforderung erstellen',
     todaysSuggestion: 'VORSCHLAG DES TAGES',
     todaysSuggestions: 'VORSCHLÄGE DES TAGES',
+    setLocation: 'Ort festlegen',
     letsDoIt: "Los geht's →",
     noSuggestion: 'Derzeit kein Vorschlag verfügbar.',
     articleOfTheDay: 'ARTIKEL DES TAGES',
