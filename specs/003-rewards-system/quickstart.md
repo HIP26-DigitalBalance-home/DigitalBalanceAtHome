@@ -1,298 +1,96 @@
-# Quickstart & Validation Guide: Group-Scoped Rewards System
+# Quickstart: Family Points & Reward Levels (Demo Scope)
 
 **Feature**: `specs/003-rewards-system`
-**Date**: 2026-06-28
 
-This guide describes how to validate the rewards system end-to-end once implemented. It does not include implementation code — see [`tasks.md`](tasks.md) for that.
+This is a validation guide, not implementation code. It assumes Phases A–E of `plan.md` are complete. Run against a local Docker Compose stack with seed data.
 
 ---
 
 ## Prerequisites
 
-- Docker Compose stack running (`docker compose -f server/docker-compose.yml up`)
-- Seed data loaded (`POST /dev/seed` or `python scripts/seed_dev.py`)
-- At least one group with at least one family member (provided by seed)
-- At least one group admin user (provided by seed)
-- Dev server: `cd client && npx expo start`
+```bash
+cd server
+docker compose up --build
+alembic upgrade head   # applies the rewards migration; seeds 4 reward_levels rows
+```
 
----
-
-## Scenario 1 — Enable rewards and configure points
-
-**Goal**: Verify that a group admin can enable rewards and set point values.
+Seed demo data if not already present:
 
 ```bash
-# 1. Authenticate as group admin (obtain JWT token)
-TOKEN=$(curl -s -X POST http://localhost:8000/auth/... | jq -r .access_token)
-
-# 2. Enable rewards with default 10 points and 7-day auto-approve
-curl -s -X PATCH http://localhost:8000/groups/<group_id>/rewards/settings \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"rewards_enabled": true, "default_activity_points": 10, "auto_approve_days": 7}' | jq
-
-# Expected: 200 with the updated settings echoed back
-
-# 3. Set a per-activity override
-curl -s -X PATCH \
-  "http://localhost:8000/groups/<group_id>/rewards/activity-points/<challenge_activity_id>" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"points": 25}' | jq
-
-# Expected: 200 with the override reflected
+docker compose exec api sh -c "PYTHONPATH=/app python /app/scripts/seed_dev.py"
 ```
+
+You need: one group with a completed activity challenge, one family that is a member of that group, one user who is a group admin of that group, and one personal (non-group) challenge for the same family.
 
 ---
 
-## Scenario 2 — Photo submission enters pending_verification
+## Scenario 1 — Verification pipeline (US1 + US2)
 
-**Goal**: Verify that the status machine change is in effect.
-
-```bash
-# Submit a photo completion as a family member (existing upload flow)
-# ... (use existing photo upload endpoint)
-
-# Poll the completion until status != "processing"
-curl -s http://localhost:8000/completions/<completion_id> \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .status
-
-# Expected: "pending_verification" (NOT "ready")
-```
-
-**Client**: After upload, the collage slot should show the photo with a clock/pending badge (not the plain photo it would show for the old `ready` status).
+1. As a family member, upload a photo completion for a **casual-tier** activity in the group's challenge, selecting `duration_minutes = 15` (below the 30-minute gate) from the duration dropdown.
+2. Poll `GET /completions/{id}` (or the equivalent client polling call) until status leaves `processing`. **Expect**: status = `pending_verification` (not `ready`).
+3. In the collage, confirm the slot shows a clock/pending badge.
+4. As the group admin, call `GET /groups/{groupId}/verification-queue`. **Expect**: the completion appears with family name (no child name), activity title, photo, `duration_minutes: 15`, and a submission timestamp.
+5. Approve it: `POST /groups/{groupId}/verification-queue/{completionId}/approve`. **Expect**: `status: verified`, `points_awarded: 0` (casual under 30 min).
+6. Repeat steps 1–5 with `duration_minutes = 45`. **Expect**: `points_awarded: 3`.
+7. Upload a second completion and **reject** it with a reason via `POST .../reject`. **Expect**: collage shows a red/warning badge; tapping reveals the rejection reason.
+8. Re-upload a photo on the rejected completion. **Expect**: status resets to `pending_verification`, rejection reason clears.
+9. Re-upload a photo on the verified completion from step 6. **Expect**: photo updates, status stays `verified`, no change in the family's ledger.
 
 ---
 
-## Scenario 3 — Admin approves photo and points are credited
+## Scenario 2 — Personal/family challenge auto-approval (US2, FR-011a)
 
-**Goal**: Verify the approval flow and balance update.
-
-```bash
-# 1. As admin: view the verification queue
-curl -s http://localhost:8000/groups/<group_id>/admin/verifications \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
-
-# Expected: the pending completion appears in items[]
-
-# 2. Approve it
-curl -s -X POST \
-  "http://localhost:8000/groups/<group_id>/admin/verifications/<completion_id>/approve" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
-
-# Expected: 200 with points_awarded: 10 (or the override value)
-
-# 3. Check family balance
-curl -s "http://localhost:8000/groups/<group_id>/rewards/balance" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .balance
-
-# Expected: 10 (or the activity's point value)
-
-# 4. Check photo_verifications audit record exists (internal/psql):
-# SELECT * FROM photo_verifications WHERE completion_id = '<completion_id>';
-# Expected: one row with action='approved', policy_type='manual', reviewer_user_id set
-```
-
-**Client**: The collage slot should now show a green checkmark badge.
+1. Upload a photo completion in a **personal challenge** (`group_id` null) for the same family.
+2. Confirm it lands in `pending_verification`.
+3. Manually advance the completion's `completed_at` (or wait) past the 24-hour auto-approval window, then trigger (or wait for) the background sweep.
+4. **Expect**: status becomes `verified`, a `photo_verifications` row is created with `reviewer_user_id = null` and `policy_type = "timed"`, and points are credited.
 
 ---
 
-## Scenario 4 — Admin rejects photo; family re-uploads
+## Scenario 3 — Fixed point tiers (US3)
 
-**Goal**: Verify the rejection and re-upload flows.
+Complete and verify one activity of each kind, then inspect the ledger (`point_ledger_entries` for the family, or `GET /rewards/balance` history if exposed):
 
-```bash
-# 1. Submit another photo completion (new activity or reset)
+| Activity | Tier | Duration | Featured challenge? | Expected points |
+|---|---|---|---|---|
+| Casual, e.g. "Im Park spazieren" | casual | ≥ 30 min | no | 3 |
+| Casual, same activity, different challenge | casual | < 30 min | no | 0 |
+| Dedicated, e.g. "Spielabend" | dedicated | any | no | 6 |
+| Marketplace (`cost_indicator=paid` or `is_partner_content=true`) | marketplace | any | no | 15 |
+| Any activity | any | any | **yes** | base + 5 |
 
-# 2. Admin rejects
-curl -s -X POST \
-  "http://localhost:8000/groups/<group_id>/admin/verifications/<completion_id>/reject" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"reason": "Photo does not show the activity clearly"}' | jq
-
-# Expected: 200
-
-# 3. Family checks collage — slot shows rejected indicator + reason
-# In client: tap the slot → see "Photo does not show the activity clearly" + re-upload button
-
-# 4. Family re-uploads
-curl -s -X PATCH "http://localhost:8000/completions/<completion_id>/photo" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" \
-  -F "photo=@/path/to/new_photo.jpg" | jq .status
-
-# Expected: "processing" → transitions to "pending_verification" after compression
-```
+**Expect**: each verified completion produces exactly one `point_ledger_entries` row with `base_points`/`bonus_points` matching the table above, and a second approval attempt on the same completion (if replayed) does not create a duplicate row (unique constraint on `completion_id`).
 
 ---
 
-## Scenario 5 — Re-upload on a verified completion keeps points
+## Scenario 4 — Quarter balance and reward levels (US4)
 
-**Goal**: Verify the sticky `verified` state.
-
-```bash
-# 1. Approve a completion (balance now has points)
-# 2. Family re-uploads a new photo
-curl -s -X PATCH "http://localhost:8000/completions/<completion_id>/photo" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" \
-  -F "photo=@/path/to/new_photo.jpg" | jq
-
-# Expected: status returns "verified" (no reset to pending_verification)
-
-# 3. Check balance
-curl -s "http://localhost:8000/groups/<group_id>/rewards/balance" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .balance
-
-# Expected: unchanged (no double award)
-```
+1. Ensure the family has accumulated ≥ 50 points in the current quarter (repeat Scenario 3 as needed across distinct activities).
+2. Call `GET /rewards/balance`. **Expect**: `quarter_key` for the current quarter, `balance` matching the sum from Scenario 3, and `levels[]` with Level 1 `state: unlocked`, Levels 2–4 `state: locked` (or `unlocked` if the balance is higher).
+3. Redeem Level 1: `POST /rewards/levels/{level1Id}/redeem`. **Expect**: 201 with a `voucher_code` (format `BOND-XXXXXX`); balance in a follow-up `GET /rewards/balance` call is **unchanged** (milestone model, not spend-down).
+4. Attempt to redeem Level 1 again in the same quarter. **Expect**: 409 conflict, clear "already redeemed this quarter" message.
+5. Reach Level 3 and redeem it **without** `chosen_option`. **Expect**: 400 validation error requiring a choice. Retry with `chosen_option: "supermarket_voucher"`. **Expect**: success, `chosen_option` echoed in the response.
+6. Reach Level 4 and redeem it 3 times across 3 different quarters within the same calendar year (or simulate via direct DB inserts for speed). On the 4th attempt in the same year, **expect** a 409 with an annual-cap message.
 
 ---
 
-## Scenario 6 — Create prize, upload vouchers, redeem
+## Scenario 5 — Quarter isolation (FR-017, SC-007)
 
-**Goal**: Verify the full redemption path.
-
-```bash
-# 1. Admin creates a prize
-PRIZE=$(curl -s -X POST "http://localhost:8000/groups/<group_id>/prizes" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Gratis Collage-Druck",
-    "point_cost": 5,
-    "category": "collage_printing",
-    "available": true
-  }' | jq -r .id)
-
-# 2. Admin uploads voucher codes
-curl -s -X POST "http://localhost:8000/groups/<group_id>/prizes/$PRIZE/vouchers" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"codes": ["PIXUM-AAA1", "PIXUM-BBB2", "PIXUM-CCC3"]}' | jq .inserted
-
-# Expected: 3
-
-# 3. Admin checks stock
-curl -s "http://localhost:8000/groups/<group_id>/prizes/$PRIZE/vouchers/remaining" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .remaining
-
-# Expected: 3
-
-# 4. Family sees prize in catalog (balance must be >= 5)
-curl -s "http://localhost:8000/groups/<group_id>/prizes" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq
-
-# Expected: prize appears with available: true
-
-# 5. Family redeems
-curl -s -X POST "http://localhost:8000/groups/<group_id>/prizes/$PRIZE/redeem" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq
-
-# Expected: { redemption_id: ..., voucher_code: "PIXUM-AAA1", points_spent: 5, ... }
-
-# 6. Balance decremented
-curl -s "http://localhost:8000/groups/<group_id>/rewards/balance" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .balance
-
-# Expected: previous balance - 5
-
-# 7. Stock decremented
-curl -s "http://localhost:8000/groups/<group_id>/prizes/$PRIZE/vouchers/remaining" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .remaining
-
-# Expected: 2
-```
+1. Directly insert (or backdate) a `point_ledger_entries` row for the family with `awarded_at` in the *previous* quarter.
+2. Call `GET /rewards/balance`. **Expect**: the backdated entry does **not** contribute to `balance` — only entries within the current quarter's boundaries count.
 
 ---
 
-## Scenario 7 — Concurrent redemption (last voucher)
+## Scenario 6 — Privacy (FR-026, SC-008)
 
-**Goal**: Verify exactly one redeemer gets the last code.
-
-This is best validated with a script that fires two simultaneous `POST /redeem` requests:
-
-```bash
-# Assuming balance = 5 for two families and stock = 1
-curl -s -X POST ".../prizes/$PRIZE/redeem" -H "Authorization: Bearer $FAMILY1_TOKEN" &
-curl -s -X POST ".../prizes/$PRIZE/redeem" -H "Authorization: Bearer $FAMILY2_TOKEN" &
-wait
-
-# Expected: one response has voucher_code, the other returns 409 (out of stock)
-# Expected: stock = 0 after both settle
-```
+1. As a second, unrelated family in the same group, attempt to view the first family's balance or ledger. **Expect**: no endpoint exposes another family's points — `/rewards/balance` is always scoped to the calling user's own family, and there is no group-level or cross-family aggregate endpoint.
+2. Confirm no UI surface (group screen, feed, collage) displays another family's point total or redemption history.
 
 ---
 
-## Scenario 8 — Auto-approval sweep (manual trigger)
+## Definition of Done
 
-**Goal**: Verify the timed policy approves photos after the threshold.
-
-Since waiting 7 days is impractical, set `auto_approve_days = 0` (or adjust the threshold in a test group) and trigger the sweep via the admin or a direct service call in integration tests.
-
-```bash
-# Set to immediate auto-approve for testing
-curl -s -X PATCH "http://localhost:8000/groups/<group_id>/rewards/settings" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"rewards_enabled": true, "auto_approve_days": 0, "default_activity_points": 10}' | jq
-
-# Wait for the next hourly sweep (or trigger directly in integration tests via
-# calling verification_service.run_auto_approvals() in a test fixture)
-
-# After sweep: check status
-curl -s "http://localhost:8000/completions/<completion_id>" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .status
-
-# Expected: "verified"
-# Audit: photo_verifications row with action='auto_approved', reviewer_user_id=null, policy_type='timed'
-```
-
----
-
-## Scenario 9 — Group isolation
-
-**Goal**: Verify that points earned in Group A do not appear in Group B.
-
-```bash
-# Family earns points in group A via approval
-# Check balance in group B
-curl -s "http://localhost:8000/groups/<group_b_id>/rewards/balance" \
-  -H "Authorization: Bearer $FAMILY_TOKEN" | jq .balance
-
-# Expected: 0 (or unchanged from prior activity in group B)
-```
-
----
-
-## Client smoke tests (manual)
-
-| Screen | Check |
-|---|---|
-| Collage grid | `pending_verification` slot shows clock badge; `verified` shows checkmark; `rejected` shows red/warning indicator |
-| Rejected slot tap | Shows rejection reason + "Neues Foto hochladen" button |
-| Group detail | Points balance chip visible (when rewards enabled for group) |
-| Prize catalog | Lists available prizes with point costs and family balance |
-| Redemption | Voucher code shown immediately after confirm tap |
-| Admin panel | Verification queue lists pending photos with family name, activity, submission date |
-| Admin approve | Queue item disappears; family balance updates on next refresh |
-| Admin reject | Rejection reason required; submit blocked if empty |
-| Admin prizes | Create prize form, voucher code upload, stock count |
-
----
-
-## Database checks (via psql)
-
-```sql
--- Verify status machine is in effect (no 'ready' rows after migration)
-SELECT status, COUNT(*) FROM completions GROUP BY status;
-
--- Check audit trail completeness
-SELECT action, policy_type, COUNT(*) FROM photo_verifications GROUP BY action, policy_type;
-
--- Verify balance atomicity (no negative balances possible)
-SELECT * FROM family_group_points WHERE balance < 0;
-
--- Verify no code was redeemed twice
-SELECT code, COUNT(*) FROM voucher_codes WHERE redeemed_at IS NOT NULL
-GROUP BY code HAVING COUNT(*) > 1;
-```
+- All 6 scenarios above pass manually against a local stack.
+- `pytest` passes for new service/repository tests covering: tier resolution, the 30-minute gate, ledger idempotency (unique `completion_id`), quarter-boundary math, Level 3 choice requirement, and the Level 4 annual cap.
+- `ruff check .` and `ruff format .` clean on all new/modified server files.
+- Client: collage badges, duration picker, reupload modal, and the rewards screen visually verified via `preview_*` tools per CLAUDE.md's UI verification workflow.

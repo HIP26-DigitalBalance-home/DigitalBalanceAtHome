@@ -1,98 +1,87 @@
-# Research: Group-Scoped Rewards System
+# Research: Family Points & Reward Levels (Demo Scope)
 
 **Feature**: `specs/003-rewards-system`
-**Date**: 2026-06-28
+**Date**: 2026-07-04
+
+All Technical Context fields in `plan.md` were derivable directly from the existing codebase and CLAUDE.md (Python 3.12/FastAPI/SQLAlchemy async server, Expo/TypeScript client, PostgreSQL 16, layered architecture) — no NEEDS CLARIFICATION markers remained. Research below covers the design decisions specific to this feature.
 
 ---
 
-## 1. Existing completion status machine
+## Decision: Ledger-derived quarter balance instead of a stored running balance
 
-**Decision**: The current status column on `completions` stores a plain `String` (not a database enum). Valid values are `processing | ready | self_reported`.
+**Decision**: A family's point balance is never stored. It is computed at query time as `SUM(base_points + bonus_points)` over `point_ledger_entries` rows whose `awarded_at` falls in the current calendar quarter.
 
-**Rationale**: Changing from `ready` to the three-value verification pipeline (`pending_verification | verified | rejected`) requires only an Alembic migration that updates string literals; no PostgreSQL enum type needs ALTER-ing. This keeps the migration straightforward.
+**Rationale**: The business model requires a quarterly reset with no carryover (`docs/reward-point-system.md` §4). A stored running balance would need a scheduled reset job and would risk drift if a reset run is missed or double-run. Deriving the balance from an immutable, timestamped ledger makes the "reset" free — it's just a `WHERE` clause on the aggregate query — and gives the family a point history for free (FR-018), which the original Rev 1 spec deferred as OD-003. This also sidesteps all the read-then-write balance-mutation hazards the Rev 1 spec had to guard against with `UPDATE ... WHERE balance >= cost` semantics.
 
-**Impact**:
-- `_compress_async` in `server/app/services/completion.py` currently sets `completion.status = "ready"` after compression. This MUST be changed to `"pending_verification"`.
-- `_completion_dict` and `get_photo_url` gate on `status == "ready"` for presigned URL generation. Both must be updated to gate on `status in ("verified",)` or `status in ("verified", "pending_verification")` as appropriate.
-- `get_group_feed` and `get_my_history` also hard-code `status == "ready"` for photo URL generation — both need updating.
-- Client-side: `CompletionHistoryItem` in `client/lib/api/completions.ts` declares `status: 'processing' | 'ready' | 'self_reported'`. The photo polling logic resolves on `ready`. Both must be updated.
+**Alternatives considered**:
+- *Stored balance + quarterly cron reset* (closer to a literal reading of "points reset every quarter"): rejected because it needs a scheduled job (the project has no worker infrastructure beyond the existing asyncio lifespan tasks) and a snapshot/history table anyway if any point history is desired.
+- *Event-sourced ledger with periodic balance snapshots for performance*: unnecessary at demo scale (O(1000s) of families, O(10k) completions); a plain aggregate query is fast enough and simpler.
 
 ---
 
-## 2. Atomic balance debit pattern
+## Decision: Reward levels are milestones (unlock), not a spend-down currency
 
-**Decision**: Use a single `UPDATE family_group_points SET balance = balance - :cost WHERE family_id = :fid AND group_id = :gid AND balance >= :cost` with row-count check. No event-sourced ledger.
+**Decision**: Reaching a level's point threshold in the current quarter makes it redeemable; redemption creates a record and returns a voucher code but does **not** debit the balance.
 
-**Rationale**: PostgreSQL serialises row-level updates; the `WHERE balance >= cost` clause prevents going negative without requiring a separate SELECT. The `asyncpg` driver used by the project returns the row count affected, so the service can detect a failed debit (count = 0) and raise an insufficient-balance error.
+**Rationale**: `docs/reward-point-system.md` describes points "accumulating toward" levels, consistent with typical loyalty-tier language (`docs/business-model.md` calls it "airline miles or credit card points" but describes tiers, not a shop). The Rev 1 spec's `FR-023`/`SC-005` atomic-debit and out-of-stock machinery only makes sense for a spend-down shop with finite voucher inventory — that entire concurrency class is unnecessary for a milestone ladder. This also matches the fixed reward list (exactly 4 levels, 5 named rewards) rather than an open-ended admin-managed catalog.
 
-**Alternatives considered**: An append-only `point_ledger_entries` table would support full transaction history and GDPR data export but adds write amplification on every approval. Deferred to v2 (OD-003).
-
----
-
-## 3. Voucher pop concurrency
-
-**Decision**: Use `SELECT … FOR UPDATE SKIP LOCKED` on `voucher_codes` to pop one unredeemed code atomically within the redemption transaction.
-
-**Rationale**: Multiple simultaneous redemptions could race. `SKIP LOCKED` causes each concurrent reader to see only rows no other transaction is locking, ensuring each code is issued at most once. SQLAlchemy 2.x supports `.with_for_update(skip_locked=True)`.
-
-**Alternatives considered**: Application-level locking (Redis SETNX) would work but adds a dependency. PostgreSQL-native locking is already available and sufficient at the expected scale.
+**Alternatives considered**:
+- *Spend-down shop* (Rev 1 design): rejected for the demo — it requires voucher inventory management, atomic balance debits, and `SELECT FOR UPDATE SKIP LOCKED`, none of which the business documents actually describe and none of which fit a 3-day budget.
+- *Hybrid (levels debit a running total but redemption doesn't require inventory)*: rejected as unnecessary complexity; the business docs give no indication that reaching Level 1 should reduce eligibility for Level 2 within the same quarter.
 
 ---
 
-## 4. Auto-approval background runner
+## Decision: Fixed system-wide point tiers, not admin-configurable
 
-**Decision**: Implement as an `asyncio` task launched in FastAPI's `lifespan` context, polling every hour.
+**Decision**: Point values (3/6/15, +5 bonus) and level thresholds (50/100/150/250) are hardcoded constants (levels also seeded as rows for display flexibility); there is no admin UI to change them per group.
 
-**Rationale**: The project already runs a single FastAPI process with async I/O. Adding an `asyncio.create_task` in lifespan avoids a new process/container for v1 and reuses the existing `AsyncSession` machinery.
+**Rationale**: The business model treats these numbers as carefully budget-modeled constants (`docs/business-model.md` §4.4 — the entire rewards-budget-as-percent-of-license-fee calculation assumes these exact values). Per-group admin configurability (Rev 1's `FR-006`–`FR-009`) would let group admins silently break the budget model the business team built pricing around. For a demo, fixed constants are also simply less to build.
 
-**Alternatives considered**: A Kubernetes CronJob or Celery beat would be more robust in a multi-replica deployment but is over-engineered for the current single-server setup. The policy abstraction means this runner can be extracted later.
-
----
-
-## 5. Policy abstraction placement
-
-**Decision**: `VerificationPolicy` ABC lives in `server/app/services/verification_policy.py`. The `get_policy(group)` factory is called from `verification_service.run_auto_approvals`.
-
-**Rationale**: Keeps the policy contract independent of any specific policy. `LLMVerificationPolicy` can be added by implementing the ABC and updating `get_policy` — no other file changes needed.
-
-**Note**: The `NeverAutoApprovePolicy` must use `policy_type = "manual"` (not `"timed"` as written in the feature plan — this appears to be a copy-paste error in the original plan).
+**Alternatives considered**:
+- *Admin-configurable per group* (Rev 1): rejected — contradicts the budget model and adds an entire settings UI with no demo value.
+- *Configurable via environment/config file only (no UI)*: considered as a lighter-weight compromise for future tuning; noted in the Evolution Path table in spec.md rather than built now.
 
 ---
 
-## 6. Presigned URL handling for new statuses
+## Decision: Marketplace tier is derived, not a third `effort_tier` value
 
-**Decision**: Presigned URLs are generated for `pending_verification` and `verified` completions (both have a stored `photo_key`). `rejected` completions also have a photo and should return a URL. `self_reported` completions never have a photo key.
+**Decision**: `activities.effort_tier` only stores `casual | dedicated`. An activity counts as marketplace-tier for point purposes if `cost_indicator == "paid"` or `is_partner_content == true`, regardless of its `effort_tier`.
 
-**Rationale**: The admin verification queue needs to display the photo; the family collage needs to display it in all three post-processing states. All three status values imply a compressed photo exists at `final_key`.
+**Rationale**: `cost_indicator` and `is_partner_content` already exist on the `Activity` model and already capture exactly the distinction the business model's marketplace tier needs ("marketplace activities already generate real commission for BOND"). Adding a redundant third enum value would let the two fields disagree (e.g., an activity marked `effort_tier="marketplace"` but `cost_indicator="free"`), which is a data-integrity risk with no benefit.
 
----
-
-## 7. Group admin permission check pattern
-
-**Decision**: Reuse the existing `group_admins` table. Add a repository helper `is_group_admin(group_id, user_id) → bool` and call it at the top of every admin-scoped service method (raising `ForbiddenError`). Route handlers inject the current user via the existing `get_current_user` dependency.
-
-**Rationale**: The pattern is already established for other group admin operations. No new auth mechanism needed.
+**Alternatives considered**:
+- *Three-value `effort_tier` enum (`casual | dedicated | marketplace`)*: rejected — redundant with existing fields, invites inconsistency.
 
 ---
 
-## 8. Client collage overlay pattern
+## Decision: Verification policy branches on `challenge.group_id`, not a per-group setting
 
-**Decision**: New overlays (clock, checkmark, warning badge) are composited with `position: 'absolute'` inside the existing slot `View` in `client/components/collage-grid.tsx`.
+**Decision**: Group challenges use `NeverAutoApprovePolicy` (manual admin queue); personal/family challenges (`group_id IS NULL`) use `TimedVerificationPolicy(hours=24)`, since there's no group admin to review them. This replaces Rev 1's per-group `auto_approve_days` configuration.
 
-**Rationale**: Matches existing collage slot implementation. No third-party overlay library needed.
+**Rationale**: Rev 1 assumed every challenge belongs to a group with an admin who sets an auto-approve threshold. But `challenges.group_id` is nullable — personal/family challenges have no admin at all, so Rev 1's design left them with no verification path (FR-009 in Rev 1 implicitly assumed rewards only exist inside groups). Since the revised spec awards points family-globally regardless of which challenge a completion belongs to, personal challenges must have *some* approval path. A fixed system-wide auto-approval window is the simplest fix and needs no new configuration surface.
 
----
-
-## 9. i18n approach
-
-**Decision**: All new German and English strings are added to `client/lib/i18n/de.ts` and `en.ts` under a new top-level `rewards` key and a `verification` sub-key. Accessed via `useTranslation()` hook as in existing screens.
-
-**Rationale**: Consistent with project convention. The `de.ts` / `en.ts` files are flat objects; new keys won't conflict with existing ones.
+**Alternatives considered**:
+- *Personal challenges never earn points*: rejected — the business model doesn't distinguish where an activity happens, only what kind of activity it is; excluding personal challenges would silently shrink the earning surface in a way neither business doc calls for.
+- *Per-family configurable auto-approve window*: unnecessary complexity for a system-wide constant.
 
 ---
 
-## 10. Spec-driven workflow gate
+## Decision: UTC quarter boundaries for v1 (OD-102)
 
-**Decision**: `docs/openapi.yaml` must be updated first (new schemas: `RewardsSettings`, `Prize`, `PrizeList`, `VoucherUpload`, `Redemption`, `VerificationQueue`, `VerificationAction`; extended `CompletionStatus` enum). Codegen (`datamodel-codegen`) is run before any route implementation.
+**Decision**: "Current quarter" is computed using UTC month/day boundaries (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec in UTC).
 
-**Rationale**: This is a hard project constraint documented in CLAUDE.md. No exceptions.
+**Rationale**: The project already stores all timestamps as UTC `TIMESTAMPTZ` (CLAUDE.md hard constraint) and has no existing per-user timezone concept. Using UTC avoids introducing timezone-conversion logic for a boundary effect (1–2 hours at exact midnight on 4 days a year) that is invisible to the vast majority of usage. Flagged explicitly as OD-102 for pilot-readiness review (Germany is UTC+1/+2).
+
+**Alternatives considered**:
+- *Europe/Berlin quarter boundaries*: more "correct" for a German-market product but requires a timezone library decision and testing for a marginal, rarely-observed edge case; deferred past the demo.
+
+---
+
+## Decision: Placeholder voucher codes, no inventory table
+
+**Decision**: Redemption generates a code in the form `BOND-XXXXXX` (random alphanumeric) at redemption time and stores it on the `redemptions` row. No `voucher_codes` table, no stock tracking, no out-of-stock state.
+
+**Rationale**: No real reward partner has been committed (business doc §6/OD-006 in Rev 1). Building a voucher-inventory system before any partner integration exists is speculative. The `redemptions` table already captures everything a real voucher pool would need to join against later (family, level, quarter, timestamp), so swapping in real inventory is additive, not a rewrite (documented in spec.md's Evolution Path table).
+
+**Alternatives considered**:
+- *Reuse Rev 1's full `prizes`/`voucher_codes` inventory model but seed it with 4 fake prizes*: rejected — it's strictly more code for the same demo-visible outcome (a code appears on screen), and it re-adds the atomic-pop concurrency machinery that a milestone model doesn't need.

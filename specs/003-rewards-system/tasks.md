@@ -1,12 +1,16 @@
-# Tasks: Group-Scoped Rewards System
+# Tasks: Family Points & Reward Levels (Demo Scope)
 
 **Input**: Design documents from `specs/003-rewards-system/`
 
 **Prerequisites**: [plan.md](plan.md) · [spec.md](spec.md) · [research.md](research.md) · [data-model.md](data-model.md) · [contracts/rewards-api.yaml](contracts/rewards-api.yaml) · [quickstart.md](quickstart.md)
 
+**Tests**: Not explicitly requested in the feature spec; no test-writing tasks are included below. `pytest`/manual quickstart validation appears in the Polish phase per CLAUDE.md's testing conventions.
+
 **Format**: `[ID] [P?] [Story?] Description with file path`
 - **[P]**: Parallelisable — different files, no unmet dependencies
-- **[Story]**: User story label (US1–US5); omitted for setup/foundational/polish tasks
+- **[Story]**: User story label (US1–US4); omitted for setup/foundational/polish tasks
+
+**Note on phase order vs. spec order**: Stories are implemented as US1 → **US3 → US2** → US4, not the spec's US1/US2/US3/US4 listing order. Reason: US2's `approve()` action must synchronously award points, so it depends on US3's tier-resolution and ledger service (mirrors `plan.md` Phase B, where `points.py` is built at step 10, before `verification.py` at step 11). All three are P1 in the spec; only the build sequence changes, not priority.
 
 ---
 
@@ -16,137 +20,125 @@
 
 **⚠️ GATE**: `docs/openapi.yaml` must be updated and codegen must have run before any route or schema implementation.
 
-- [ ] T001 Merge `specs/003-rewards-system/contracts/rewards-api.yaml` into `docs/openapi.yaml`: extend `CompletionStatus` enum (add `pending_verification`, `verified`, `rejected`; remove `ready`); add all new schemas (`RewardsSettings`, `ActivityPointOverride`, `FamilyBalance`, `Prize`, `PrizeCreate`, `PrizePatch`, `VoucherUpload`, `VoucherStock`, `RedemptionResult`, `PendingVerificationItem`, `VerificationQueue`, `RejectPayload`); add all 14 new paths
-- [ ] T002 Run codegen from repo root (`datamodel-codegen --input docs/openapi.yaml ...`) to regenerate `server/app/schemas/generated.py`; verify `CompletionStatus` enum, `RewardsSettings`, and `RedemptionResult` are present
+- [ ] T001 Merge `specs/003-rewards-system/contracts/rewards-api.yaml` into `docs/openapi.yaml`: extend the `CompletionStatus` enum (add `pending_verification`, `verified`, `rejected`; remove `ready`); add `duration_minutes` and `rejection_reason` to the completion upload request and `Completion`/`CompletionHistoryItem` schemas; add new schemas (`PendingVerificationItem`, `VerificationQueue`, `RejectPayload`, `RewardLevel`, `RewardLevelProgress`, `RewardsBalance`, `RedeemPayload`, `RedemptionResult`); add all 5 new/modified paths
+- [ ] T002 Run codegen from repo root (`datamodel-codegen --input docs/openapi.yaml ...` per CLAUDE.md) to regenerate `server/app/schemas/generated.py`; verify the updated `CompletionStatus` enum, `RewardsBalance`, and `RedemptionResult` are present
 
 **Checkpoint**: Codegen complete — all phases can now proceed
 
 ---
 
-## Phase 2: Foundational — ORM Models & Migration
+## Phase 2: Foundational — Schema, Models & Migration
 
-**Purpose**: Database schema and Python models that ALL user stories depend on. Must complete before any service or repository code.
+**Purpose**: Database schema and ORM models that ALL user stories depend on. Must complete before any service or repository code.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Add 3 new columns to `Group` model in `server/app/models/group.py`: `rewards_enabled: Mapped[bool]` (NOT NULL, default False), `auto_approve_days: Mapped[int | None]` (nullable), `default_activity_points: Mapped[int]` (NOT NULL, default 10)
-- [ ] T004 [P] Create `server/app/models/rewards.py` with 6 ORM models: `GroupActivityPoints`, `FamilyGroupPoints`, `Prize`, `VoucherCode`, `Redemption`, `PhotoVerification` — see `data-model.md` for full column specs; all PKs use `UUID(as_uuid=True)` + `default=uuid.uuid4`; all timestamps use `DateTime(timezone=True)`
-- [ ] T005 Update `server/app/models/__init__.py` to import all 6 new models from `rewards.py`
-- [ ] T006 Write single Alembic migration `server/alembic/versions/<hash>_add_rewards_system.py`: ALTER TABLE groups (3 columns); CREATE TABLE group_activity_points, family_group_points, prizes, voucher_codes, redemptions, photo_verifications; data migration `UPDATE completions SET status = 'verified' WHERE status = 'ready'`; run `alembic upgrade head` to verify
+- [ ] T003 [P] Add `effort_tier: Mapped[str]` (NOT NULL; values `casual | dedicated`) to `server/app/models/activity.py`
+- [ ] T004 [P] Add `is_featured: Mapped[bool]` (NOT NULL, default False) to `server/app/models/challenge.py`
+- [ ] T005 [P] Add `duration_minutes: Mapped[int | None]` (nullable) to `server/app/models/completion.py`; update the `status` column comment to `processing | pending_verification | verified | rejected | self_reported`
+- [ ] T006 [P] Create `server/app/models/rewards.py` with 4 ORM models: `PointLedgerEntry` (unique on `completion_id`), `RewardLevel`, `Redemption` (unique on `family_id, reward_level_id, quarter_key`), `PhotoVerification` — see `data-model.md` for full column specs; all PKs use `UUID(as_uuid=True)` + `default=uuid.uuid4`; all timestamps use `DateTime(timezone=True)`
+- [ ] T007 Update `server/app/models/__init__.py` to import all 4 new models from `rewards.py` (depends on T006)
+- [ ] T008 Write single Alembic migration `server/alembic/versions/<hash>_add_rewards_system.py` (depends on T003–T007): `ALTER TABLE activities ADD COLUMN effort_tier`; data-migration backfill of `effort_tier = 'dedicated'` for the seed activities identified in OD-101 (title match, same pattern as `relink_collage_presets.py`), else `'casual'`; `ALTER TABLE challenges ADD COLUMN is_featured`; `ALTER TABLE completions ADD COLUMN duration_minutes`; data migration `UPDATE completions SET status = 'verified' WHERE status = 'ready'`; `CREATE TABLE point_ledger_entries, reward_levels, redemptions, photo_verifications`; seed the 4 `reward_levels` rows (50/100/150/250 per `data-model.md`)
+- [ ] T009 Run `alembic upgrade head` to verify the migration applies cleanly against a local Docker Compose Postgres
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
 ---
 
-## Phase 3: US5 — Family Sees Completion Status in Collage (Priority: P1) 🎯
+## Phase 3: US1 — Family Sees Completion Verification Status in Collage (Priority: P1) 🎯 MVP
 
-**Goal**: The completion status machine is live. Families see photo verification state in the collage; can re-upload rejected photos.
+**Goal**: The completion status machine is live end-to-end. Families see photo verification state in the collage and can re-upload rejected photos.
 
-**Independent Test**: Upload a photo → poll and get `pending_verification` (not `ready`); collage shows clock badge. Admin rejects → collage shows red/warning badge with rejection reason on tap. Family re-uploads → status resets to `pending_verification`. Re-upload on a `verified` completion keeps status unchanged.
-
-### Implementation
-
-- [ ] T007 [US5] Update all `status == "ready"` guards in `server/app/services/completion.py`: `_completion_dict` (photo URL gated on `status in ("pending_verification", "verified", "rejected")`), `get_photo_url` (gate on `status == "verified"`), `get_group_feed`, `get_my_history` (photo URL on `status in ("pending_verification", "verified", "rejected")`); update `_compress_async` to set `completion.status = "pending_verification"` instead of `"ready"`; add `"pending_verification"` and `"verified"` to the photo-delete guard in `delete_completion`
-- [ ] T008 [US5] Add `update_photo(session, user_id, completion_id, photo_data, content_type)` to `server/app/services/completion.py`: if `verified` — update `photo_key` only, leave status unchanged; if `rejected` — re-trigger compression pipeline, reset status to `processing`; if `pending_verification` — re-trigger pipeline; if `self_reported` — raise domain error
-- [ ] T009 [US5] Add `PATCH /completions/{completion_id}/photo` route to `server/app/api/completions.py`: multipart form upload; call `completion_service.update_photo()`; return `{ completion_id, status }`
-- [ ] T010 [P] [US5] Update `client/lib/api/completions.ts`: replace `'ready'` with `'pending_verification'` in `CompletionHistoryItem.status` union; add `'verified'` and `'rejected'`; add `rejection_reason: string | null` to `Completion` type; update polling resolve condition from `status === 'ready'` to `status !== 'processing'`
-- [ ] T011 [US5] Add `reuploadPhoto(completionId: string, imageUri: string)` to `client/lib/api/completions.ts`: multipart `PATCH /completions/{id}/photo` using same pattern as existing `photosApi.upload`
-- [ ] T012 [P] [US5] Update `client/components/collage-grid.tsx`: add status badge overlays rendered with `position: 'absolute'` inside the slot `View` — clock icon for `pending_verification`, green checkmark for `verified`, red/warning "!" badge for `rejected`; `rejected` slot is tappable and opens `ReuploadModal`
-- [ ] T013 [P] [US5] Create `client/components/reupload-modal.tsx`: receives `completionId` and `rejectionReason`; displays the rejection reason string; "Neues Foto hochladen" button triggers `reuploadPhoto()`; on success: dismiss and call refresh callback
-- [ ] T014 [P] [US5] Add verification status i18n strings to `client/lib/i18n/de.ts` and `en.ts` under a new `verification` key: `pending`, `verified`, `rejected`, `rejectionReason`, `reupload`, `reuploadButton`
-
-**Checkpoint**: Status machine live end-to-end. Collage reflects all new states. Re-upload flows work.
-
----
-
-## Phase 4: US1 — Admin Enables and Configures Rewards (Priority: P1)
-
-**Goal**: Group admins can enable rewards, set default point values, and override per-activity points.
-
-**Independent Test**: Authenticate as group admin → enable rewards with `default_activity_points = 10` and `auto_approve_days = 7` → `GET /groups/{id}/rewards/settings` returns updated values → set activity override of 25 → `GET /groups/{id}/rewards/activity-points` includes override → admin panel Tab 2 reflects settings and persists changes.
+**Independent Test**: Upload a photo → poll and get `pending_verification` (not `ready`); collage shows clock badge. (Full manual verification of the reject/re-upload cycle also requires the admin actions built in Phase 5 — the status machine and UI here are what makes those actions visible.) Re-upload on a `verified` completion keeps status unchanged.
 
 ### Implementation
 
-- [ ] T015 [P] [US1] Create `server/app/repositories/rewards.py` with rewards-settings methods: `get_rewards_settings(group_id)`, `update_rewards_settings(group_id, *, rewards_enabled, auto_approve_days, default_activity_points)`, `get_activity_points(group_id) → list`, `upsert_activity_point(group_id, challenge_activity_id, points)`; use `AsyncSession`; raise `GroupNotFound` if group missing
-- [ ] T016 [US1] Create `server/app/services/rewards.py` with rewards-settings service functions: `get_settings(session, admin_user_id, group_id)`, `update_settings(session, admin_user_id, group_id, payload)`, `get_activity_points(session, admin_user_id, group_id)`, `update_activity_point(session, admin_user_id, group_id, challenge_activity_id, points)`; each verifies caller is group admin via `group_admins` table (raise `ForbiddenError` if not)
-- [ ] T017 [US1] Create `server/app/api/rewards.py` with settings routes: `GET /rewards/settings`, `PATCH /rewards/settings`, `GET /rewards/activity-points`, `PATCH /rewards/activity-points/{challenge_activity_id}`; all require `current_user` dependency; import schemas from `generated.py`
-- [ ] T018 [US1] Register rewards router in `server/app/main.py` with `prefix="/groups/{group_id}"` (or flat prefix per plan — confirm with openapi.yaml path structure); verify `GET /groups/{id}/rewards/settings` resolves correctly
-- [ ] T019 [P] [US1] Create `client/lib/api/rewards.ts` with settings calls: `getRewardsSettings(groupId)`, `updateRewardsSettings(groupId, payload)`, `getActivityPoints(groupId)`, `updateActivityPoints(groupId, activityId, payload)`
-- [ ] T020 [US1] Update `client/lib/api/index.ts` to export `rewards` from `./rewards`
-- [ ] T021 [US1] Create `client/app/group/[id]/admin.tsx` with Tab 2 (Rewards Settings): `rewards_enabled` toggle, `default_activity_points` numeric input, `auto_approve_days` numeric input (empty = never), save button with optimistic update; per-activity points table (editable inline); visible only when `is_admin: true`
+- [ ] T010 [US1] Update status guards in `server/app/services/completion.py`: `_completion_dict` (photo URL gated on `status in ("pending_verification", "verified", "rejected")`), `get_photo_url`, `get_group_feed`, `get_my_history` (same guard)
+- [ ] T011 [US1] Update `_compress_async` in `server/app/services/completion.py` to set `completion.status = "pending_verification"` (was `"ready"`)
+- [ ] T012 [US1] Update `delete_completion` in `server/app/services/completion.py`: add `"pending_verification"` and `"verified"` to the photo-delete guard
+- [ ] T013 [US1] Add `update_photo(session, user_id, completion_id, photo_data, content_type)` to `server/app/services/completion.py`: `verified` → update `photo_key` only, status unchanged; `rejected` → re-trigger compression pipeline, reset status to `processing`; `pending_verification` → re-trigger pipeline; `self_reported` → raise a new `CannotReuploadSelfReported` domain error in `server/app/services/exceptions.py`
+- [ ] T014 [US1] Add `PATCH /completions/{completion_id}/photo` route to `server/app/api/completions.py`: multipart form upload; calls `completion_service.update_photo()`; returns `{ completion_id, status }`
+- [ ] T015 [P] [US1] Update `client/lib/api/completions.ts`: replace `'ready'` with `'pending_verification'` in the status union; add `'verified'` and `'rejected'`; add `rejection_reason: string | null` to `Completion`; add `reuploadPhoto(completionId: string, imageUri: string)` (multipart `PATCH`); update polling resolve condition from `status === 'ready'` to `status !== 'processing'`
+- [ ] T016 [P] [US1] Update `client/components/collage-grid.tsx`: clock icon overlay for `pending_verification`, green checkmark for `verified`, red tint + "!" badge for `rejected` (tappable → opens `ReuploadModal`)
+- [ ] T017 [P] [US1] Create `client/components/reupload-modal.tsx`: receives `completionId` and `rejectionReason`; displays the reason; "Neues Foto hochladen" button triggers `reuploadPhoto()`; on success, dismiss + refresh callback
+- [ ] T018 [P] [US1] Add verification-status i18n strings (`pending`, `verified`, `rejected`, `rejectionReason`, `reupload`, `reuploadButton`) to `client/lib/i18n/de.ts` and `en.ts`
 
-**Checkpoint**: Admin can configure rewards end-to-end. Settings persist and are returned correctly by the API.
+**Checkpoint**: Status machine live. Collage reflects all new states. Re-upload flows work (full loop testable once Phase 5's admin actions exist).
 
 ---
 
-## Phase 5: US2 — Admin Reviews and Verifies Photos (Priority: P1)
+## Phase 4: US3 — Family Earns Points by Fixed Activity Tiers (Priority: P1)
 
-**Goal**: Group admins see a verification queue, can approve photos (crediting family points) or reject them with a reason. Auto-approval sweeps pending completions after the configured threshold.
+**Goal**: Tier resolution, the 30-minute casual gate, and the point ledger exist and are ready to be invoked by verification.
 
-**Independent Test**: Submit a photo as family member → admin `GET /groups/{id}/admin/verifications` returns it with family name, activity, photo URL → admin approves → family balance is credited in `family_group_points` → `photo_verifications` audit row created → collage slot shows green checkmark. Admin rejects → rejection reason stored → family sees red badge. Auto-approval sweep approves photos older than threshold.
+**Independent Test**: Directly invoke `points.award_points()` (or a temporary script) against one completion of each tier — casual ≥ 30 min, casual < 30 min, dedicated, marketplace, and one inside a featured challenge — and confirm the ledger shows 3 / 0 / 6 / 15 / base+5 points respectively, with exactly one ledger row per completion.
 
 ### Implementation
 
-- [ ] T022 [P] [US2] Create `server/app/services/verification_policy.py`: `VerificationPolicy(ABC)` with `policy_type: str` and `async should_auto_approve(completion, session) → bool`; `TimedVerificationPolicy(days)` checks `now - completion.completed_at >= timedelta(days=days)`; `NeverAutoApprovePolicy` always returns False with `policy_type = "manual"`; `get_policy(group) → VerificationPolicy` factory
-- [ ] T023 [P] [US2] Add verification repository methods to `server/app/repositories/rewards.py`: `list_pending_verifications(group_id, limit, offset) → list[PendingVerificationItem]` (joins completions → challenge_activities → families; returns family name, activity title, presigned photo URL, submitted_at; no child names); `create_photo_verification(completion_id, reviewer_user_id, action, rejection_reason, policy_type)`; `credit_balance(session, family_id, group_id, points)` (upsert on conflict with `balance = balance + points`); `get_applicable_points(group_id, challenge_activity_id) → int` (override or default)
-- [ ] T024 [US2] Create `server/app/services/verification.py`: `approve(session, admin_user_id, completion_id, group_id)` — verify admin, check status is `pending_verification`, credit balance, set `completion.status = "verified"`, create audit record; `reject(session, admin_user_id, completion_id, group_id, reason)` — verify admin, set `completion.status = "rejected"`, create audit record; `run_auto_approvals(session)` — query all `pending_verification` completions, apply `get_policy(group)`, call `approve()` with `reviewer_user_id=None` for eligible completions
-- [ ] T025 [US2] Add verification routes to `server/app/api/rewards.py`: `GET /admin/verifications` (paginated), `POST /admin/verifications/{completion_id}/approve`, `POST /admin/verifications/{completion_id}/reject` (body: `{ reason }`); all check admin role at service layer
-- [ ] T026 [US2] Add auto-approval background asyncio task to FastAPI lifespan in `server/app/main.py`: `asyncio.create_task(auto_approval_loop())` where the loop calls `verification_service.run_auto_approvals(session)` then sleeps 3600 seconds
-- [ ] T027 [P] [US2] Add verification API calls to `client/lib/api/rewards.ts`: `getVerificationQueue(groupId, limit?, offset?)`, `approvePhoto(groupId, completionId)`, `rejectPhoto(groupId, completionId, reason)`
-- [ ] T028 [US2] Add Tab 1 (Verification Queue) to `client/app/group/[id]/admin.tsx`: paginated list of `PendingVerificationItem`; each row shows photo, family name, activity title, submission date; "Approve" button and "Reject" button (reject opens inline reason text input); on action, remove item from queue and show success feedback
+- [ ] T019 [P] [US3] Create `server/app/repositories/rewards.py` with ledger methods: `create_ledger_entry(session, family_id, completion_id, base_points, bonus_points, awarded_at)` (relies on the unique constraint on `completion_id` for idempotency), `get_quarter_balance(session, family_id, quarter_start, quarter_end) -> int`, `list_quarter_ledger(session, family_id, quarter_start, quarter_end)`
+- [ ] T020 [US3] Create `server/app/services/points.py` (depends on T019): `resolve_tier(activity) -> Literal["casual", "dedicated", "marketplace"]` (marketplace if `cost_indicator == "paid" or is_partner_content`, else `activity.effort_tier`); `compute_points(activity, challenge, duration_minutes) -> tuple[int, int]` (base, bonus — casual base is 0 if `duration_minutes` is `None` or `< 30`; dedicated = 6; marketplace = 15; bonus = 5 if `challenge.is_featured` else 0); `award_points(session, completion) -> None` (resolves tier, computes points, calls `create_ledger_entry`)
+- [ ] T021 [US3] Update the completion upload entrypoint in `server/app/services/completion.py` to accept and persist `duration_minutes`; validate (via `resolve_tier`) that it is present when the activity's tier is `casual`, raising a new `DurationRequired` domain error in `server/app/services/exceptions.py` otherwise
+- [ ] T022 [US3] Update the completion upload route in `server/app/api/completions.py` to accept `duration_minutes` from the request and pass it through to the service
+- [ ] T023 [P] [US3] Update `client/lib/api/completions.ts`: add `duration_minutes` to the upload call signature and to the `Completion`/`CompletionHistoryItem` types
+- [ ] T024 [P] [US3] Create `client/components/duration-picker.tsx`: dropdown with options 15 / 30 / 45 / 60 / 90 / 120+ minutes (OD-105)
+- [ ] T025 [US3] Wire `DurationPicker` into the existing photo-upload flow: show it (and require a selection before submit) when the activity being completed resolves to the casual tier
 
-**Checkpoint**: Full verification cycle works: photo → pending → admin approves/rejects → balance credited / rejection reason visible.
+**Checkpoint**: Tier resolution, the 30-minute gate, and the ledger exist and are unit-verifiable. Nothing awards points automatically yet — that wiring happens in Phase 5.
 
 ---
 
-## Phase 6: US4 — Admin Manages Prize Catalog (Priority: P2)
+## Phase 5: US2 — Admin Reviews and Verifies Completion Photos (Priority: P1)
 
-**Goal**: Group admins create prizes, upload voucher code batches, and view remaining stock per prize.
+**Goal**: Group admins can review pending photos and approve (awarding points via US3's `points.award_points`) or reject (with a reason) them. Personal/family challenges auto-approve on a timed policy.
 
-**Independent Test**: Admin creates a prize → `GET /groups/{id}/prizes` (admin view) includes it → admin uploads 3 codes → `GET vouchers/remaining` returns 3 → admin marks prize unavailable → family-facing `GET /groups/{id}/prizes` does not include it → admin still sees it.
+**Depends on**: Phase 4 (`points.award_points`) for the approve action to award points.
+
+**Independent Test**: Submit a photo completion as a family in a group challenge, log in as the group admin, approve or reject it via the queue, and verify the family's ledger changes (or doesn't, on reject) accordingly. Separately, submit a completion in a personal challenge and confirm it auto-approves after the timed window.
 
 ### Implementation
 
-- [ ] T029 [P] [US4] Add prize and voucher repository methods to `server/app/repositories/rewards.py`: `list_prizes(group_id, admin=False)` (admin=False filters `available=true` and non-expired); `create_prize(group_id, **fields) → Prize`; `update_prize(prize_id, **fields) → Prize`; `insert_voucher_codes(prize_id, codes: list[str]) → int` (bulk insert, return count); `get_voucher_stock(prize_id) → int` (count unredeemed)
-- [ ] T030 [US4] Add prize and voucher service methods to `server/app/services/rewards.py`: `list_prizes(session, user_id, group_id)` (admin sees all; member sees available only — check membership); `create_prize(session, admin_user_id, group_id, payload)`; `update_prize(session, admin_user_id, group_id, prize_id, payload)`; `upload_voucher_codes(session, admin_user_id, group_id, prize_id, codes: list[str])`; `get_voucher_stock(session, admin_user_id, group_id, prize_id) → int`
-- [ ] T031 [US4] Add prize and voucher routes to `server/app/api/rewards.py`: `GET /prizes`, `POST /prizes`, `PATCH /prizes/{prize_id}`, `POST /prizes/{prize_id}/vouchers`, `GET /prizes/{prize_id}/vouchers/remaining`
-- [ ] T032 [P] [US4] Add prize and voucher API calls to `client/lib/api/rewards.ts`: `listPrizes(groupId)`, `createPrize(groupId, payload)`, `updatePrize(groupId, prizeId, payload)`, `uploadVoucherCodes(groupId, prizeId, codes)`, `getVoucherStock(groupId, prizeId)`
-- [ ] T033 [US4] Add Tab 3 (Prize Management) to `client/app/group/[id]/admin.tsx`: list of all prizes with remaining stock count; "Add Prize" form (title, description, point_cost, category, expiry, available toggle); per-prize "Upload Codes" action (textarea, newline-separated); stock count display per prize
-- [ ] T034 [P] [US4] Add prize management i18n strings to `client/lib/i18n/de.ts` and `en.ts` under `rewards.prizes`: `create`, `edit`, `uploadCodes`, `codesPlaceholder`, `stockCount`, `noStock`, `category.*` variants, `expires`, `available`, `unavailable`
+- [ ] T026 [P] [US2] Add verification-audit methods to `server/app/repositories/rewards.py`: `list_pending_verifications(session, group_id, limit, offset)`, `create_photo_verification(session, completion_id, reviewer_user_id, action, rejection_reason, policy_type, reviewed_at)`
+- [ ] T027 [P] [US2] Create `server/app/services/verification_policy.py`: `VerificationPolicy(ABC)` with `policy_type: str` and `async should_auto_approve(completion, challenge, session) -> bool`; `TimedVerificationPolicy(hours=24)` (checks `completed_at + hours <= now`); `NeverAutoApprovePolicy` (always `False`, `policy_type = "manual"`); `get_policy(challenge) -> VerificationPolicy` factory branching on `challenge.group_id is None`
+- [ ] T028 [US2] Create `server/app/services/verification.py` (depends on T020, T026, T027): `approve(session, admin_user_id, completion_id, group_id)` — sets status `verified`, calls `points.award_points`, creates an audit record via `create_photo_verification`; `reject(session, admin_user_id, completion_id, group_id, reason)` — sets status `rejected`, requires a non-empty reason, creates an audit record; `run_auto_approvals(session)` — queries `pending_verification` completions on challenges with `group_id IS NULL` past their policy's window, calls `approve()` with `reviewer_user_id=None`
+- [ ] T029 [US2] Create `server/app/api/rewards.py` with verification routes: `GET /groups/{group_id}/verification-queue` (paginated), `POST /groups/{group_id}/verification-queue/{completion_id}/approve`, `POST /groups/{group_id}/verification-queue/{completion_id}/reject`; all admin-checked via the existing `NotGroupAdmin` exception pattern
+- [ ] T030 [US2] Update `server/app/main.py`: register the rewards router; add an hourly auto-approval asyncio background task in the lifespan (`run_auto_approvals`, matching the existing lifespan-task pattern)
+- [ ] T031 [P] [US2] Create `client/lib/api/rewards.ts` with `getVerificationQueue(groupId, limit, offset)`, `approvePhoto(groupId, completionId)`, `rejectPhoto(groupId, completionId, reason)`
+- [ ] T032 [US2] Update `client/lib/api/index.ts` to export the `rewards` API
+- [ ] T033 [US2] Create `client/app/group/[id]/admin.tsx` (visible only when `is_admin: true`): verification queue — photo, family name (no child names), activity title, reported duration, submission date; approve button; reject button opening an inline reason input
+- [ ] T034 [P] [US2] Add verification-queue i18n strings (`queue`, `noQueue`, `approve`, `reject`, `reason`, `duration`) to `client/lib/i18n/de.ts` and `en.ts`
 
-**Checkpoint**: Admin can manage the full prize catalog and upload voucher inventory. Family-facing catalog correctly filters.
+**Checkpoint**: US1 + US3 + US2 together form the complete verify-and-earn loop — collage badges now reflect real admin actions, and approved completions actually credit the family's ledger.
 
 ---
 
-## Phase 7: US3 — Family Views Balance and Redeems a Prize (Priority: P2)
+## Phase 6: US4 — Family Views Quarter Balance, Level Progress, and Redeems Rewards (Priority: P2)
 
-**Goal**: Families see their running point balance within a group and can redeem prizes atomically — balance debited, voucher code returned in a single transaction.
+**Goal**: Families see their current-quarter balance and progress toward the 4 seeded reward levels, and can redeem an unlocked level for a placeholder voucher code without debiting the balance.
 
-**Independent Test**: Family has `balance = 10`; prize costs 5 with 2 voucher codes; family redeems → `voucher_code` returned, `balance` becomes 5, stock drops to 1; second redemption by same family → `balance = 0`, stock = 0; third attempt → 402 Insufficient Points. Concurrent redemption of last code by two families → exactly one succeeds, other gets 409.
+**Independent Test**: Earn ≥ 50 points in the current quarter (via Phases 4–5), open the rewards screen, confirm Level 1 shows unlocked and Levels 2–4 show progress, redeem Level 1, and confirm a voucher code is displayed, a redemption record exists, and the balance is unchanged. Confirm a second redemption of the same level in the same quarter is blocked, and (separately) that a 4th Level 4 redemption within a calendar year is blocked.
 
 ### Implementation
 
-- [ ] T035 [P] [US3] Add balance and redemption repository methods to `server/app/repositories/rewards.py`: `get_balance(family_id, group_id) → int`; `debit_balance_atomic(session, family_id, group_id, cost) → bool` (single UPDATE with WHERE balance >= cost, returns True if row updated); `pop_voucher(session, prize_id) → VoucherCode | None` (SELECT FOR UPDATE SKIP LOCKED, mark `redeemed_at` and `redeemed_by_family_id`); `create_redemption(session, family_id, group_id, prize_id, voucher_code_id, points_spent)`
-- [ ] T036 [US3] Add balance and redemption service methods to `server/app/services/rewards.py`: `get_family_balance(session, user_id, group_id) → FamilyBalance`; `redeem_prize(session, user_id, group_id, prize_id) → RedemptionResult` — all within one transaction: verify membership, load prize, check available/not expired, debit balance (raise `InsufficientPoints` if atomic debit returns False), pop voucher (raise `OutOfStock` if None), create redemption record, return voucher code
-- [ ] T037 [US3] Add balance and redemption routes to `server/app/api/rewards.py`: `GET /rewards/balance` (return `FamilyBalance`), `POST /prizes/{prize_id}/redeem` (return `RedemptionResult`; map `InsufficientPoints` → 402, `OutOfStock` → 409)
-- [ ] T038 [P] [US3] Add balance and redemption API calls to `client/lib/api/rewards.ts`: `getMyBalance(groupId)`, `redeemPrize(groupId, prizeId)`
-- [ ] T039 [US3] Create `client/app/group/[id]/prizes.tsx`: show family balance at top; list available prizes with point cost, description, and `balance/cost` progress bar; "Einlösen" button (disabled if `balance < cost` or out of stock); confirmation dialog → on confirm call `redeemPrize()` → show returned `voucher_code` prominently with copy button
-- [ ] T040 [US3] Update `client/app/group/[id].tsx`: add points balance chip (shown only when `rewards_enabled` for group); add "Prämien" navigation button linking to `prizes.tsx`; add "Admin" navigation button (shown only when `is_admin: true`) linking to `admin.tsx`
-- [ ] T041 [P] [US3] Add balance and redemption i18n strings to `client/lib/i18n/de.ts` and `en.ts` under `rewards`: `balance`, `yourPoints`, `redeem`, `redeemConfirm`, `redeemSuccess`, `voucherCode`, `copyCode`, `insufficientPoints`, `outOfStock`, `prizes`, `noPrizes`, `pointsCost`, `progress`
+- [ ] T035 [US4] Add level/redemption methods to `server/app/repositories/rewards.py`: `list_reward_levels(session)`, `count_family_redemptions_quarter(session, family_id, reward_level_id, quarter_key) -> int`, `count_family_redemptions_year(session, family_id, reward_level_id, year) -> int`, `create_redemption(session, family_id, reward_level_id, quarter_key, chosen_option, points_at_redemption, voucher_code, redeemed_at)`
+- [ ] T036 [US4] Add domain exceptions to `server/app/services/exceptions.py`: `LevelLocked`, `AlreadyRedeemedThisQuarter`, `AnnualCapReached`, `ChoiceRequired`
+- [ ] T037 [US4] Create `server/app/services/rewards.py` (depends on T035, T036): `get_balance_and_progress(session, family_id) -> RewardsBalance` (quarter balance via `get_quarter_balance` + per-level `locked | unlocked | redeemed_this_quarter` state); `redeem(session, family_id, reward_level_id, chosen_option=None) -> RedemptionResult` (checks unlock, checks quarter uniqueness via `count_family_redemptions_quarter`, checks the Level 4 annual cap via `count_family_redemptions_year`, requires `chosen_option` when the level has `choice_options`, generates a placeholder `BOND-XXXXXX` voucher code, creates the redemption record)
+- [ ] T038 [US4] Add rewards routes to `server/app/api/rewards.py`: `GET /rewards/balance` (family-scoped via `current_user`, not group-scoped), `POST /rewards/levels/{level_id}/redeem`
+- [ ] T039 [P] [US4] Add `getRewardsBalance()` and `redeemLevel(levelId, chosenOption?)` to `client/lib/api/rewards.ts`
+- [ ] T040 [US4] Create `client/app/rewards.tsx` (family-level screen, not group-scoped): quarter balance header, 4-level progress list, Level 3 choice picker, Level 4 annual-cap messaging, redeem button per unlocked level, confirmation dialog showing the voucher code
+- [ ] T041 [US4] Add a "Prämien" / "Rewards" navigation entry point to `client/app/rewards.tsx` — placement TBD during implementation (main tab bar, profile, or group screen; rewards are family-global, not group-scoped, per the revised spec)
+- [ ] T042 [US4] Update `client/app/(tabs)/profile.tsx` and `client/lib/auth/auth-context.tsx` to stop reading `points_balance` (FR-019): repoint the profile's points display to `getRewardsBalance()` or remove it in favor of the new rewards screen
+- [ ] T043 [P] [US4] Add rewards i18n strings (`balance`, `levels`, `redeem`, `redeemConfirm`, `redeemSuccess`, `voucherCode`, `locked`, `unlocked`, `alreadyRedeemed`, `annualCapReached`, `chooseOption`) to `client/lib/i18n/de.ts` and `en.ts`
 
-**Checkpoint**: Full rewards economy works end-to-end: earn via verification → view balance → browse catalog → redeem → receive voucher code.
+**Checkpoint**: All 4 user stories complete — the full demo loop (upload → verify → earn → redeem) works end-to-end.
 
 ---
 
-## Phase 8: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & Cross-Cutting Concerns
 
-**Purpose**: Integration validation, GDPR audit, and contract verification across all stories.
-
-- [ ] T042 GDPR audit: verify CASCADE delete on `redemptions`, `photo_verifications` when a `family` is deleted; verify `reviewer_user_id` SET NULL in `photo_verifications` when a `user` is deleted; confirm no child names appear in any verification queue SQL query
-- [ ] T043 [P] Run schemathesis contract tests against all new endpoints: `schemathesis run ../docs/openapi.yaml --base-url http://localhost:8000` and confirm no 5xx or schema violations on new paths
-- [ ] T044 Run `quickstart.md` validation scenarios 1–9 with Docker Compose stack running; confirm all expected status codes, balance values, stock counts, and audit records match; pay special attention to Scenario 7 (concurrent redemption) and Scenario 8 (auto-approval sweep)
-- [ ] T045 [P] Add `InsufficientPoints`, `OutOfStock`, `VerificationConflict` domain exceptions to `server/app/services/exceptions.py`; verify all new service methods raise domain exceptions (never `HTTPException`)
-- [ ] T046 [P] Run `ruff check server/` and `ruff format server/`; run `npx tsc --noEmit` in `client/`; fix any type or lint errors introduced across new files
+- [ ] T044 [P] Run all 6 scenarios in `specs/003-rewards-system/quickstart.md` end-to-end against a local Docker Compose stack
+- [ ] T045 [P] Update `server/scripts/seed_dev.py` to set `effort_tier` on demo activities and flag at least one seeded challenge `is_featured = true`, so the demo has a visible bonus-point path
+- [ ] T046 `ruff check .` and `ruff format .` clean on all new/modified server files
+- [ ] T047 [P] Add pytest coverage for: tier resolution (`resolve_tier`/`compute_points`), the 30-minute gate, ledger idempotency (duplicate `create_ledger_entry` on the same `completion_id`), quarter-boundary math, the Level 3 choice requirement, and the Level 4 annual cap
 
 ---
 
@@ -154,94 +146,47 @@
 
 ### Phase Dependencies
 
-- **Phase 1 (Setup)**: No dependencies — start immediately
-- **Phase 2 (Foundational)**: Depends on T001/T002 — codegen must be complete ⚠️
-- **Phase 3 (US5)**: Depends on Phase 2 — models and migration must exist
-- **Phase 4 (US1)**: Depends on Phase 2 — can run in parallel with Phase 3
-- **Phase 5 (US2)**: Depends on Phase 4 (rewards repo and service files must exist); depends on Phase 3 (status machine must be live)
-- **Phase 6 (US4)**: Depends on Phase 2; can run in parallel with Phase 3/4
-- **Phase 7 (US3)**: Depends on Phase 5 (balance credit already wired for approvals) and Phase 6 (prizes must exist to redeem)
-- **Phase 8 (Polish)**: Depends on all story phases complete
+- **Setup (Phase 1)**: No dependencies — blocks everything (codegen gate)
+- **Foundational (Phase 2)**: Depends on Setup — blocks all user stories
+- **US1 (Phase 3)**: Depends on Foundational only
+- **US3 (Phase 4)**: Depends on Foundational only (independent of US1)
+- **US2 (Phase 5)**: Depends on Foundational **and** US3 (T028 calls `points.award_points` from T020)
+- **US4 (Phase 6)**: Depends on Foundational and US3 (reads the ledger); does not require US2 to be code-complete, but needs verified completions to exist for meaningful manual testing
+- **Polish (Phase 7)**: Depends on all four stories
 
-### User Story Dependencies
+### Parallel Opportunities
 
-```
-Phase 1 → Phase 2 → Phase 3 (US5) ─┐
-                  └─ Phase 4 (US1) ─┤─ Phase 5 (US2) ─┐
-                  └─ Phase 6 (US4) ─┘                  ├─ Phase 7 (US3) → Phase 8
-                                                         └─────────────────┘
-```
-
-### Within Each Phase
-
-- Tasks marked [P] within the same phase can run concurrently (different files, no shared state)
-- Repository methods → service methods → route handlers (sequential within each story)
-- Server side of each story must be done before the matching client API calls make sense to test
+- All Foundational model tasks T003–T006 are `[P]` (different files)
+- Within US1: T015–T018 (client) are `[P]` and can run alongside T010–T014 (server) once both start from the same Foundational base
+- Within US3: T023–T024 (client) are `[P]` alongside T019–T022 (server)
+- Within US2: T026–T027 (server) are `[P]`; T031 and T034 are `[P]`
+- Within US4: T039 and T043 are `[P]`
+- US1 and US3 phases have no dependency on each other and could be built in parallel by two developers once Phase 2 is done; US2 must wait for US3's T020
 
 ---
 
-## Parallel Opportunities
+## Parallel Example: Phase 2 (Foundational)
 
-### Phase 2 (Foundational)
-```
-T003 (group.py columns) ← sequential, depends on T002
-T004 (rewards.py models) [P] ← can run while T003 runs (different file)
-T005 (models __init__)  ← depends on T004
-T006 (migration)        ← depends on T003, T004, T005
-```
-
-### Phase 3 (US5)
-```
-Parallel: T010 (completions.ts types), T012 (collage-grid.tsx), T013 (reupload-modal.tsx), T014 (i18n)
-Sequential: T007 → T008 → T009 (server, all touch completion.py/completions.py)
-T011 (reuploadPhoto) ← depends on T010
-```
-
-### Phase 5 (US2)
-```
-Parallel: T022 (verification_policy.py), T023 (repo methods), T027 (client API)
-Sequential: T024 (verification.py) ← depends on T022 + T023
-Sequential: T025 (routes) ← depends on T024
-Sequential: T026 (lifespan task) ← depends on T024
-Sequential: T028 (admin.tsx Tab 1) ← depends on T027
+```bash
+Task: "Add effort_tier to server/app/models/activity.py"
+Task: "Add is_featured to server/app/models/challenge.py"
+Task: "Add duration_minutes to server/app/models/completion.py"
+Task: "Create server/app/models/rewards.py with 4 ORM models"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP (Phases 1–3 only)
+### MVP First (3-day demo budget)
 
-Complete the status machine change with client-side collage overlays. This is independently shippable and required before any reward-earning logic can work.
+1. Phase 1 (Setup) + Phase 2 (Foundational) — day 1 morning
+2. Phase 3 (US1) + Phase 4 (US3) in parallel if two people are available, else sequentially — day 1 afternoon through day 2 morning
+3. Phase 5 (US2) — day 2 afternoon. **Checkpoint**: the full verify-and-earn loop works; this alone is a legitimate demo even without Phase 6.
+4. Phase 6 (US4) — day 3. This is the demo's centerpiece (the reward ladder), so don't skip it if time allows.
+5. Phase 7 (Polish) — remaining day-3 time; prioritize T044 (quickstart validation) over T047 (test coverage) if time is short.
 
-1. Phase 1: API contract + codegen
-2. Phase 2: Models + migration
-3. Phase 3 (US5): Status machine + collage badges + re-upload
-4. **STOP and VALIDATE**: Quickstart scenarios 2, 3, 4, 5
+### Incremental Delivery
 
-### Full Feature
-
-5. Phase 4 (US1): Admin configuration
-6. Phase 5 (US2): Verification queue + approval/rejection + auto-approval
-   - Quickstart scenarios 1, 3, 4, 8
-7. Phase 6 (US4): Prize catalog + voucher management
-8. Phase 7 (US3): Balance + redemption
-   - Quickstart scenarios 6, 7, 9
-9. Phase 8: Polish + GDPR + contract tests
-
-### Parallel Team Strategy (2 developers)
-
-- **Dev A**: Phases 1 → 2 → 3 (US5) → 5 (US2) — status machine + verification
-- **Dev B**: Phase 4 (US1) → 6 (US4) → 7 (US3) — configuration + prizes + redemption
-- Both converge at Phase 8
-
----
-
-## Notes
-
-- `[P]` tasks touch different files and have no unmet in-phase dependencies — safe to run concurrently
-- `server/app/repositories/rewards.py` and `server/app/services/rewards.py` grow across phases — each phase appends new methods to the existing file
-- `client/app/group/[id]/admin.tsx` grows across phases (Tab 2 in US1, Tab 1 in US2, Tab 3 in US4)
-- `client/lib/api/rewards.ts` grows across phases (settings in US1, verification in US2, prizes in US4, balance in US3)
-- Always run `alembic upgrade head` after T006 before any service code that queries new tables
-- The openapi.yaml codegen is a hard gate — tasks T003+ must not implement routes or schema imports before T002 is done
+- After Phase 5: photo verification + point earning is demoable (points visible only via API/DB, no rewards screen yet).
+- After Phase 6: the full loop, including the rewards screen and redemption, is demoable — this is the target end state.
