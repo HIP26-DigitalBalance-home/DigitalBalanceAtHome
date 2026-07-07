@@ -34,6 +34,7 @@ from app.models.completion import Completion
 from app.models.consent import ConsentRecord
 from app.models.family import Family, FamilyMembership
 from app.models.group import Group, GroupAdmin, GroupMembership
+from app.models.manual_time_entry import ManualTimeEntry
 from app.models.rewards import PhotoVerification, PointLedgerEntry
 from app.models.user import User
 from app.services.points import compute_points
@@ -548,6 +549,153 @@ async def seed():
             await session.flush()
             shared_count = sum(1 for *_, shared, _ in completions_data if shared)
             print(f"✓  Seeded {len(completions_data)} completions ({shared_count} shared, {photo_count} with photos)")
+
+            # ── Showcase: one fully-completed, photo-filled 3×3 collage ──────
+            # A curated challenge whose every slot is a verified photo
+            # completion by the admin family. This is the "beautiful completed
+            # collage" used in the demo/presentation. Photos are pinned,
+            # watermark-free Unsplash images bundled in seed_photos/ (see
+            # download_seed_photos.sh). Grid order is chosen for visual balance,
+            # with the warm dad-and-daughter planting shot in the centre slot.
+            SHOWCASE_TITLE = "Unsere Familienmomente"
+            result = await session.execute(select(Challenge).where(Challenge.title == SHOWCASE_TITLE))
+            existing_showcase = result.scalar_one_or_none()
+            if existing_showcase:
+                # DB-level cascade removes challenge_activities → completions →
+                # ledger/verification rows, so re-running the seed is safe.
+                await session.execute(
+                    delete(ChallengeActivity).where(ChallengeActivity.challenge_id == existing_showcase.id)
+                )
+                await session.delete(existing_showcase)
+                await session.flush()
+
+            # (German activity title, photo filename, caption) in grid order 0–8.
+            showcase_slots = [
+                ("Gemeinsam Plätzchen backen", "collage_baking.jpg", "Zusammen Kekse gebacken 🍪"),
+                ("Ein Buch gemeinsam vorlesen", "collage_reading.jpg", "Gute-Nacht-Geschichte 📖"),
+                ("In den Park gehen", "collage_park.jpg", "Goldener Nachmittag im Park ☀️"),
+                ("Gemeinsam zeichnen und malen", "collage_painting.jpg", "Kleine Künstler am Werk 🎨"),
+                ("Etwas in einen Topf pflanzen", "collage_planting.jpg", "Unser Garten wächst 🌱"),
+                ("Eine Kissenburg bauen", "collage_fort.jpg", "Die gemütlichste Burg der Welt 🏰"),
+                ("Gemeinsam ein Gericht kochen", "collage_cooking.jpg", "Kleiner Chefkoch am Herd 👩‍🍳"),
+                ("Zu Lieblingsliedern tanzen", "collage_dancing.jpg", "Wohnzimmer-Disco 💃"),
+                ("Ein Brettspiel spielen", "collage_boardgame.jpg", "Spieleabend 🎲"),
+            ]
+            showcase_titles = [t for t, _, _ in showcase_slots]
+            act_result = await session.execute(select(Activity).where(Activity.title.in_(showcase_titles)))
+            showcase_activity_by_title = {a.title: a for a in act_result.scalars().all()}
+            missing = [t for t in showcase_titles if t not in showcase_activity_by_title]
+            if missing:
+                print(f"⚠  Showcase collage skipped — activities not found: {missing}")
+            else:
+                showcase = Challenge(
+                    title=SHOWCASE_TITLE,
+                    description="Ein ganzer Sommer voller gemeinsamer Momente — unsere fertige Collage.",
+                    title_en="Our Family Moments",
+                    description_en="A whole summer of moments together — our finished collage.",
+                    group_id=group.id,
+                    created_by_family_id=admin_family.id,
+                    display_mode="collage",
+                    is_featured=True,
+                )
+                session.add(showcase)
+                await session.flush()
+
+                showcase_photos = 0
+                for pos, (title, filename, caption) in enumerate(showcase_slots):
+                    activity = showcase_activity_by_title[title]
+                    ca = ChallengeActivity(
+                        challenge_id=showcase.id,
+                        activity_id=activity.id,
+                        grid_position=pos,
+                    )
+                    session.add(ca)
+                    await session.flush()
+
+                    photo_key = _upload_seed_photo(admin_family.id, filename)
+                    if photo_key:
+                        showcase_photos += 1
+                    # Spread completions across the last ~week so the collage
+                    # reads as a real, lived-in challenge rather than one bulk import.
+                    completed_at = _ts(8.5 - pos * 0.8)
+                    completion = Completion(
+                        challenge_activity_id=ca.id,
+                        family_id=admin_family.id,
+                        completed_by_user_id=admin_user.id,
+                        status="verified" if photo_key else "self_reported",
+                        photo_key=photo_key,
+                        caption=caption,
+                        duration_minutes=activity.estimated_duration_minutes,
+                        completed_on=completed_at.date(),
+                        shared_to_feed=True,
+                        completed_at=completed_at,
+                    )
+                    session.add(completion)
+                    await session.flush()
+
+                    if photo_key:
+                        base, bonus = compute_points(activity, showcase, completion.duration_minutes)
+                        session.add(
+                            PointLedgerEntry(
+                                family_id=admin_family.id,
+                                completion_id=completion.id,
+                                base_points=base,
+                                bonus_points=bonus,
+                                awarded_at=completed_at,
+                            )
+                        )
+                        session.add(
+                            PhotoVerification(
+                                completion_id=completion.id,
+                                reviewer_user_id=admin_user.id,
+                                action="approved",
+                                policy_type="manual",
+                                reviewed_at=completed_at,
+                            )
+                        )
+                await session.flush()
+                print(
+                    f"✓  Created showcase collage '{SHOWCASE_TITLE}' — "
+                    f"9/9 slots completed ({showcase_photos} with photos)"
+                )
+
+        # ── Demo stats: streak + 2 months of "time spent together" ──────────
+        # Written straight onto the admin family / admin user so the streak
+        # card and the time-spent insight charts are richly filled for the
+        # presentation. Deterministic (no RNG) so every re-seed looks the same.
+        today_date = datetime.now(timezone.utc).date()
+
+        # Streak: a healthy current run, a longer personal best, and a prior
+        # streak — last_activity_date=today so the card reads as active now.
+        admin_family.streak_days = 12
+        admin_family.last_streak_days = 9
+        admin_family.longest_streak_days = 21
+        admin_family.last_activity_date = today_date
+        admin_family.last_frozen_date = None
+
+        # Nine weeks (~2 months) of daily "time spent with your child" manual
+        # entries for the admin user. Weekdays lighter, weekends heavier, with a
+        # natural gap roughly once a week so it reads as real logging, not a
+        # bulk backfill. Delete-first keeps the seed idempotent (entry_date is
+        # unique per user).
+        await session.execute(delete(ManualTimeEntry).where(ManualTimeEntry.user_id == admin_user.id))
+        weekday_base = [30, 25, 40, 20, 35]  # Mon–Fri base minutes
+        time_entries_added = 0
+        for days_ago in range(63):
+            day = today_date - timedelta(days=days_ago)
+            if days_ago % 9 == 4:  # ~one skipped day per week
+                continue
+            if day.weekday() >= 5:  # Sat/Sun: longer shared time
+                minutes = 75 + (day.day % 3) * 20  # 75 / 95 / 115
+            else:
+                minutes = weekday_base[day.weekday()] + (day.day % 3) * 5
+            session.add(ManualTimeEntry(user_id=admin_user.id, entry_date=day, minutes=minutes))
+            time_entries_added += 1
+        print(
+            f"✓  Set streak (current {admin_family.streak_days}, "
+            f"longest {admin_family.longest_streak_days}) and {time_entries_added} "
+            "time-spent entries over the last 9 weeks"
+        )
 
         await session.commit()
         print("\n✅  Seed complete!")

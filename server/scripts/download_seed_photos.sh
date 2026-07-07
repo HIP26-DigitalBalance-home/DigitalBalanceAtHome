@@ -41,5 +41,32 @@ download planes.jpg       "https://source.unsplash.com/featured/1200x900/?childr
 download storytelling.jpg "https://source.unsplash.com/featured/1200x900/?parent,reading,story,children,bedtime"
 
 echo ""
-echo "✅  Done — 12 photos saved to $(basename "$DEST")/"
+echo "Downloading curated collage photos (pinned, watermark-free) ..."
+echo ""
+
+# Curated 3×3 "completed collage" set used by the showcase challenge in
+# seed_dev.py ("Unsere Familienmomente"). Unlike the keyword URLs above, these
+# are PINNED to specific Unsplash photo IDs so the demo collage is reproducible
+# and never pulls a watermarked Unsplash+ preview. Served straight from
+# images.unsplash.com (no watermark) at 1200×900, cropped.
+collage() {
+    local name="$1"
+    local id="$2"
+    echo "  → $name"
+    curl -fsSL --max-time 40 -L -o "$DEST/$name" \
+        "https://images.unsplash.com/photo-$id?w=1200&h=900&fit=crop&q=80"
+}
+
+collage collage_baking.jpg    1605433247501-698725862cea  # two kids mixing dough
+collage collage_cooking.jpg   1628191012047-e789922abfdf  # mum + toddler at the counter
+collage collage_reading.jpg   1543556153-663aaf154a81     # bedtime story by lamplight
+collage collage_painting.jpg  1560421683-6856ea585c78     # colourful finger painting
+collage collage_planting.jpg  1657664058691-2633847111c4  # dad + daughter watering a pot
+collage collage_park.jpg      1561049527-9743861dce35     # family in a golden-hour park
+collage collage_fort.jpg      1626965640390-e15068539462  # cosy blanket fort with plants
+collage collage_boardgame.jpg 1611891487122-207579d67d98  # colourful board-game meeples
+collage collage_dancing.jpg   1758598738278-b1f60933a015  # mum + daughter dancing
+
+echo ""
+echo "✅  Done — 12 keyword photos + 9 pinned collage photos saved to $(basename "$DEST")/"
 echo "   Re-seed to upload them: POST /dev/seed or run seed_dev.py"

@@ -21,49 +21,49 @@ from pydantic import (
 
 
 class Season(StrEnum):
-    spring = 'spring'
-    summer = 'summer'
-    autumn = 'autumn'
-    winter = 'winter'
+    spring = "spring"
+    summer = "summer"
+    autumn = "autumn"
+    winter = "winter"
 
 
 class Weather(StrEnum):
-    sunny = 'sunny'
-    cloudy = 'cloudy'
-    rainy = 'rainy'
-    any = 'any'
+    sunny = "sunny"
+    cloudy = "cloudy"
+    rainy = "rainy"
+    any = "any"
 
 
 class CostIndicator(StrEnum):
-    free = 'free'
-    low_cost = 'low_cost'
-    paid = 'paid'
+    free = "free"
+    low_cost = "low_cost"
+    paid = "paid"
 
 
 class CompletionStatus(StrEnum):
-    processing = 'processing'
-    pending_verification = 'pending_verification'
-    verified = 'verified'
-    rejected = 'rejected'
-    self_reported = 'self_reported'
+    processing = "processing"
+    pending_verification = "pending_verification"
+    verified = "verified"
+    rejected = "rejected"
+    self_reported = "self_reported"
 
 
 class EffortTier(StrEnum):
-    casual = 'casual'
-    dedicated = 'dedicated'
+    casual = "casual"
+    dedicated = "dedicated"
 
 
 class Mood(StrEnum):
-    bad = 'bad'
-    not_good = 'not_good'
-    okay = 'okay'
-    good = 'good'
-    super = 'super'
+    bad = "bad"
+    not_good = "not_good"
+    okay = "okay"
+    good = "good"
+    super = "super"
 
 
 class TimeSpentPeriod(StrEnum):
-    weekly = 'weekly'
-    monthly = 'monthly'
+    weekly = "weekly"
+    monthly = "monthly"
 
 
 class ErrorResponse(BaseModel):
@@ -72,7 +72,7 @@ class ErrorResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: Annotated[str, Field(examples=['ok'])]
+    status: Annotated[str, Field(examples=["ok"])]
 
 
 class InviteResponse(BaseModel):
@@ -85,21 +85,13 @@ class JoinByTokenRequest(BaseModel):
 
 
 class GoogleCallbackRequest(BaseModel):
-    id_token: Annotated[str | None, Field(description='Google ID token (web flow)')] = (
-        None
-    )
-    code: Annotated[
-        str | None, Field(description='Authorization code (native flow)')
-    ] = None
+    id_token: Annotated[str | None, Field(description="Google ID token (web flow)")] = None
+    code: Annotated[str | None, Field(description="Authorization code (native flow)")] = None
     redirect_uri: Annotated[
         str | None,
-        Field(
-            description='Redirect URI used in the authorization request (native flow)'
-        ),
+        Field(description="Redirect URI used in the authorization request (native flow)"),
     ] = None
-    code_verifier: Annotated[
-        str | None, Field(description='PKCE code verifier (native flow, optional)')
-    ] = None
+    code_verifier: Annotated[str | None, Field(description="PKCE code verifier (native flow, optional)")] = None
 
 
 class RefreshRequest(BaseModel):
@@ -140,14 +132,12 @@ class GroupMembership(BaseModel):
 
 
 class CreateConsentRequest(BaseModel):
-    policy_version: Annotated[str, Field(examples=['1.0'])]
-    data_storage_consent: Annotated[bool, Field(description='Required to use the app')]
-    photo_processing_consent: Annotated[
-        bool, Field(description='Required for photo-based completions')
-    ]
+    policy_version: Annotated[str, Field(examples=["1.0"])]
+    data_storage_consent: Annotated[bool, Field(description="Required to use the app")]
+    photo_processing_consent: Annotated[bool, Field(description="Required for photo-based completions")]
     location_consent: Annotated[
         bool | None,
-        Field(description='Optional; enables weather-based activity suggestions'),
+        Field(description="Optional; enables weather-based activity suggestions"),
     ] = False
 
 
@@ -190,13 +180,9 @@ class ChildProfile(BaseModel):
     nickname: str
     date_of_birth: Annotated[
         date_aliased,
-        Field(
-            description='Age is derived from this at query time; never stored as a computed field'
-        ),
+        Field(description="Age is derived from this at query time; never stored as a computed field"),
     ]
-    interests: Annotated[
-        list[str], Field(description='Free-text tags; do not enter medical conditions')
-    ]
+    interests: Annotated[list[str], Field(description="Free-text tags; do not enter medical conditions")]
     created_at: AwareDatetime
     updated_at: AwareDatetime
 
@@ -225,7 +211,7 @@ class GroupMemberFamily(BaseModel):
     joined_at: AwareDatetime
     parents: Annotated[
         list[FamilyParentInGroup],
-        Field(description='Parents in this family and their group admin status'),
+        Field(description="Parents in this family and their group admin status"),
     ]
 
 
@@ -235,9 +221,7 @@ class GroupSummary(BaseModel):
     description: str | None = None
     is_admin: Annotated[
         bool,
-        Field(
-            description='Whether the authenticated user holds admin rights in this group'
-        ),
+        Field(description="Whether the authenticated user holds admin rights in this group"),
     ]
     created_at: AwareDatetime
 
@@ -268,7 +252,7 @@ class FeedEntry(BaseModel):
     activity_title: str
     photo_url: Annotated[
         AnyUrl | None,
-        Field(description='Pre-signed URL; only present when status is ready'),
+        Field(description="Pre-signed URL; only present when status is ready"),
     ] = None
     caption: str | None = None
     completed_at: AwareDatetime
@@ -282,9 +266,7 @@ class Activity(BaseModel):
     age_min: Annotated[int, Field(ge=0)]
     age_max: Annotated[int, Field(ge=0)]
     cost_indicator: CostIndicator
-    season_relevance: Annotated[
-        list[Season] | None, Field(description='Null means year-round')
-    ] = None
+    season_relevance: Annotated[list[Season] | None, Field(description="Null means year-round")] = None
     weather_suitability: list[Weather] | None = None
     is_partner_content: bool
     effort_tier: EffortTier
@@ -298,17 +280,15 @@ class Activity(BaseModel):
 
 
 class CostIndicator1(StrEnum):
-    free = 'free'
-    low_cost = 'low_cost'
+    free = "free"
+    low_cost = "low_cost"
 
 
 class CreateActivityRequest(BaseModel):
     title: Annotated[str, Field(max_length=100)]
     description: Annotated[str | None, Field(max_length=500)] = None
     estimated_duration_minutes: Annotated[int | None, Field(ge=1)] = 30
-    cost_indicator: Annotated[
-        CostIndicator1 | None, Field(description='Defaults to "free" when omitted.')
-    ] = None
+    cost_indicator: Annotated[CostIndicator1 | None, Field(description='Defaults to "free" when omitted.')] = None
 
 
 class CollagePreset(BaseModel):
@@ -317,17 +297,17 @@ class CollagePreset(BaseModel):
     description: str
     activity_ids: Annotated[
         list[UUID],
-        Field(description='Exactly nine activity ids, ordered by grid position 0–8'),
+        Field(description="Exactly nine activity ids, ordered by grid position 0–8"),
     ]
 
 
 class DisplayMode(StrEnum):
-    collage = 'collage'
+    collage = "collage"
 
 
 class Status(StrEnum):
-    active = 'active'
-    completed = 'completed'
+    active = "active"
+    completed = "completed"
 
 
 class ChallengeSummary(BaseModel):
@@ -337,22 +317,16 @@ class ChallengeSummary(BaseModel):
     group_id: UUID | None = None
     is_private: Annotated[
         bool,
-        Field(
-            description='When true, photos uploaded to this challenge default to NOT being shared to group feeds'
-        ),
+        Field(description="When true, photos uploaded to this challenge default to NOT being shared to group feeds"),
     ]
     is_featured: Annotated[
         bool | None,
-        Field(
-            description='Featured challenges grant +5 bonus points per verified completion'
-        ),
+        Field(description="Featured challenges grant +5 bonus points per verified completion"),
     ] = False
     display_mode: DisplayMode
     status: Annotated[
         Status,
-        Field(
-            description='Challenges have no dates — a challenge is active until every slot is filled'
-        ),
+        Field(description="Challenges have no dates — a challenge is active until every slot is filled"),
     ]
     created_at: AwareDatetime
 
@@ -360,36 +334,28 @@ class ChallengeSummary(BaseModel):
 class CreateChallengeRequest(BaseModel):
     title: Annotated[str, Field(min_length=1)]
     description: str | None = None
-    group_id: Annotated[
-        UUID | None, Field(description='Null creates a personal/family challenge')
-    ] = None
+    group_id: Annotated[UUID | None, Field(description="Null creates a personal/family challenge")] = None
     activity_ids: Annotated[
         list[UUID],
         Field(
-            description='Activities in order — grid_position is assigned by their position in this list',
+            description="Activities in order — grid_position is assigned by their position in this list",
             min_length=1,
         ),
     ]
     is_private: Annotated[
         bool | None,
-        Field(
-            description='When false, uploads default to being shared to the feeds of shared_group_ids'
-        ),
+        Field(description="When false, uploads default to being shared to the feeds of shared_group_ids"),
     ] = True
     shared_group_ids: Annotated[
         list[UUID] | None,
-        Field(
-            description="Groups (the caller's family must be a member) whose feeds receive opted-in photos"
-        ),
+        Field(description="Groups (the caller's family must be a member) whose feeds receive opted-in photos"),
     ] = []
 
 
 class UpdateChallengeRequest(BaseModel):
     is_private: Annotated[
         bool | None,
-        Field(
-            description='When true, uploads default to not being shared to group feeds'
-        ),
+        Field(description="When true, uploads default to not being shared to group feeds"),
     ] = None
 
 
@@ -410,12 +376,12 @@ class Friend(BaseModel):
     display_name: str
     shared_group_names: Annotated[
         list[str],
-        Field(description='Names of the groups the caller shares with this parent'),
+        Field(description="Names of the groups the caller shares with this parent"),
     ]
 
 
 class Type(StrEnum):
-    challenge_invite = 'challenge_invite'
+    challenge_invite = "challenge_invite"
 
 
 class NotificationItem(BaseModel):
@@ -431,7 +397,7 @@ class NotificationItem(BaseModel):
 
 class PhotoUploadRequest(BaseModel):
     challenge_activity_id: UUID
-    image: Annotated[bytes, Field(description='JPEG or PNG; maximum 10 MB')]
+    image: Annotated[bytes, Field(description="JPEG or PNG; maximum 10 MB")]
     caption: str | None = None
     shared_to_feed: bool | None = False
     duration_minutes: Annotated[
@@ -444,9 +410,7 @@ class PhotoUploadRequest(BaseModel):
     ] = None
     completed_on: Annotated[
         date_aliased,
-        Field(
-            description="Parent's local calendar date when the activity was completed"
-        ),
+        Field(description="Parent's local calendar date when the activity was completed"),
     ]
 
 
@@ -465,32 +429,26 @@ class Completion(BaseModel):
     family_id: UUID
     completed_by_user_id: Annotated[
         UUID,
-        Field(description='The parent who uploaded the photo or marked it complete'),
+        Field(description="The parent who uploaded the photo or marked it complete"),
     ]
     status: CompletionStatus
     photo_url: Annotated[
         AnyUrl | None,
-        Field(
-            description='Pre-signed S3 URL; present when status is pending_verification, verified, or rejected'
-        ),
+        Field(description="Pre-signed S3 URL; present when status is pending_verification, verified, or rejected"),
     ] = None
     caption: str | None = None
-    rejection_reason: Annotated[
-        str | None, Field(description='Set when status is rejected; null otherwise')
-    ] = None
+    rejection_reason: Annotated[str | None, Field(description="Set when status is rejected; null otherwise")] = None
     duration_minutes: Annotated[
         int | None,
         Field(
-            description='Minutes the family reported spending on the activity',
+            description="Minutes the family reported spending on the activity",
             ge=1,
             le=1440,
         ),
     ] = None
     completed_on: Annotated[
         date_aliased,
-        Field(
-            description="Parent's local calendar date when the activity was completed"
-        ),
+        Field(description="Parent's local calendar date when the activity was completed"),
     ]
     shared_to_feed: bool
     completed_at: AwareDatetime
@@ -504,16 +462,14 @@ class CreateCompletionRequest(BaseModel):
     duration_minutes: Annotated[
         int,
         Field(
-            description='Required time spent for a self-reported completion',
+            description="Required time spent for a self-reported completion",
             ge=1,
             le=1440,
         ),
     ]
     completed_on: Annotated[
         date_aliased,
-        Field(
-            description="Parent's local calendar date when the activity was completed"
-        ),
+        Field(description="Parent's local calendar date when the activity was completed"),
     ]
 
 
@@ -521,25 +477,21 @@ class CompletionHistoryItem(BaseModel):
     id: UUID
     activity_id: Annotated[
         UUID,
-        Field(
-            description='The underlying activity, stable across challenges and languages'
-        ),
+        Field(description="The underlying activity, stable across challenges and languages"),
     ]
     activity_title: str
     challenge_title: str
     status: CompletionStatus
     photo_url: AnyUrl | None = None
     caption: str | None = None
-    rejection_reason: Annotated[
-        str | None, Field(description='Set when status is rejected; null otherwise')
-    ] = None
+    rejection_reason: Annotated[str | None, Field(description="Set when status is rejected; null otherwise")] = None
     duration_minutes: Annotated[int | None, Field(ge=1, le=1440)] = None
     completed_on: date_aliased
     completed_at: AwareDatetime
 
 
 class PhotoReuploadRequest(BaseModel):
-    image: Annotated[bytes, Field(description='JPEG or PNG; maximum 10 MB')]
+    image: Annotated[bytes, Field(description="JPEG or PNG; maximum 10 MB")]
 
 
 class ReuploadResponse(BaseModel):
@@ -551,14 +503,10 @@ class PendingVerificationItem(BaseModel):
     completion_id: UUID
     family_name: Annotated[
         str,
-        Field(
-            description='Family display name only — no child names or child-identifiable data'
-        ),
+        Field(description="Family display name only — no child names or child-identifiable data"),
     ]
     activity_title: str
-    photo_url: Annotated[
-        AnyUrl | None, Field(description='Pre-signed S3 URL for the submitted photo')
-    ] = None
+    photo_url: Annotated[AnyUrl | None, Field(description="Pre-signed S3 URL for the submitted photo")] = None
     duration_minutes: int | None = None
     submitted_at: AwareDatetime
 
@@ -571,9 +519,7 @@ class VerificationQueue(BaseModel):
 class RejectPayload(BaseModel):
     reason: Annotated[
         str | None,
-        Field(
-            description='Optional. When given, it is shown to the family alongside the rejected photo.'
-        ),
+        Field(description="Optional. When given, it is shown to the family alongside the rejected photo."),
     ] = None
 
 
@@ -582,16 +528,14 @@ class VerificationActionResponse(BaseModel):
     status: CompletionStatus
     points_awarded: Annotated[
         int | None,
-        Field(
-            description='Total points credited on approval (base + bonus); null on reject'
-        ),
+        Field(description="Total points credited on approval (base + bonus); null on reject"),
     ] = None
 
 
 class RewardLevelState(StrEnum):
-    locked = 'locked'
-    unlocked = 'unlocked'
-    redeemed_this_quarter = 'redeemed_this_quarter'
+    locked = "locked"
+    unlocked = "unlocked"
+    redeemed_this_quarter = "redeemed_this_quarter"
 
 
 class RewardLevelProgress(BaseModel):
@@ -600,45 +544,39 @@ class RewardLevelProgress(BaseModel):
     points_threshold: int
     title: Annotated[
         str,
-        Field(
-            description='Localised via Accept-Language (German base, English fallback)'
-        ),
+        Field(description="Localised via Accept-Language (German base, English fallback)"),
     ]
     description: str | None = None
     choice_options: Annotated[
         list[str] | None,
-        Field(description='Present when redemption requires choosing one option'),
+        Field(description="Present when redemption requires choosing one option"),
     ] = None
     annual_redemption_cap: int | None = None
     state: RewardLevelState
     redemptions_this_year: Annotated[
         int | None,
-        Field(description='Only set for levels with an annual redemption cap'),
+        Field(description="Only set for levels with an annual redemption cap"),
     ] = None
 
 
 class RewardsBalance(BaseModel):
-    quarter_key: Annotated[str, Field(examples=['2026-Q3'])]
+    quarter_key: Annotated[str, Field(examples=["2026-Q3"])]
     balance: Annotated[
         int,
-        Field(
-            description='Sum of ledger points awarded in the current calendar quarter (UTC)'
-        ),
+        Field(description="Sum of ledger points awarded in the current calendar quarter (UTC)"),
     ]
     levels: list[RewardLevelProgress]
 
 
 class RedeemPayload(BaseModel):
-    chosen_option: Annotated[
-        str | None, Field(description='Required when the level has choice_options')
-    ] = None
+    chosen_option: Annotated[str | None, Field(description="Required when the level has choice_options")] = None
 
 
 class RedemptionResult(BaseModel):
     redemption_id: UUID
     reward_level_id: UUID
     chosen_option: str | None = None
-    voucher_code: Annotated[str, Field(examples=['BOND-7K2P9Q'])]
+    voucher_code: Annotated[str, Field(examples=["BOND-7K2P9Q"])]
     redeemed_at: AwareDatetime
 
 
@@ -651,7 +589,7 @@ class StreakStats(BaseModel):
     current_days: Annotated[
         int,
         Field(
-            description='Consecutive days with at least one completion',
+            description="Consecutive days with at least one completion",
             examples=[4],
             ge=0,
         ),
@@ -659,7 +597,7 @@ class StreakStats(BaseModel):
     last_days: Annotated[
         int | None,
         Field(
-            description='Length of the previous streak before it was reset',
+            description="Length of the previous streak before it was reset",
             examples=[None],
         ),
     ] = None
@@ -667,7 +605,7 @@ class StreakStats(BaseModel):
     frozen_today: Annotated[
         bool,
         Field(
-            description='A one-day grace freeze is currently protecting the streak',
+            description="A one-day grace freeze is currently protecting the streak",
             examples=[False],
         ),
     ]
@@ -685,7 +623,7 @@ class FamilySettingsUpdate(BaseModel):
 
 class UpsertManualTimeRequest(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     entry_date: Annotated[
         date_aliased,
@@ -696,7 +634,7 @@ class UpsertManualTimeRequest(BaseModel):
 
 class ManualTimeEntry(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     id: UUID
     entry_date: date_aliased
@@ -707,7 +645,7 @@ class ManualTimeEntry(BaseModel):
 
 class DailyTimeTotal(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     date: date_aliased
     activity_minutes: Annotated[int, Field(ge=0)]
@@ -717,7 +655,7 @@ class DailyTimeTotal(BaseModel):
 
 class WeeklyTimeTotal(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     start_date: date_aliased
     end_date: date_aliased
@@ -728,7 +666,7 @@ class AverageWeeklyMinutes(RootModel[int]):
     root: Annotated[
         int,
         Field(
-            description='Null for weekly view; rounded average of monthly weekly totals',
+            description="Null for weekly view; rounded average of monthly weekly totals",
             ge=0,
         ),
     ]
@@ -736,44 +674,36 @@ class AverageWeeklyMinutes(RootModel[int]):
 
 class TimeSpentInsight(BaseModel):
     model_config = ConfigDict(
-        extra='forbid',
+        extra="forbid",
     )
     period: TimeSpentPeriod
     range_start: Annotated[
         date_aliased,
-        Field(
-            description="Start of the full displayed week/month, regardless of today's date"
-        ),
+        Field(description="Start of the full displayed week/month, regardless of today's date"),
     ]
     range_end: Annotated[
         date_aliased,
-        Field(
-            description="End of the full displayed week/month, regardless of today's date — may be in the future"
-        ),
+        Field(description="End of the full displayed week/month, regardless of today's date — may be in the future"),
     ]
     elapsed_end: Annotated[
         date_aliased,
         Field(
-            description='min(range_end, today) — the last non-future date in range; use to exclude not-yet-happened days from averages'
+            description="min(range_end, today) — the last non-future date in range; use to exclude not-yet-happened days from averages"
         ),
     ]
     daily_totals: Annotated[
         list[DailyTimeTotal],
-        Field(
-            description='One entry per day in the full range; days after elapsed_end are always zero'
-        ),
+        Field(description="One entry per day in the full range; days after elapsed_end are always zero"),
     ]
     weekly_totals: Annotated[
         list[WeeklyTimeTotal],
         Field(
-            description='Empty for weekly view; one Monday-based bucket per calendar week in the month for monthly view, clipped only at month boundaries (not at today)'
+            description="Empty for weekly view; one Monday-based bucket per calendar week in the month for monthly view, clipped only at month boundaries (not at today)"
         ),
     ]
     average_weekly_minutes: Annotated[
         AverageWeeklyMinutes | None,
-        Field(
-            description='Null for weekly view; rounded average of monthly weekly totals'
-        ),
+        Field(description="Null for weekly view; rounded average of monthly weekly totals"),
     ]
 
 
@@ -790,9 +720,7 @@ class JournalEntry(BaseModel):
 class CreateJournalEntryRequest(BaseModel):
     entry_date: Annotated[
         date_aliased,
-        Field(
-            description='The user\'s local calendar date (clients send their own "today")'
-        ),
+        Field(description='The user\'s local calendar date (clients send their own "today")'),
     ]
     mood: Mood
 
@@ -800,7 +728,7 @@ class CreateJournalEntryRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: Annotated[str, Field(examples=['bearer'])]
+    token_type: Annotated[str, Field(examples=["bearer"])]
     user: User
 
 
@@ -819,7 +747,7 @@ class ChallengeActivitySlot(BaseModel):
     grid_position: Annotated[
         int,
         Field(
-            description='Visual position in the collage grid; not a completion order',
+            description="Visual position in the collage grid; not a completion order",
             ge=0,
         ),
     ]
@@ -829,9 +757,7 @@ class ChallengeActivitySlot(BaseModel):
     ] = None
     families_completed_count: Annotated[
         int | None,
-        Field(
-            description='How many families in the group have completed this slot (group view only)'
-        ),
+        Field(description="How many families in the group have completed this slot (group view only)"),
     ] = None
 
 
@@ -843,23 +769,19 @@ class ChallengeWithProgress(Challenge):
     group_families_count: Annotated[
         int | None,
         Field(
-            description='Total families in the group (for computing aggregate percentages); null for personal challenges'
+            description="Total families in the group (for computing aggregate percentages); null for personal challenges"
         ),
     ] = None
     shared_group_ids: Annotated[
         list[UUID] | None,
-        Field(
-            description="Groups whose feeds receive this challenge's opted-in photos"
-        ),
+        Field(description="Groups whose feeds receive this challenge's opted-in photos"),
     ] = []
 
 
 class FamilyProgress(BaseModel):
     weekly_goal: Annotated[
         int,
-        Field(
-            description="Family's self-set weekly activity target", examples=[2], ge=1
-        ),
+        Field(description="Family's self-set weekly activity target", examples=[2], ge=1),
     ]
     this_week: WeekStats
     streak: StreakStats
