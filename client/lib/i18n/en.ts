@@ -644,6 +644,17 @@ export const en = {
     cardTitle: 'Add time together',
     saveFailed: 'Could not save your time. Your previous value is unchanged.',
   },
+  insights: {
+    sectionLabel: 'INSIGHTS',
+    avgPerDay: 'Avg / day',
+    vsLastWeek: 'vs. last week',
+    thisWeek: 'This week',
+    bestDay: 'Best day',
+    activeDays: 'Active days',
+    activeDaysValue: '{{count}} of 7',
+    thisMonth: 'This month',
+    noData: '—',
+  },
   onboardingGoal: {
     title: 'How often do you want to be active together?',
     subtitle: 'Set a realistic goal for the week.',

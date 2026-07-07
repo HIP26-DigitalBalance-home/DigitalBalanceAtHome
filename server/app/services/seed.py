@@ -703,6 +703,7 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     # weekdays lighter, weekends heavier, a natural gap ~once a week so it reads
     # as real logging. (Prior entries were cleared in the teardown above.)
     weekday_base = [30, 25, 40, 20, 35]  # Mon–Fri base minutes
+    this_monday = today_date - timedelta(days=today_date.weekday())
     for days_ago in range(63):
         day = today_date - timedelta(days=days_ago)
         if days_ago % 9 == 4:  # ~one skipped day per week
@@ -711,6 +712,11 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
             minutes = 75 + (day.day % 3) * 20  # 75 / 95 / 115
         else:
             minutes = weekday_base[day.weekday()] + (day.day % 3) * 5
+        # The current week has been an especially intentional stretch, so it
+        # lands clearly above last week — gives the "Ø pro Tag" insight box a
+        # positive week-over-week delta for the demo.
+        if day >= this_monday:
+            minutes += 45
         session.add(ManualTimeEntry(user_id=user.id, entry_date=day, minutes=minutes))
 
     await session.commit()

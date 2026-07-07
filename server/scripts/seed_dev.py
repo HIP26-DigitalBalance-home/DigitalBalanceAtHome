@@ -680,6 +680,7 @@ async def seed():
         # unique per user).
         await session.execute(delete(ManualTimeEntry).where(ManualTimeEntry.user_id == admin_user.id))
         weekday_base = [30, 25, 40, 20, 35]  # Mon–Fri base minutes
+        this_monday = today_date - timedelta(days=today_date.weekday())
         time_entries_added = 0
         for days_ago in range(63):
             day = today_date - timedelta(days=days_ago)
@@ -689,6 +690,10 @@ async def seed():
                 minutes = 75 + (day.day % 3) * 20  # 75 / 95 / 115
             else:
                 minutes = weekday_base[day.weekday()] + (day.day % 3) * 5
+            # Current week runs clearly above last week so the "Ø pro Tag"
+            # insight box shows a positive week-over-week delta for the demo.
+            if day >= this_monday:
+                minutes += 45
             session.add(ManualTimeEntry(user_id=admin_user.id, entry_date=day, minutes=minutes))
             time_entries_added += 1
         print(

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { InsightsRow } from '@/components/insights-row';
 import { ProgressRing } from '@/components/progress-ring';
 import { TimeSpentChart } from '@/components/time-spent-chart';
 import { ThemedText } from '@/components/themed-text';
@@ -90,6 +91,8 @@ export default function ProgressScreen() {
           // gap mirrors styles.content so the wrapper doesn't collapse spacing
           <Animated.View entering={fadeIn()} style={{ gap: Spacing.lg }}>
             <TimeSpentChart />
+
+            <InsightsRow />
 
             {/* This Week */}
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>

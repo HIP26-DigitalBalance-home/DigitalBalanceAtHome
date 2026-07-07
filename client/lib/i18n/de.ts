@@ -644,6 +644,17 @@ export const de = {
     cardTitle: 'Gemeinsame Zeit hinzufügen',
     saveFailed: 'Speichern fehlgeschlagen. Der bisherige Wert bleibt erhalten.',
   },
+  insights: {
+    sectionLabel: 'EINBLICKE',
+    avgPerDay: 'Ø pro Tag',
+    vsLastWeek: 'ggü. letzter Woche',
+    thisWeek: 'Diese Woche',
+    bestDay: 'Bester Tag',
+    activeDays: 'Aktive Tage',
+    activeDaysValue: '{{count}} von 7',
+    thisMonth: 'Dieser Monat',
+    noData: '—',
+  },
   onboardingGoal: {
     title: 'Wie oft möchtet ihr gemeinsam aktiv sein?',
     subtitle: 'Setzt euch ein realistisches Ziel für die Woche.',
