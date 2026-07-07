@@ -59,6 +59,9 @@ const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 60000;
 const CELEBRATED_KEY = '@dba_celebrated_challenges';
 const COLLAPSED_HERO_HEIGHT = 68;
+// Below this expanded-hero height (≈ iPhone SE class) there isn't room for the
+// article on its own row, so it packs into the scrollable suggestions carousel.
+const COMPACT_HERO_MAX_HEIGHT = 720;
 const HERO_COLLAPSE_DISTANCE = 128;
 const HERO_SNAP_THRESHOLD = HERO_COLLAPSE_DISTANCE / 2;
 // Upward movement pauses at the collage boundary for this distance before the
@@ -76,6 +79,7 @@ export default function HomeScreen() {
   const { setHidden } = useTabBar();
 
   const expandedHeroHeight = windowHeight - insets.top;
+  const heroCompact = expandedHeroHeight < COMPACT_HERO_MAX_HEIGHT;
   const heroOverlap = Math.max(
     0,
     expandedHeroHeight - COLLAPSED_HERO_HEIGHT - HERO_COLLAPSE_DISTANCE,
@@ -583,9 +587,10 @@ export default function HomeScreen() {
               </PressableScale>
             )}
 
-            <ActivitySuggestionsRow>
-              <ArticleTeaser />
-            </ActivitySuggestionsRow>
+            <ActivitySuggestionsRow
+              compact={heroCompact}
+              article={<ArticleTeaser variant={heroCompact ? 'card' : 'banner'} />}
+            />
 
             <TimeSpentCard />
 

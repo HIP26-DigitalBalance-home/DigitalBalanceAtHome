@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DurationPicker } from '@/components/duration-picker';
 import { ThemedText } from '@/components/themed-text';
@@ -47,6 +48,7 @@ interface SelectedPhoto {
 export function CompleteActivityModal({ visible, slot, defaultShared = false, onClose, onSelfReported, onPhotoSelected }: Props) {
   const { colors, radii } = useAppTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
   const [sharedToFeed, setSharedToFeed] = useState(defaultShared);
   const [caption, setCaption] = useState('');
@@ -137,7 +139,15 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
       contentContainerStyle={styles.container}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
+        style={[
+          styles.keyboardAvoidingView,
+          {
+            // Symmetric vertical breathing room that always clears the notch /
+            // home indicator, so the sheet never touches the top or bottom edge.
+            paddingTop: insets.top + Spacing.md,
+            paddingBottom: insets.bottom + Spacing.md,
+          },
+        ]}
         behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
       >
         <ScrollView
@@ -302,13 +312,14 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: 32,
   },
   keyboardAvoidingView: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    // Centre the sheet and let it grow only as tall as its content, capped at
+    // the padded area (maxHeight below) where the inner ScrollView takes over.
+    justifyContent: 'center',
     paddingHorizontal: Spacing.screenHorizontal,
   },
   sheet: {

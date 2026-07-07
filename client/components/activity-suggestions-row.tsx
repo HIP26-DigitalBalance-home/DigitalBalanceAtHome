@@ -47,11 +47,21 @@ interface Suggestion {
  * the parent can see every activity in the bingo card and start the collage.
  */
 interface Props {
-  /** Extra card(s) rendered at the end of the same scrollable row, e.g. the article-of-the-day teaser */
-  children?: ReactNode;
+  /**
+   * The article-of-the-day teaser. Its position depends on `compact`:
+   * packed into the scrollable row when compact, or dropped onto its own row
+   * below a fixed 2-up grid when there's vertical room to spare.
+   */
+  article?: ReactNode;
+  /**
+   * Compact packs everything into one horizontal, scrollable carousel (small
+   * screens). Otherwise the row shows exactly two non-scrollable suggestions
+   * and the article sits on a separate row.
+   */
+  compact?: boolean;
 }
 
-export function ActivitySuggestionsRow({ children }: Props = {}) {
+export function ActivitySuggestionsRow({ article, compact = false }: Props = {}) {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const [suggestions, setSuggestions] = useState<Suggestion[] | undefined>();
@@ -147,7 +157,7 @@ export function ActivitySuggestionsRow({ children }: Props = {}) {
 
   // Hide the whole section if nothing resolved and there's no trailing card either
   // (e.g. the article teaser) — never leave a broken heading.
-  if (suggestions !== undefined && suggestions.length === 0 && !children) return null;
+  if (suggestions !== undefined && suggestions.length === 0 && !article) return null;
 
   const loading = suggestions === undefined;
 
@@ -156,6 +166,50 @@ export function ActivitySuggestionsRow({ children }: Props = {}) {
       pathname: '/collage-builder',
       params: { mode: 'preset', preset: JSON.stringify(suggestion.preset) },
     } as any);
+  }
+
+  function renderCard(suggestion: Suggestion, style?: object) {
+    return (
+      <PressableScale
+        key={suggestion.preset.id}
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          style,
+        ]}
+        onPress={() => openTopic(suggestion)}
+        accessibilityRole="button"
+        accessibilityLabel={`${suggestion.preset.name}: ${suggestion.activity.title}`}
+      >
+        <View style={styles.illustrationRow}>
+          <Illustration name={suggestion.illustration} size={44} />
+        </View>
+        <ThemedText
+          style={[styles.cardEyebrow, { color: colors.primary }]}
+          numberOfLines={1}
+        >
+          {suggestion.preset.name}
+        </ThemedText>
+        <ThemedText
+          style={[styles.cardTitle, { color: colors.onSurface }]}
+          numberOfLines={2}
+        >
+          {suggestion.activity.title}
+        </ThemedText>
+        <ThemedText
+          style={[styles.cardMeta, { color: colors.muted }]}
+          numberOfLines={1}
+        >
+          {t('common.minutes', {
+            count: suggestion.activity.estimated_duration_minutes,
+          })}
+          {' · '}
+          {suggestion.activity.cost_indicator === 'free'
+            ? t('cost.free')
+            : t('cost.lowCost')}
+        </ThemedText>
+      </PressableScale>
+    );
   }
 
   return (
@@ -185,63 +239,41 @@ export function ActivitySuggestionsRow({ children }: Props = {}) {
         </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {children}
-        {loading
-          ? Array.from({ length: 3 }, (_, i) => (
-              <Skeleton
-                key={i}
-                width={CARD_WIDTH}
-                height={132}
-                borderRadius={DEFAULT_RADII.card}
-              />
-            ))
-          : suggestions.map((suggestion) => (
-              <PressableScale
-                key={suggestion.preset.id}
-                style={[
-                  styles.card,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                ]}
-                onPress={() => openTopic(suggestion)}
-                accessibilityRole="button"
-                accessibilityLabel={`${suggestion.preset.name}: ${suggestion.activity.title}`}
-              >
-                <View style={styles.illustrationRow}>
-                  <Illustration name={suggestion.illustration} size={44} />
-                </View>
-                <ThemedText
-                  style={[styles.cardEyebrow, { color: colors.primary }]}
-                  numberOfLines={1}
-                >
-                  {suggestion.preset.name}
-                </ThemedText>
-                <ThemedText
-                  style={[styles.cardTitle, { color: colors.onSurface }]}
-                  numberOfLines={2}
-                >
-                  {suggestion.activity.title}
-                </ThemedText>
-                <ThemedText
-                  style={[styles.cardMeta, { color: colors.muted }]}
-                  numberOfLines={1}
-                >
-                  {t('common.minutes', {
-                    count: suggestion.activity.estimated_duration_minutes,
-                  })}
-                  {' · '}
-                  {suggestion.activity.cost_indicator === 'free'
-                    ? t('cost.free')
-                    : t('cost.lowCost')}
-                </ThemedText>
-              </PressableScale>
-            ))}
-      </ScrollView>
+      {compact ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {article}
+          {loading
+            ? Array.from({ length: 3 }, (_, i) => (
+                <Skeleton
+                  key={i}
+                  width={CARD_WIDTH}
+                  height={132}
+                  borderRadius={DEFAULT_RADII.card}
+                />
+              ))
+            : suggestions.map((suggestion) => renderCard(suggestion))}
+        </ScrollView>
+      ) : (
+        <>
+          <View style={styles.grid}>
+            {loading
+              ? Array.from({ length: 2 }, (_, i) => (
+                  <View key={i} style={styles.gridCell}>
+                    <Skeleton width="100%" height={132} borderRadius={DEFAULT_RADII.card} />
+                  </View>
+                ))
+              : suggestions
+                  .slice(0, 2)
+                  .map((suggestion) => renderCard(suggestion, styles.gridCell))}
+          </View>
+          {article}
+        </>
+      )}
 
       <AnimatedModal
         visible={editingLocation}
@@ -348,6 +380,9 @@ const styles = StyleSheet.create({
     borderRadius: DEFAULT_RADII.button,
   },
   modalButtonPrimary: { minWidth: 96, alignItems: 'center' },
+  // Two fixed suggestions side by side; the article rides on its own row below.
+  grid: { flexDirection: 'row', gap: Spacing.sm },
+  gridCell: { flex: 1 },
   // Bleed past the hero's horizontal padding so cards run to the screen edges
   // and peek beyond it, matching the discover-style carousel.
   scroll: { marginHorizontal: -Spacing.screenHorizontal },

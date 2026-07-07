@@ -30,7 +30,16 @@ import {
  * to revisit today's article. Read state is tracked locally (AsyncStorage) —
  * marked when the reader finishes the last page of the detail modal.
  */
-export function ArticleTeaser() {
+interface Props {
+  /**
+   * card: fixed-width vertical tile that lines up inside the suggestions
+   * carousel. banner: full-width horizontal row for its own line under the
+   * 2-up suggestions grid on taller screens.
+   */
+  variant?: 'card' | 'banner';
+}
+
+export function ArticleTeaser({ variant = 'card' }: Props = {}) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const [readIds, setReadIds] = useState<string[] | null>(null);
@@ -100,26 +109,38 @@ export function ArticleTeaser() {
   const isRead = read.has(featured.id);
   const metaText = isRead ? t('home.articleTeaser.read') : t('home.articleTeaser.readTime');
 
+  const banner = variant === 'banner';
+
   return (
     <>
       <PressableScale
-        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[
+          banner ? styles.banner : styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
         onPress={() => setOpenArticle(featured)}
         accessibilityRole="button"
         accessibilityLabel={`${t('home.articleOfTheDay')}: ${featured.title}`}
       >
-        <View style={[styles.iconRow, { backgroundColor: colors.accent + '22' }]}>
+        <View
+          style={[
+            banner ? styles.bannerIcon : styles.iconRow,
+            { backgroundColor: colors.accent + '22' },
+          ]}
+        >
           <Illustration name={featured.icon} size={28} />
         </View>
-        <ThemedText style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
-          {t('home.articleOfTheDay')}
-        </ThemedText>
-        <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
-          {featured.title}
-        </ThemedText>
-        <ThemedText style={[styles.meta, { color: colors.muted }]} numberOfLines={1}>
-          {metaText}
-        </ThemedText>
+        <View style={banner ? styles.bannerText : undefined}>
+          <ThemedText style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
+            {t('home.articleOfTheDay')}
+          </ThemedText>
+          <ThemedText style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>
+            {featured.title}
+          </ThemedText>
+          <ThemedText style={[styles.meta, { color: colors.muted }]} numberOfLines={1}>
+            {metaText}
+          </ThemedText>
+        </View>
       </PressableScale>
 
       <ArticleDetailModal
@@ -149,6 +170,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 2,
   },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: DEFAULT_RADII.card,
+    borderWidth: 1,
+    padding: Spacing.sm,
+  },
+  bannerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: DEFAULT_RADII.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerText: { flex: 1, gap: 2 },
   label: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   title: { fontSize: 14, fontWeight: '700', lineHeight: 18 },
   meta: { fontSize: 11, lineHeight: 15, marginTop: 2 },
