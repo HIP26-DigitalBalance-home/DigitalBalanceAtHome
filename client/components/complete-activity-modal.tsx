@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,12 +17,13 @@ import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DurationPicker } from '@/components/duration-picker';
+import { ResourceList } from '@/components/resource-list';
 import { ThemedText } from '@/components/themed-text';
 import { AnimatedModal } from '@/components/ui/animated-modal';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
 import { resolveEffortTier } from '@/lib/challenge-utils';
-import type { ChallengeActivitySlot } from '@/lib/api';
+import { activitiesApi, type ActivityDetail, type ChallengeActivitySlot } from '@/lib/api';
 
 interface Props {
   visible: boolean;
@@ -71,8 +73,35 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
       setSelectedPhoto(null);
       setWithoutPhoto(false);
       setDurationMinutes(null);
+      setInfoOpen(false);
     }
   }, [visible, defaultShared]);
+
+  // Attached resources (prep links/notes) for the tapped activity. Kept behind
+  // a collapsed toggle so the upload flow stays uncluttered; hidden entirely
+  // when the activity has none.
+  const [detail, setDetail] = useState<ActivityDetail | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const activityId = slot?.activity.id ?? null;
+
+  useEffect(() => {
+    if (!visible || !activityId) return;
+    let cancelled = false;
+    setDetail(null);
+    activitiesApi
+      .getDetail(activityId)
+      .then((res) => {
+        if (!cancelled) setDetail(res.data);
+      })
+      .catch(() => {
+        // no info row is shown — completing works without it
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, activityId]);
+
+  const resources = detail?.resources ?? [];
 
   // Self-reported completions always require time. The existing 30-minute
   // point gate additionally requires it for casual-tier photo completions.
@@ -172,6 +201,47 @@ export function CompleteActivityModal({ visible, slot, defaultShared = false, on
           <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
             {t('completeModal.subtitle', { count: renderSlot.activity.estimated_duration_minutes })}
           </ThemedText>
+
+          {resources.length > 0 && (
+            <View style={[styles.infoBox, { borderColor: colors.border, borderRadius: radii.input }]}>
+              <Pressable
+                onPress={() => setInfoOpen((open) => !open)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: infoOpen }}
+                style={styles.infoToggle}
+              >
+                <ThemedText style={styles.infoIcon}>ℹ️</ThemedText>
+                <ThemedText
+                  style={[styles.infoToggleText, { color: colors.primary }]}
+                  numberOfLines={1}
+                >
+                  {t('resources.toggle', { count: resources.length })}
+                </ThemedText>
+                <ThemedText style={[styles.infoChevron, { color: colors.muted }]}>
+                  {infoOpen ? '▾' : '▸'}
+                </ThemedText>
+              </Pressable>
+              {infoOpen && (
+                <View style={styles.infoContent}>
+                  <ResourceList resources={resources} compact />
+                  {detail?.can_edit && (
+                    <Pressable
+                      onPress={() => {
+                        onClose();
+                        router.push({ pathname: '/activity/[id]', params: { id: activityId } } as any);
+                      }}
+                      accessibilityRole="button"
+                      style={styles.infoEditLink}
+                    >
+                      <ThemedText style={[styles.infoToggleText, { color: colors.primary }]}>
+                        {t('common.edit')}
+                      </ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
 
           {(withoutPhoto || (isCasual && selectedPhoto)) && (
             <>
@@ -336,6 +406,19 @@ const styles = StyleSheet.create({
   activityTitle: { fontSize: 17, fontWeight: '700' },
   preview: { width: '100%', height: 180 },
   subtitle: { fontSize: 13, marginBottom: Spacing.xs },
+  infoBox: { borderWidth: 1, marginBottom: Spacing.xs },
+  infoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+  },
+  infoIcon: { fontSize: 15, lineHeight: 20 },
+  infoToggleText: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  infoChevron: { fontSize: 14, lineHeight: 20 },
+  infoContent: { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.sm },
+  infoEditLink: { alignSelf: 'flex-end', minHeight: 32, justifyContent: 'center', paddingHorizontal: Spacing.xs },
   fieldLabel: { fontSize: 12, fontWeight: '600' },
   descriptionInput: {
     minHeight: 76,

@@ -147,6 +147,23 @@ class TestExportData:
                 "consents": [],
                 "group_memberships": [],
                 "completions": [],
+                "created_activities": [
+                    {
+                        "id": str(uuid.uuid4()),
+                        "title": "Plätzchen backen",
+                        "description": "Kekse",
+                        "resources": [
+                            {
+                                "id": str(uuid.uuid4()),
+                                "kind": "external",
+                                "position": 0,
+                                "label": "Unser Rezept",
+                                "url": "https://example.com/rezept",
+                                "note_text": None,
+                            }
+                        ],
+                    }
+                ],
             },
         )
 
@@ -159,6 +176,7 @@ class TestExportData:
         assert "consents" in data
         assert "group_memberships" in data
         assert "completions" in data
+        assert data["created_activities"][0]["resources"][0]["url"] == "https://example.com/rezept"
 
     async def test_requires_authentication(self, client):
         response = await client.get("/users/me/export")

@@ -1,0 +1,399 @@
+import io
+import uuid
+from urllib.parse import urlparse
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core import storage
+from app.models.activity import Activity
+from app.models.activity_resource import ActivityResource
+from app.models.activity_resource_photo import ActivityResourcePhoto
+from app.repositories.activity_resource import ActivityResourceRepository
+from app.services.exceptions import (
+    ActivityNotFound,
+    InvalidResource,
+    NoFamilyError,
+    NotResourceOwner,
+    ResourceLimitExceeded,
+    ResourceNotFound,
+)
+from app.services.family import get_user_family
+
+MAX_RESOURCES_PER_ACTIVITY = 10
+MAX_PHOTOS_PER_RESOURCE = 5
+MAX_LABEL_LEN = 100
+MAX_URL_LEN = 2048
+MAX_NOTE_LEN = 2000
+
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/jpg"}
+_MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+# ── Validation ───────────────────────────────────────────────────
+
+
+def _validate_url(url: str | None) -> str:
+    if not url or not url.strip():
+        raise InvalidResource("A link address is required for an external resource")
+    url = url.strip()
+    if len(url) > MAX_URL_LEN:
+        raise InvalidResource(f"Link address must be {MAX_URL_LEN} characters or fewer")
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise InvalidResource("Link must be a valid http(s) web address")
+    return url
+
+
+def _validate_note(note_text: str | None) -> str:
+    if not note_text or not note_text.strip():
+        raise InvalidResource("A note needs some text (or add a photo instead)")
+    note_text = note_text.strip()
+    if len(note_text) > MAX_NOTE_LEN:
+        raise InvalidResource(f"Note must be {MAX_NOTE_LEN} characters or fewer")
+    return note_text
+
+
+def _clean_label(label: str | None) -> str | None:
+    if label is None:
+        return None
+    label = label.strip()
+    if not label:
+        return None
+    if len(label) > MAX_LABEL_LEN:
+        raise InvalidResource(f"Label must be {MAX_LABEL_LEN} characters or fewer")
+    return label
+
+
+# ── Access helpers ───────────────────────────────────────────────
+
+
+async def _load_owned_activity(
+    session: AsyncSession, user_id: uuid.UUID, activity_id: uuid.UUID
+) -> tuple[ActivityResourceRepository, Activity]:
+    """Return (repo, activity) if the caller's family owns the activity.
+
+    Raises ActivityNotFound (404) if the activity does not exist, or
+    NotResourceOwner (403) if it exists but the caller's family does not own it.
+    """
+    fm = await get_user_family(session, user_id)
+    if not fm:
+        raise NoFamilyError("You must be in a family to manage activity resources")
+    repo = ActivityResourceRepository(session)
+    activity = await repo.get_activity(activity_id)
+    if not activity:
+        raise ActivityNotFound("Activity not found")
+    if activity.family_id != fm.family_id:
+        raise NotResourceOwner("Only the family that created this activity can manage its resources")
+    return repo, activity
+
+
+async def _load_viewable_activity(
+    session: AsyncSession, user_id: uuid.UUID, activity_id: uuid.UUID
+) -> tuple[ActivityResourceRepository, Activity, bool]:
+    """Return (repo, activity, can_edit) if the caller can view the activity.
+
+    Viewable when: global/curated (family_id is None), owned by the caller's
+    family, or embedded in a challenge the family can access. Raises
+    ActivityNotFound (404) otherwise (does not leak existence)."""
+    repo = ActivityResourceRepository(session)
+    activity = await repo.get_activity(activity_id)
+    if not activity:
+        raise ActivityNotFound("Activity not found")
+
+    fm = await get_user_family(session, user_id)
+    family_id = fm.family_id if fm else None
+
+    if activity.family_id is None:
+        return repo, activity, False
+    if family_id is not None and activity.family_id == family_id:
+        return repo, activity, True
+    if family_id is not None and await repo.accessible_via_challenge(activity_id, family_id):
+        return repo, activity, False
+    raise ActivityNotFound("Activity not found")
+
+
+async def _get_owned_resource(
+    repo: ActivityResourceRepository, activity_id: uuid.UUID, resource_id: uuid.UUID
+) -> ActivityResource:
+    resource = await repo.get_resource(resource_id)
+    if not resource or resource.activity_id != activity_id:
+        raise ResourceNotFound("Resource not found")
+    return resource
+
+
+# ── Serialization ────────────────────────────────────────────────
+
+
+def _photo_dict(photo: ActivityResourcePhoto) -> dict:
+    photo_url = None
+    if photo.status == "ready" and photo.photo_key:
+        try:
+            photo_url = storage.generate_presigned_url(photo.photo_key, expires=900)
+        except Exception:
+            photo_url = None
+    return {
+        "id": photo.id,
+        "status": photo.status,
+        "position": photo.position,
+        "photo_url": photo_url,
+    }
+
+
+def _resource_dict(resource: ActivityResource) -> dict:
+    data: dict = {
+        "id": resource.id,
+        "kind": resource.kind,
+        "position": resource.position,
+        "label": resource.label,
+        "url": resource.url,
+        "note_text": resource.note_text,
+    }
+    if resource.kind == "internal":
+        photos = sorted(resource.photos, key=lambda p: p.position)
+        data["photos"] = [_photo_dict(p) for p in photos]
+    return data
+
+
+def _validate_image(content_type: str | None, size: int) -> None:
+    if content_type not in _ALLOWED_IMAGE_TYPES:
+        raise InvalidResource("Only JPEG and PNG images are accepted")
+    if size > _MAX_IMAGE_SIZE:
+        raise InvalidResource("Image must be 10 MB or smaller")
+
+
+async def _reload_dict(repo: ActivityResourceRepository, resource_id: uuid.UUID) -> dict:
+    """Re-read a just-written resource with its photos eagerly loaded."""
+    resource = await repo.get_resource(resource_id)
+    assert resource is not None
+    return _resource_dict(resource)
+
+
+# ── Authoring (US1) ──────────────────────────────────────────────
+
+
+async def create_external_resource(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    *,
+    url: str | None,
+    label: str | None,
+) -> dict:
+    repo, _ = await _load_owned_activity(session, user_id, activity_id)
+    if await repo.count_resources(activity_id) >= MAX_RESOURCES_PER_ACTIVITY:
+        raise ResourceLimitExceeded(f"An activity can have at most {MAX_RESOURCES_PER_ACTIVITY} resources")
+    clean_url = _validate_url(url)
+    clean_label = _clean_label(label)
+    position = await repo.next_resource_position(activity_id)
+    resource = await repo.create_resource(
+        activity_id=activity_id, kind="external", position=position, label=clean_label, url=clean_url
+    )
+    return await _reload_dict(repo, resource.id)
+
+
+async def create_internal_text_resource(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    *,
+    note_text: str | None,
+    label: str | None,
+) -> dict:
+    repo, _ = await _load_owned_activity(session, user_id, activity_id)
+    if await repo.count_resources(activity_id) >= MAX_RESOURCES_PER_ACTIVITY:
+        raise ResourceLimitExceeded(f"An activity can have at most {MAX_RESOURCES_PER_ACTIVITY} resources")
+    clean_note = _validate_note(note_text)
+    clean_label = _clean_label(label)
+    position = await repo.next_resource_position(activity_id)
+    resource = await repo.create_resource(
+        activity_id=activity_id, kind="internal", position=position, label=clean_label, note_text=clean_note
+    )
+    return await _reload_dict(repo, resource.id)
+
+
+def _photo_keys(family_id: uuid.UUID | None) -> tuple[uuid.UUID, str, str]:
+    # Owned activities always carry a family (enforced by _load_owned_activity).
+    assert family_id is not None
+    photo_id = uuid.uuid4()
+    raw_key = f"raw/{family_id}/resource-{photo_id}.jpg"
+    final_key = f"photos/{family_id}/resource-{photo_id}.jpg"
+    return photo_id, raw_key, final_key
+
+
+async def create_photo_only_resource(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    *,
+    photo_data: bytes,
+    content_type: str,
+    note_text: str | None = None,
+) -> tuple[dict, str, str, uuid.UUID]:
+    """Create an internal resource carrying its first photo.
+
+    Returns (resource_dict, raw_key, final_key, photo_id) so the route can
+    schedule background compression."""
+    repo, activity = await _load_owned_activity(session, user_id, activity_id)
+    if await repo.count_resources(activity_id) >= MAX_RESOURCES_PER_ACTIVITY:
+        raise ResourceLimitExceeded(f"An activity can have at most {MAX_RESOURCES_PER_ACTIVITY} resources")
+    _validate_image(content_type, len(photo_data))
+
+    clean_note: str | None = None
+    if note_text and note_text.strip():
+        if len(note_text.strip()) > MAX_NOTE_LEN:
+            raise InvalidResource(f"Note must be {MAX_NOTE_LEN} characters or fewer")
+        clean_note = note_text.strip()
+
+    position = await repo.next_resource_position(activity_id)
+    resource = await repo.create_resource(
+        activity_id=activity_id, kind="internal", position=position, note_text=clean_note
+    )
+
+    _photo_id, raw_key, final_key = _photo_keys(activity.family_id)
+    storage.upload_bytes(raw_key, photo_data, content_type)
+    photo = await repo.create_photo(resource_id=resource.id, status="processing", photo_key=raw_key, position=0)
+    return await _reload_dict(repo, resource.id), raw_key, final_key, photo.id
+
+
+async def add_photo(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    resource_id: uuid.UUID,
+    *,
+    photo_data: bytes,
+    content_type: str,
+) -> tuple[dict, str, str, uuid.UUID]:
+    repo, activity = await _load_owned_activity(session, user_id, activity_id)
+    resource = await _get_owned_resource(repo, activity_id, resource_id)
+    if resource.kind != "internal":
+        raise InvalidResource("Photos can only be added to note resources")
+    if await repo.count_photos(resource_id) >= MAX_PHOTOS_PER_RESOURCE:
+        raise ResourceLimitExceeded(f"A note can have at most {MAX_PHOTOS_PER_RESOURCE} photos")
+    _validate_image(content_type, len(photo_data))
+
+    position = await repo.next_photo_position(resource_id)
+    _photo_id, raw_key, final_key = _photo_keys(activity.family_id)
+    storage.upload_bytes(raw_key, photo_data, content_type)
+    photo = await repo.create_photo(resource_id=resource_id, status="processing", photo_key=raw_key, position=position)
+    return _photo_dict(photo), raw_key, final_key, photo.id
+
+
+def compress_resource_photo(photo_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
+    """Background task (sync thread): compress the raw photo and mark it ready."""
+    import asyncio
+
+    asyncio.run(_compress_resource_photo_async(photo_id, raw_key, final_key, db_url))
+
+
+async def _compress_resource_photo_async(photo_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
+    try:
+        from PIL import Image, ImageOps
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        raw_data = storage.download_bytes(raw_key)
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(raw_data)))
+        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=85)
+        storage.upload_bytes(final_key, buf.getvalue(), "image/jpeg")
+        storage.delete_object(raw_key)
+
+        engine = create_async_engine(db_url)
+        async_session = async_sessionmaker(engine, expire_on_commit=False)
+        async with async_session() as session:
+            result = await session.execute(select(ActivityResourcePhoto).where(ActivityResourcePhoto.id == photo_id))
+            photo = result.scalar_one_or_none()
+            if photo:
+                photo.status = "ready"
+                photo.photo_key = final_key
+                await session.commit()
+        await engine.dispose()
+    except Exception:
+        # Leave the photo in "processing"; the client re-fetches the detail later.
+        pass
+
+
+# ── Viewing (US2) ────────────────────────────────────────────────
+
+
+async def get_activity_with_resources(
+    session: AsyncSession, user_id: uuid.UUID, activity_id: uuid.UUID
+) -> tuple[Activity, bool, list[dict]]:
+    """Return (activity, can_edit, resource_dicts) if the caller can view it.
+
+    The route composes the base activity fields; resources are pre-serialized
+    here (with pre-signed photo URLs for ready photos)."""
+    repo, activity, can_edit = await _load_viewable_activity(session, user_id, activity_id)
+    resources = await repo.list_for_activity(activity_id)
+    return activity, can_edit, [_resource_dict(r) for r in resources]
+
+
+# ── Editing & removal (US3) ──────────────────────────────────────
+
+
+async def update_resource(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    resource_id: uuid.UUID,
+    *,
+    label: str | None = None,
+    url: str | None = None,
+    note_text: str | None = None,
+) -> dict:
+    repo, _ = await _load_owned_activity(session, user_id, activity_id)
+    resource = await _get_owned_resource(repo, activity_id, resource_id)
+
+    if url is not None:
+        if resource.kind != "external":
+            raise InvalidResource("Only external resources have a link address")
+        resource.url = _validate_url(url)
+    if note_text is not None:
+        if resource.kind != "internal":
+            raise InvalidResource("Only note resources have text")
+        resource.note_text = _validate_note(note_text)
+    if label is not None:
+        resource.label = _clean_label(label)
+
+    await repo.save(resource)
+    return await _reload_dict(repo, resource.id)
+
+
+async def delete_resource(
+    session: AsyncSession, user_id: uuid.UUID, activity_id: uuid.UUID, resource_id: uuid.UUID
+) -> None:
+    repo, _ = await _load_owned_activity(session, user_id, activity_id)
+    resource = await _get_owned_resource(repo, activity_id, resource_id)
+
+    photo_keys = [p.photo_key for p in resource.photos if p.photo_key]
+    await repo.delete_resource(resource)
+    for key in photo_keys:
+        try:
+            storage.delete_object(key)
+        except Exception:
+            pass
+
+
+async def delete_photo(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    activity_id: uuid.UUID,
+    resource_id: uuid.UUID,
+    photo_id: uuid.UUID,
+) -> None:
+    repo, _ = await _load_owned_activity(session, user_id, activity_id)
+    await _get_owned_resource(repo, activity_id, resource_id)
+    photo = await repo.get_photo(photo_id)
+    if not photo or photo.resource_id != resource_id:
+        raise ResourceNotFound("Photo not found")
+
+    photo_key = photo.photo_key
+    await repo.delete_photo(photo)
+    if photo_key:
+        try:
+            storage.delete_object(photo_key)
+        except Exception:
+            pass
