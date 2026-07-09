@@ -227,3 +227,42 @@ async def test_delete_photo_wrong_resource_raises(mocker):
 
     with pytest.raises(ResourceNotFound):
         await svc.delete_photo(AsyncMock(), uuid.uuid4(), aid, resource.id, photo.id)
+
+
+# ── Family resource-photo quota ──────────────────────────────────
+
+
+async def test_add_photo_family_quota_precheck_raises(mocker):
+    from app.services.exceptions import PhotoLimitReached
+
+    repo, aid, resource = _owned_setup(mocker, kind="internal")
+    repo.count_photos = AsyncMock(return_value=0)
+    repo.count_photos_for_family = AsyncMock(return_value=svc.settings.RESOURCE_PHOTO_UPLOAD_LIMIT)
+    upload = mocker.patch.object(svc.storage, "upload_bytes")
+
+    with pytest.raises(PhotoLimitReached):
+        await svc.add_photo(AsyncMock(), uuid.uuid4(), aid, resource.id, photo_data=b"x", content_type="image/jpeg")
+    upload.assert_not_called()
+
+
+async def test_add_photo_locked_recheck_cleans_up_raw_upload(mocker):
+    """Losing the race at the quota boundary deletes the just-uploaded raw object."""
+    from app.services.exceptions import PhotoLimitReached
+
+    repo, aid, resource = _owned_setup(mocker, kind="internal")
+    repo.count_photos = AsyncMock(return_value=0)
+    repo.next_photo_position = AsyncMock(return_value=1)
+    # Pre-check passes, re-check under the advisory lock fails
+    limit = svc.settings.RESOURCE_PHOTO_UPLOAD_LIMIT
+    repo.count_photos_for_family = AsyncMock(side_effect=[limit - 1, limit])
+    repo.session = MagicMock(rollback=AsyncMock())
+    mocker.patch.object(svc, "lock_family_quota", AsyncMock())
+    mocker.patch.object(svc.storage, "upload_bytes")
+    delete_obj = mocker.patch.object(svc.storage, "delete_object")
+
+    with pytest.raises(PhotoLimitReached):
+        await svc.add_photo(AsyncMock(), uuid.uuid4(), aid, resource.id, photo_data=b"x", content_type="image/jpeg")
+
+    repo.session.rollback.assert_awaited_once()
+    delete_obj.assert_called_once()
+    repo.create_photo.assert_not_called()

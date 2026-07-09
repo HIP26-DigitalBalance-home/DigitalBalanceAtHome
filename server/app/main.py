@@ -80,14 +80,29 @@ async def _auto_approval_loop() -> None:
         await asyncio.sleep(3600)
 
 
+async def _photo_recovery_loop() -> None:
+    """Re-runs compression for photos stuck in "processing" (lost on restart)."""
+    from app.services.photo_recovery import run_photo_recovery
+
+    while True:
+        await asyncio.sleep(600)
+        try:
+            async with AsyncSessionLocal() as session:
+                await run_photo_recovery(session)
+        except Exception:
+            logger.exception("photo_recovery_failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_freeze_job_loop())
     auto_approval_task = asyncio.create_task(_auto_approval_loop())
+    photo_recovery_task = asyncio.create_task(_photo_recovery_loop())
     logger.info("startup")
     yield
     task.cancel()
     auto_approval_task.cancel()
+    photo_recovery_task.cancel()
     logger.info("shutdown")
 
 

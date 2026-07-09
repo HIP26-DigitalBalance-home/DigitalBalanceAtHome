@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity import Activity
@@ -21,6 +21,8 @@ class ActivityRepository:
         exclude_paid: bool = True,
         family_id: uuid.UUID | None = None,
         exclude_completed_for_family_id: uuid.UUID | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Activity]:
         q = select(Activity)
 
@@ -57,12 +59,21 @@ class ActivityRepository:
             )
             q = q.where(Activity.id.not_in(completed_activity_ids))
 
+        if offset:
+            q = q.offset(offset)
+        if limit is not None:
+            q = q.limit(limit)
+
         result = await self.session.execute(q)
         return list(result.scalars().all())
 
     async def get_by_id(self, activity_id: uuid.UUID) -> Activity | None:
         result = await self.session.execute(select(Activity).where(Activity.id == activity_id))
         return result.scalar_one_or_none()
+
+    async def count_custom_for_family(self, family_id: uuid.UUID) -> int:
+        result = await self.session.execute(select(func.count(Activity.id)).where(Activity.family_id == family_id))
+        return int(result.scalar_one())
 
     async def create(
         self,

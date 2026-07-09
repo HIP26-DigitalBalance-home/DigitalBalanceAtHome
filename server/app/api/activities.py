@@ -1,13 +1,14 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.api.uploads import read_image_upload
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.dependencies.language import get_request_language
+from app.dependencies.rate_limit import activity_create_limiter, photo_upload_limiter
 from app.models.user import User
 from app.schemas.generated import (
     Activity,
@@ -48,17 +49,26 @@ async def list_activities(
     season: Optional[str] = Query(None, pattern="^(spring|summer|autumn|winter)$"),
     weather: Optional[str] = Query(None, pattern="^(sunny|cloudy|rainy|any)$"),
     cost: Optional[str] = Query(None, pattern="^(free|low_cost)$"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
     language: str = Depends(get_request_language),
 ) -> list[dict]:
     activities = await activity_service.list_activities(
-        session, user_id=current_user.id, age=age, season=season, weather=weather, cost=cost
+        session,
+        user_id=current_user.id,
+        age=age,
+        season=season,
+        weather=weather,
+        cost=cost,
+        limit=limit,
+        offset=offset,
     )
     return [_activity_schema(a, language) for a in activities]
 
 
-@router.post("", response_model=Activity, status_code=201)
+@router.post("", response_model=Activity, status_code=201, dependencies=[Depends(activity_create_limiter)])
 async def create_activity(
     body: CreateActivityRequest,
     current_user: User = Depends(get_current_user),
@@ -121,8 +131,14 @@ async def create_activity_resource(
     )
 
 
-@router.post("/{activity_id}/resources/photos", response_model=ActivityResource, status_code=202)
+@router.post(
+    "/{activity_id}/resources/photos",
+    response_model=ActivityResource,
+    status_code=202,
+    dependencies=[Depends(photo_upload_limiter)],
+)
 async def create_activity_resource_photo(
+    request: Request,
     activity_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     image: UploadFile = File(...),
@@ -130,18 +146,16 @@ async def create_activity_resource_photo(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    photo_data = await image.read()
+    photo_data, content_type = await read_image_upload(request, image, current_user.id)
     resource, raw_key, final_key, photo_id = await resource_service.create_photo_only_resource(
         session,
         current_user.id,
         activity_id,
         photo_data=photo_data,
-        content_type=image.content_type or "image/jpeg",
+        content_type=content_type,
         note_text=note_text,
     )
-    background_tasks.add_task(
-        resource_service.compress_resource_photo, photo_id, raw_key, final_key, settings.DATABASE_URL
-    )
+    background_tasks.add_task(resource_service.compress_resource_photo, photo_id, raw_key, final_key)
     return resource
 
 
@@ -149,8 +163,10 @@ async def create_activity_resource_photo(
     "/{activity_id}/resources/{resource_id}/photos",
     response_model=ActivityResourcePhoto,
     status_code=202,
+    dependencies=[Depends(photo_upload_limiter)],
 )
 async def add_activity_resource_photo(
+    request: Request,
     activity_id: uuid.UUID,
     resource_id: uuid.UUID,
     background_tasks: BackgroundTasks,
@@ -158,18 +174,16 @@ async def add_activity_resource_photo(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    photo_data = await image.read()
+    photo_data, content_type = await read_image_upload(request, image, current_user.id)
     photo, raw_key, final_key, photo_id = await resource_service.add_photo(
         session,
         current_user.id,
         activity_id,
         resource_id,
         photo_data=photo_data,
-        content_type=image.content_type or "image/jpeg",
+        content_type=content_type,
     )
-    background_tasks.add_task(
-        resource_service.compress_resource_photo, photo_id, raw_key, final_key, settings.DATABASE_URL
-    )
+    background_tasks.add_task(resource_service.compress_resource_photo, photo_id, raw_key, final_key)
     return photo
 
 

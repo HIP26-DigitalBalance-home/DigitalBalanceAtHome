@@ -17,6 +17,7 @@ from app.models.group import Group, GroupAdmin, GroupInvite, GroupMembership  # 
 from app.models.journal_entry import JournalEntry  # noqa: F401
 from app.models.manual_time_entry import ManualTimeEntry  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
+from app.models.rate_limit import RateLimitCounter  # noqa: F401
 from app.models.rewards import (  # noqa: F401
     PhotoVerification,
     PointLedgerEntry,

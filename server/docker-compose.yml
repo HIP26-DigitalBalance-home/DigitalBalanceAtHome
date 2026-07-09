@@ -1,6 +1,8 @@
 services:
   api:
     build: .
+    # Dev-only auto-reload; the image CMD itself runs without --reload for prod
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file: .env
     ports:
       - "8000:8000"

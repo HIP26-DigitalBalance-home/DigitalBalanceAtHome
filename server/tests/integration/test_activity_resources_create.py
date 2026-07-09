@@ -128,7 +128,7 @@ class TestCreateInternalTextResource:
 
 
 class TestCreatePhotoResource:
-    async def test_photo_only_creates_resource(self, auth_client, mocker):
+    async def test_photo_only_creates_resource(self, auth_client, mocker, tiny_jpeg):
         photo = {"id": str(uuid.uuid4()), "status": "processing", "position": 0, "photo_url": None}
         service = mocker.patch(
             "app.api.activities.resource_service.create_photo_only_resource",
@@ -139,14 +139,14 @@ class TestCreatePhotoResource:
         response = await auth_client.post(
             f"/activities/{uuid.uuid4()}/resources/photos",
             data={"note_text": "Fertige Kekse"},
-            files={"image": ("cookies.jpg", b"jpeg-data", "image/jpeg")},
+            files={"image": ("cookies.jpg", tiny_jpeg, "image/jpeg")},
         )
         assert response.status_code == 202
         assert response.json()["photos"][0]["status"] == "processing"
         service.assert_awaited_once()
         compress.assert_called_once()
 
-    async def test_add_photo_to_existing_resource(self, auth_client, mocker):
+    async def test_add_photo_to_existing_resource(self, auth_client, mocker, tiny_jpeg):
         photo = {"id": str(uuid.uuid4()), "status": "processing", "position": 1, "photo_url": None}
         service = mocker.patch(
             "app.api.activities.resource_service.add_photo",
@@ -156,21 +156,21 @@ class TestCreatePhotoResource:
 
         response = await auth_client.post(
             f"/activities/{uuid.uuid4()}/resources/{uuid.uuid4()}/photos",
-            files={"image": ("cookies.jpg", b"jpeg-data", "image/jpeg")},
+            files={"image": ("cookies.jpg", tiny_jpeg, "image/jpeg")},
         )
         assert response.status_code == 202
         assert response.json()["status"] == "processing"
         service.assert_awaited_once()
         compress.assert_called_once()
 
-    async def test_photo_limit_returns_400(self, auth_client, mocker):
+    async def test_photo_limit_returns_400(self, auth_client, mocker, tiny_jpeg):
         mocker.patch(
             "app.api.activities.resource_service.add_photo",
             side_effect=ResourceLimitExceeded("A note can have at most 5 photos"),
         )
         response = await auth_client.post(
             f"/activities/{uuid.uuid4()}/resources/{uuid.uuid4()}/photos",
-            files={"image": ("cookies.jpg", b"jpeg-data", "image/jpeg")},
+            files={"image": ("cookies.jpg", tiny_jpeg, "image/jpeg")},
         )
         assert response.status_code == 400
         assert response.json()["code"] == "resource_limit_exceeded"

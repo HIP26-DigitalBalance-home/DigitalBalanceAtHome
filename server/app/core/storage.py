@@ -1,3 +1,4 @@
+import anyio
 import boto3
 from botocore.config import Config
 from fastapi import HTTPException
@@ -43,6 +44,22 @@ def download_bytes(key: str) -> bytes:
 
 def delete_object(key: str) -> None:
     _client().delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+
+
+# Async wrappers: boto3 is blocking, so request-path callers must go through
+# these to keep S3 round trips off the event loop.
+
+
+async def upload_bytes_async(key: str, data: bytes, content_type: str) -> None:
+    await anyio.to_thread.run_sync(upload_bytes, key, data, content_type)
+
+
+async def download_bytes_async(key: str) -> bytes:
+    return await anyio.to_thread.run_sync(download_bytes, key)
+
+
+async def delete_object_async(key: str) -> None:
+    await anyio.to_thread.run_sync(delete_object, key)
 
 
 def generate_presigned_url(key: str, expires: int = 900) -> str:

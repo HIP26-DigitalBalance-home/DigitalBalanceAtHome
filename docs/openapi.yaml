@@ -168,6 +168,10 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
     delete:
       operationId: deleteMe
       tags: [Users]
@@ -684,11 +688,14 @@ paths:
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 100
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
+            minimum: 0
       responses:
         "200":
           description: Feed entries
@@ -737,11 +744,14 @@ paths:
           schema:
             type: integer
             default: 50
+            minimum: 1
+            maximum: 100
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
+            minimum: 0
       responses:
         "200":
           description: Activities
@@ -778,6 +788,8 @@ paths:
           description: Caller does not belong to a family
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /collage-presets:
     get:
@@ -928,6 +940,10 @@ paths:
           description: Caller's family does not own the activity
         "404":
           description: Activity not found
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /activities/{activity_id}/resources/{resource_id}:
     patch:
@@ -1004,6 +1020,10 @@ paths:
           description: Caller's family does not own the activity
         "404":
           description: Resource not found
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /activities/{activity_id}/resources/{resource_id}/photos/{photo_id}:
     delete:
@@ -1278,6 +1298,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /photos/{completionId}/url:
     get:
@@ -1299,6 +1323,34 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /photos/{completionId}/image:
+    get:
+      operationId: getPhotoImage
+      tags: [Photos]
+      summary: Proxy the compressed completion photo bytes (for canvas/collage export)
+      description: |
+        Streams the photo through the API instead of redirecting to a
+        pre-signed URL so the client can draw it into a canvas without
+        cross-origin tainting.
+      parameters:
+        - $ref: "#/components/parameters/CompletionId"
+      responses:
+        "200":
+          description: JPEG photo bytes
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   # ── Completions ─────────────────────────────────────────────
 
@@ -1337,11 +1389,14 @@ paths:
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 100
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
+            minimum: 0
       responses:
         "200":
           description: Completions
@@ -1421,6 +1476,10 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   # ── Verification ────────────────────────────────────────────
 
@@ -1437,11 +1496,14 @@ paths:
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 100
         - name: offset
           in: query
           schema:
             type: integer
             default: 0
+            minimum: 0
       responses:
         "200":
           description: Paginated verification queue
@@ -1818,6 +1880,12 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     TooManyRequests:
       description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    PayloadTooLarge:
+      description: Request body exceeds the maximum allowed size
       content:
         application/json:
           schema:

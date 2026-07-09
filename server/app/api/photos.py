@@ -1,24 +1,23 @@
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.api.uploads import read_image_upload
 from app.dependencies.auth import get_current_user, get_current_user_with_consent_check
 from app.dependencies.database import get_db
+from app.dependencies.rate_limit import photo_proxy_limiter, photo_upload_limiter, photo_url_limiter
 from app.models.user import User
 from app.schemas.generated import PhotoUploadResponse, PhotoUrlResponse
 from app.services import completion as completion_service
 
 router = APIRouter()
 
-_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/jpg"}
 
-
-@router.post("", status_code=202, response_model=PhotoUploadResponse)
+@router.post("", status_code=202, response_model=PhotoUploadResponse, dependencies=[Depends(photo_upload_limiter)])
 async def upload_photo(
+    request: Request,
     background_tasks: BackgroundTasks,
     challenge_activity_id: uuid.UUID = Form(...),
     image: UploadFile = File(...),
@@ -29,19 +28,14 @@ async def upload_photo(
     current_user: User = Depends(get_current_user_with_consent_check),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    if image.content_type not in _ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Only JPEG and PNG images are accepted")
-
-    photo_data = await image.read()
-    if len(photo_data) > _MAX_SIZE:
-        raise HTTPException(status_code=400, detail="Image must be 10 MB or smaller")
+    photo_data, content_type = await read_image_upload(request, image, current_user.id)
 
     completion, raw_key, final_key = await completion_service.start_photo_completion(
         session,
         current_user.id,
         challenge_activity_id,
         photo_data,
-        image.content_type or "image/jpeg",
+        content_type,
         caption,
         shared_to_feed,
         duration_minutes,
@@ -53,13 +47,12 @@ async def upload_photo(
         completion.id,
         raw_key,
         final_key,
-        settings.DATABASE_URL,
     )
 
     return {"completion_id": completion.id}
 
 
-@router.get("/{completion_id}/url", response_model=PhotoUrlResponse)
+@router.get("/{completion_id}/url", response_model=PhotoUrlResponse, dependencies=[Depends(photo_url_limiter)])
 async def get_photo_url(
     completion_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -68,7 +61,7 @@ async def get_photo_url(
     return await completion_service.get_photo_url(session, current_user.id, completion_id)
 
 
-@router.get("/{completion_id}/image")
+@router.get("/{completion_id}/image", dependencies=[Depends(photo_proxy_limiter)])
 async def get_photo_image(
     completion_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -80,5 +73,5 @@ async def get_photo_image(
     from app.core import storage
 
     photo_key = await completion_service.get_photo_key(session, current_user.id, completion_id)
-    data = storage.download_bytes(photo_key)
+    data = await storage.download_bytes_async(photo_key)
     return Response(content=data, media_type="image/jpeg")

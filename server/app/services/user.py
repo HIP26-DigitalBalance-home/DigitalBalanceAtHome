@@ -47,10 +47,10 @@ async def update_me(
     if image_data is not None:
         ext = "jpg" if (content_type or "").endswith("jpeg") or (content_type or "").endswith("jpg") else "png"
         new_key = f"avatars/{user.id}/{uuid.uuid4()}.{ext}"
-        storage.upload_bytes(new_key, image_data, content_type or "image/jpeg")
+        await storage.upload_bytes_async(new_key, image_data, content_type or "image/jpeg")
         if user.profile_photo_key:
             try:
-                storage.delete_object(user.profile_photo_key)
+                await storage.delete_object_async(user.profile_photo_key)
             except Exception:
                 pass
         kwargs["profile_photo_key"] = new_key

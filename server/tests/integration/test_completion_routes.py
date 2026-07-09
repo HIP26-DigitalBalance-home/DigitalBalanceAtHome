@@ -37,7 +37,7 @@ class TestSelfReportedCompletionContract:
         )
         assert response.status_code == 422
 
-    async def test_passes_duration_and_date_to_service(self, auth_client, mocker):
+    async def test_passes_duration_and_date_to_service(self, auth_client, mocker, tiny_jpeg):
         service = mocker.patch(
             "app.api.completions.completion_service.create_self_reported", return_value=_completion()
         )
@@ -78,7 +78,7 @@ class TestPhotoCompletionContract:
 
         assert response.status_code == 422
 
-    async def test_passes_duration_and_date_to_service(self, auth_client, mocker):
+    async def test_passes_duration_and_date_to_service(self, auth_client, mocker, tiny_jpeg):
         completion_id = uuid.uuid4()
         service = mocker.patch(
             "app.api.photos.completion_service.start_photo_completion",
@@ -94,7 +94,7 @@ class TestPhotoCompletionContract:
                 "duration_minutes": "75",
                 "completed_on": "2026-07-05",
             },
-            files={"image": ("activity.jpg", b"jpeg-data", "image/jpeg")},
+            files={"image": ("activity.jpg", tiny_jpeg, "image/jpeg")},
         )
 
         assert response.status_code == 202

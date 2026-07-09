@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.uploads import read_image_upload
 from app.dependencies.auth import get_current_user, get_current_user_allow_pending
 from app.dependencies.database import get_db
+from app.dependencies.rate_limit import profile_update_limiter
 from app.models.user import User
 from app.schemas.generated import DataExport, DeletionPendingResponse
 from app.schemas.generated import User as UserSchema
 from app.services import user as user_service
 
 router = APIRouter()
-
-_MAX_SIZE = 10 * 1024 * 1024
-_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/jpg"}
 
 
 @router.get("/me", response_model=UserSchema)
@@ -21,8 +20,9 @@ async def get_me(
     return user_service.get_me(current_user)
 
 
-@router.patch("/me", response_model=UserSchema)
+@router.patch("/me", response_model=UserSchema, dependencies=[Depends(profile_update_limiter)])
 async def update_me(
+    request: Request,
     display_name: str | None = Form(None),
     image: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
@@ -35,12 +35,7 @@ async def update_me(
     content_type: str | None = None
 
     if image is not None:
-        if image.content_type not in _ALLOWED_TYPES:
-            raise HTTPException(status_code=400, detail="Only JPEG and PNG images are accepted")
-        image_data = await image.read()
-        if len(image_data) > _MAX_SIZE:
-            raise HTTPException(status_code=400, detail="Image must be 10 MB or smaller")
-        content_type = image.content_type
+        image_data, content_type = await read_image_upload(request, image, current_user.id)
 
     return await user_service.update_me(session, current_user, display_name, image_data, content_type)
 

@@ -123,6 +123,16 @@ class PhotoLimitReached(DomainError):
     code = "photo_limit_reached"
 
 
+class ActivityLimitReached(DomainError):
+    status_code = 429
+    code = "activity_limit_reached"
+
+
+class RateLimited(DomainError):
+    status_code = 429
+    code = "rate_limited"
+
+
 class JournalEntryExists(DomainError):
     status_code = 409
     code = "journal_entry_exists"

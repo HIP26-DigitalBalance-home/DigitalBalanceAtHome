@@ -1,7 +1,7 @@
-import io
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from app.models.challenge import ChallengeActivity
 from app.models.completion import Completion
 from app.repositories.challenge import _accessible_predicate
 from app.repositories.completion import CompletionRepository
+from app.repositories.quota import lock_family_quota
 from app.repositories.rewards import RewardsRepository
 from app.services.exceptions import (
     AlreadyCompleted,
@@ -26,6 +27,8 @@ from app.services.exceptions import (
 )
 from app.services.family import get_user_family
 from app.services.localization import pick
+
+logger = structlog.get_logger()
 
 # Statuses whose photo_key points at a servable photo (raw or compressed)
 _PHOTO_STATUSES = ("pending_verification", "verified", "rejected")
@@ -235,7 +238,7 @@ async def delete_completion(session: AsyncSession, user_id: uuid.UUID, completio
 
     if photo_key:
         try:
-            storage.delete_object(photo_key)
+            await storage.delete_object_async(photo_key)
         except Exception:
             pass
 
@@ -298,8 +301,9 @@ async def start_photo_completion(
         raise NoFamilyError("You must be in a family to complete activities")
 
     repo = CompletionRepository(session)
-    photo_count = await repo.count_photo_completions(fm.family_id)
     limit = settings.PHOTO_UPLOAD_LIMIT
+    # Cheap unlocked pre-check; re-checked under the advisory lock below
+    photo_count = await repo.count_photo_completions(fm.family_id)
     if photo_count >= limit:
         raise PhotoLimitReached(f"Your family has reached the photo limit of {limit}")
 
@@ -314,9 +318,16 @@ async def start_photo_completion(
     raw_key = f"raw/{fm.family_id}/{photo_id}.jpg"
     final_key = f"photos/{fm.family_id}/{photo_id}.jpg"
 
-    storage.upload_bytes(raw_key, photo_data, content_type)
+    await storage.upload_bytes_async(raw_key, photo_data, content_type)
 
     try:
+        # Advisory lock makes count-then-create atomic against parallel uploads;
+        # it is held until this transaction commits or rolls back.
+        await lock_family_quota(session, fm.family_id)
+        if await repo.count_photo_completions(fm.family_id) >= limit:
+            await session.rollback()
+            await storage.delete_object_async(raw_key)
+            raise PhotoLimitReached(f"Your family has reached the photo limit of {limit}")
         completion = await repo.create(
             challenge_activity_id=challenge_activity_id,
             family_id=fm.family_id,
@@ -332,7 +343,7 @@ async def start_photo_completion(
         await session.refresh(completion)
     except IntegrityError:
         await session.rollback()
-        storage.delete_object(raw_key)
+        await storage.delete_object_async(raw_key)
         raise AlreadyCompleted("This activity has already been completed by your family")
 
     return completion, raw_key, final_key
@@ -350,7 +361,11 @@ async def update_photo(
     Returns (completion, raw_key, final_key, preserve_status, old_photo_key).
     preserve_status is True for verified completions: the photo is swapped but
     status and points stay untouched (FR-004). rejected / pending completions
-    re-enter the pipeline as processing → pending_verification (FR-005)."""
+    re-enter the pipeline as processing → pending_verification (FR-005).
+
+    No quota re-check here on purpose: a re-upload replaces an existing photo
+    1:1 (the superseded object is deleted after compression), so there is no
+    net storage growth."""
     fm = await get_user_family(session, user_id)
     if not fm:
         raise NoFamilyError("You must be in a family")
@@ -370,7 +385,7 @@ async def update_photo(
     raw_key = f"raw/{fm.family_id}/{photo_id}.jpg"
     final_key = f"photos/{fm.family_id}/{photo_id}.jpg"
 
-    storage.upload_bytes(raw_key, photo_data, content_type)
+    await storage.upload_bytes_async(raw_key, photo_data, content_type)
 
     preserve_status = completion.status == "verified"
     if not preserve_status:
@@ -383,66 +398,49 @@ async def update_photo(
     return completion, raw_key, final_key, preserve_status, old_photo_key
 
 
-def compress_photo(
+async def _clear_photo_key(completion_id: uuid.UUID) -> None:
+    """Detach a poisoned raw photo so the recovery sweeper stops retrying it."""
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Completion).where(Completion.id == completion_id))
+        completion = result.scalar_one_or_none()
+        if completion and completion.status == "processing":
+            completion.photo_key = None
+            await session.commit()
+
+
+async def compress_photo(
     completion_id: uuid.UUID,
     raw_key: str,
     final_key: str,
-    db_url: str,
     preserve_status: bool = False,
     update_streak: bool = True,
     delete_key: str | None = None,
 ) -> None:
-    """Background task (sync thread): compress photo and update completion status.
-    Uses asyncio.run() so we can reuse the async engine + asyncpg driver."""
-    import asyncio
+    """Background task: compress the raw photo and update the completion.
 
-    asyncio.run(
-        _compress_async(
-            completion_id,
-            raw_key,
-            final_key,
-            db_url,
-            preserve_status=preserve_status,
-            update_streak=update_streak,
-            delete_key=delete_key,
-        )
-    )
+    Runs on the event loop (async BackgroundTask); the CPU-bound decode is
+    offloaded to a bounded worker thread by photo_pipeline."""
+    from app.core.database import AsyncSessionLocal
+    from app.services import photo_pipeline
+    from app.services.progress import update_streak_on_completion
 
-
-async def _compress_async(
-    completion_id: uuid.UUID,
-    raw_key: str,
-    final_key: str,
-    db_url: str,
-    preserve_status: bool = False,
-    update_streak: bool = True,
-    delete_key: str | None = None,
-) -> None:
     try:
-        from PIL import Image, ImageOps
-        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        raw_data = await storage.download_bytes_async(raw_key)
+        try:
+            compressed = await photo_pipeline.compress_in_thread(raw_data)
+        except photo_pipeline.ImageProcessingError:
+            logger.warning("photo_compression_rejected", completion_id=str(completion_id), raw_key=raw_key)
+            await storage.delete_object_async(raw_key)
+            await _clear_photo_key(completion_id)
+            return
 
-        raw_data = storage.download_bytes(raw_key)
-        raw_img = Image.open(io.BytesIO(raw_data))
-        # Re-saving drops EXIF metadata, so bake the orientation into the pixels first
-        img = ImageOps.exif_transpose(raw_img)
-        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+        await storage.upload_bytes_async(final_key, compressed, "image/jpeg")
+        await storage.delete_object_async(raw_key)
 
-        buf = io.BytesIO()
-        img.convert("RGB").save(buf, format="JPEG", quality=85)
-        compressed = buf.getvalue()
-
-        storage.upload_bytes(final_key, compressed, "image/jpeg")
-        storage.delete_object(raw_key)
-
-        engine = create_async_engine(db_url)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            from sqlalchemy import select as sa_select
-
-            from app.services.progress import update_streak_on_completion
-
-            result = await session.execute(sa_select(Completion).where(Completion.id == completion_id))
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Completion).where(Completion.id == completion_id))
             completion = result.scalar_one_or_none()
             if completion:
                 if not preserve_status:
@@ -451,15 +449,14 @@ async def _compress_async(
                 if update_streak:
                     await update_streak_on_completion(completion.family_id, session)
                 await session.commit()
-        await engine.dispose()
 
         # Re-uploads leave a superseded compressed photo behind — clean it up
         if delete_key and delete_key not in (raw_key, final_key):
             try:
-                storage.delete_object(delete_key)
+                await storage.delete_object_async(delete_key)
             except Exception:
                 pass
 
     except Exception:
-        # On failure: leave completion in "processing" state; client polls and times out
-        pass
+        # Completion stays in "processing"; the recovery sweeper retries it later
+        logger.exception("photo_compression_failed", completion_id=str(completion_id))

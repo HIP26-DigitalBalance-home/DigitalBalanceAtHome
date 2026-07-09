@@ -1,23 +1,28 @@
-import io
 import uuid
 from urllib.parse import urlparse
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import storage
+from app.core.config import settings
 from app.models.activity import Activity
 from app.models.activity_resource import ActivityResource
 from app.models.activity_resource_photo import ActivityResourcePhoto
 from app.repositories.activity_resource import ActivityResourceRepository
+from app.repositories.quota import lock_family_quota
 from app.services.exceptions import (
     ActivityNotFound,
     InvalidResource,
     NoFamilyError,
     NotResourceOwner,
+    PhotoLimitReached,
     ResourceLimitExceeded,
     ResourceNotFound,
 )
 from app.services.family import get_user_family
+
+logger = structlog.get_logger()
 
 MAX_RESOURCES_PER_ACTIVITY = 10
 MAX_PHOTOS_PER_RESOURCE = 5
@@ -26,7 +31,6 @@ MAX_URL_LEN = 2048
 MAX_NOTE_LEN = 2000
 
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/jpg"}
-_MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 # ── Validation ───────────────────────────────────────────────────
@@ -155,9 +159,11 @@ def _resource_dict(resource: ActivityResource) -> dict:
 
 
 def _validate_image(content_type: str | None, size: int) -> None:
+    # Defense in depth: routes already run read_image_upload(), which enforces
+    # these limits before the body is fully buffered.
     if content_type not in _ALLOWED_IMAGE_TYPES:
         raise InvalidResource("Only JPEG and PNG images are accepted")
-    if size > _MAX_IMAGE_SIZE:
+    if size > settings.MAX_UPLOAD_BYTES:
         raise InvalidResource("Image must be 10 MB or smaller")
 
 
@@ -220,6 +226,29 @@ def _photo_keys(family_id: uuid.UUID | None) -> tuple[uuid.UUID, str, str]:
     return photo_id, raw_key, final_key
 
 
+def _family_photo_quota_message() -> str:
+    return f"Your family has reached the limit of {settings.RESOURCE_PHOTO_UPLOAD_LIMIT} resource photos"
+
+
+async def _create_photo_with_quota(
+    repo: ActivityResourceRepository,
+    family_id: uuid.UUID,
+    *,
+    resource_id: uuid.UUID,
+    photo_key: str,
+    position: int,
+) -> ActivityResourcePhoto:
+    """Insert a photo row with the family quota re-checked atomically.
+
+    The advisory lock is held until create_photo() commits, so parallel
+    uploads cannot both pass the count check."""
+    await lock_family_quota(repo.session, family_id)
+    if await repo.count_photos_for_family(family_id) >= settings.RESOURCE_PHOTO_UPLOAD_LIMIT:
+        await repo.session.rollback()
+        raise PhotoLimitReached(_family_photo_quota_message())
+    return await repo.create_photo(resource_id=resource_id, status="processing", photo_key=photo_key, position=position)
+
+
 async def create_photo_only_resource(
     session: AsyncSession,
     user_id: uuid.UUID,
@@ -234,8 +263,13 @@ async def create_photo_only_resource(
     Returns (resource_dict, raw_key, final_key, photo_id) so the route can
     schedule background compression."""
     repo, activity = await _load_owned_activity(session, user_id, activity_id)
+    family_id = activity.family_id
+    assert family_id is not None  # owned activities always carry a family
     if await repo.count_resources(activity_id) >= MAX_RESOURCES_PER_ACTIVITY:
         raise ResourceLimitExceeded(f"An activity can have at most {MAX_RESOURCES_PER_ACTIVITY} resources")
+    # Cheap unlocked pre-check; re-checked under the advisory lock at insert time
+    if await repo.count_photos_for_family(family_id) >= settings.RESOURCE_PHOTO_UPLOAD_LIMIT:
+        raise PhotoLimitReached(_family_photo_quota_message())
     _validate_image(content_type, len(photo_data))
 
     clean_note: str | None = None
@@ -249,9 +283,16 @@ async def create_photo_only_resource(
         activity_id=activity_id, kind="internal", position=position, note_text=clean_note
     )
 
-    _photo_id, raw_key, final_key = _photo_keys(activity.family_id)
-    storage.upload_bytes(raw_key, photo_data, content_type)
-    photo = await repo.create_photo(resource_id=resource.id, status="processing", photo_key=raw_key, position=0)
+    _photo_id, raw_key, final_key = _photo_keys(family_id)
+    await storage.upload_bytes_async(raw_key, photo_data, content_type)
+    try:
+        photo = await _create_photo_with_quota(repo, family_id, resource_id=resource.id, photo_key=raw_key, position=0)
+    except PhotoLimitReached:
+        # Lost the race at the quota boundary: clean up the raw upload and
+        # the just-created empty resource
+        await storage.delete_object_async(raw_key)
+        await repo.delete_resource(resource)
+        raise
     return await _reload_dict(repo, resource.id), raw_key, final_key, photo.id
 
 
@@ -265,55 +306,70 @@ async def add_photo(
     content_type: str,
 ) -> tuple[dict, str, str, uuid.UUID]:
     repo, activity = await _load_owned_activity(session, user_id, activity_id)
+    family_id = activity.family_id
+    assert family_id is not None  # owned activities always carry a family
     resource = await _get_owned_resource(repo, activity_id, resource_id)
     if resource.kind != "internal":
         raise InvalidResource("Photos can only be added to note resources")
     if await repo.count_photos(resource_id) >= MAX_PHOTOS_PER_RESOURCE:
         raise ResourceLimitExceeded(f"A note can have at most {MAX_PHOTOS_PER_RESOURCE} photos")
+    # Cheap unlocked pre-check; re-checked under the advisory lock at insert time
+    if await repo.count_photos_for_family(family_id) >= settings.RESOURCE_PHOTO_UPLOAD_LIMIT:
+        raise PhotoLimitReached(_family_photo_quota_message())
     _validate_image(content_type, len(photo_data))
 
     position = await repo.next_photo_position(resource_id)
-    _photo_id, raw_key, final_key = _photo_keys(activity.family_id)
-    storage.upload_bytes(raw_key, photo_data, content_type)
-    photo = await repo.create_photo(resource_id=resource_id, status="processing", photo_key=raw_key, position=position)
+    _photo_id, raw_key, final_key = _photo_keys(family_id)
+    await storage.upload_bytes_async(raw_key, photo_data, content_type)
+    try:
+        photo = await _create_photo_with_quota(
+            repo, family_id, resource_id=resource_id, photo_key=raw_key, position=position
+        )
+    except PhotoLimitReached:
+        await storage.delete_object_async(raw_key)
+        raise
     return _photo_dict(photo), raw_key, final_key, photo.id
 
 
-def compress_resource_photo(photo_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
-    """Background task (sync thread): compress the raw photo and mark it ready."""
-    import asyncio
+async def _update_resource_photo(photo_id: uuid.UUID, *, status: str | None, photo_key: str | None) -> None:
+    from sqlalchemy import select
 
-    asyncio.run(_compress_resource_photo_async(photo_id, raw_key, final_key, db_url))
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(ActivityResourcePhoto).where(ActivityResourcePhoto.id == photo_id))
+        photo = result.scalar_one_or_none()
+        if photo:
+            if status is not None:
+                photo.status = status
+            photo.photo_key = photo_key
+            await session.commit()
 
 
-async def _compress_resource_photo_async(photo_id: uuid.UUID, raw_key: str, final_key: str, db_url: str) -> None:
+async def compress_resource_photo(photo_id: uuid.UUID, raw_key: str, final_key: str) -> None:
+    """Background task: compress the raw photo and mark it ready.
+
+    Runs on the event loop (async BackgroundTask); the CPU-bound decode is
+    offloaded to a bounded worker thread by photo_pipeline."""
+    from app.services import photo_pipeline
+
     try:
-        from PIL import Image, ImageOps
-        from sqlalchemy import select
-        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        raw_data = await storage.download_bytes_async(raw_key)
+        try:
+            compressed = await photo_pipeline.compress_in_thread(raw_data)
+        except photo_pipeline.ImageProcessingError:
+            logger.warning("resource_photo_rejected", photo_id=str(photo_id), raw_key=raw_key)
+            await storage.delete_object_async(raw_key)
+            # Detach the poisoned raw photo so the recovery sweeper stops retrying it
+            await _update_resource_photo(photo_id, status=None, photo_key=None)
+            return
 
-        raw_data = storage.download_bytes(raw_key)
-        img = ImageOps.exif_transpose(Image.open(io.BytesIO(raw_data)))
-        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
-
-        buf = io.BytesIO()
-        img.convert("RGB").save(buf, format="JPEG", quality=85)
-        storage.upload_bytes(final_key, buf.getvalue(), "image/jpeg")
-        storage.delete_object(raw_key)
-
-        engine = create_async_engine(db_url)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            result = await session.execute(select(ActivityResourcePhoto).where(ActivityResourcePhoto.id == photo_id))
-            photo = result.scalar_one_or_none()
-            if photo:
-                photo.status = "ready"
-                photo.photo_key = final_key
-                await session.commit()
-        await engine.dispose()
+        await storage.upload_bytes_async(final_key, compressed, "image/jpeg")
+        await storage.delete_object_async(raw_key)
+        await _update_resource_photo(photo_id, status="ready", photo_key=final_key)
     except Exception:
-        # Leave the photo in "processing"; the client re-fetches the detail later.
-        pass
+        # Photo stays in "processing"; the recovery sweeper retries it later
+        logger.exception("resource_photo_compression_failed", photo_id=str(photo_id))
 
 
 # ── Viewing (US2) ────────────────────────────────────────────────
@@ -372,7 +428,7 @@ async def delete_resource(
     await repo.delete_resource(resource)
     for key in photo_keys:
         try:
-            storage.delete_object(key)
+            await storage.delete_object_async(key)
         except Exception:
             pass
 
@@ -394,6 +450,6 @@ async def delete_photo(
     await repo.delete_photo(photo)
     if photo_key:
         try:
-            storage.delete_object(photo_key)
+            await storage.delete_object_async(photo_key)
         except Exception:
             pass

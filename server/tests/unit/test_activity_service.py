@@ -1,6 +1,8 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from app.services import activity as activity_service
 
 
@@ -32,3 +34,20 @@ async def test_suggestion_randomly_selects_from_incomplete_family_activities(moc
         family_id=family_id,
         exclude_completed_for_family_id=family_id,
     )
+
+
+async def test_create_activity_family_cap_reached(mocker):
+    from app.services.exceptions import ActivityLimitReached
+
+    membership = MagicMock(family_id=uuid.uuid4())
+    repository = MagicMock()
+    repository.count_custom_for_family = AsyncMock(return_value=200)
+    mocker.patch.object(activity_service, "get_user_family", AsyncMock(return_value=membership))
+    mocker.patch.object(activity_service, "ActivityRepository", return_value=repository)
+    lock = mocker.patch.object(activity_service, "lock_family_quota", AsyncMock())
+
+    with pytest.raises(ActivityLimitReached):
+        await activity_service.create_activity(AsyncMock(), uuid.uuid4(), MagicMock())
+
+    lock.assert_awaited_once()
+    repository.create.assert_not_called()

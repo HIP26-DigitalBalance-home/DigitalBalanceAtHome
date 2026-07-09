@@ -107,6 +107,17 @@ class ActivityResourceRepository:
         )
         return int(result.scalar_one())
 
+    async def count_photos_for_family(self, family_id: uuid.UUID) -> int:
+        """Total resource photos across all of a family's activities (quota check)."""
+        q = (
+            select(func.count(ActivityResourcePhoto.id))
+            .join(ActivityResource, ActivityResource.id == ActivityResourcePhoto.resource_id)
+            .join(Activity, Activity.id == ActivityResource.activity_id)
+            .where(Activity.family_id == family_id)
+        )
+        result = await self.session.execute(q)
+        return int(result.scalar_one())
+
     async def next_photo_position(self, resource_id: uuid.UUID) -> int:
         result = await self.session.execute(
             select(func.coalesce(func.max(ActivityResourcePhoto.position), -1)).where(

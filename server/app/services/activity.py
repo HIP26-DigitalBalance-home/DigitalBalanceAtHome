@@ -4,11 +4,13 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.activity import Activity
 from app.repositories.activity import ActivityRepository
 from app.repositories.child_profile import ChildProfileRepository
+from app.repositories.quota import lock_family_quota
 from app.schemas.generated import CreateActivityRequest
-from app.services.exceptions import ActivityNotFound, NoFamilyError
+from app.services.exceptions import ActivityLimitReached, ActivityNotFound, NoFamilyError
 from app.services.family import get_user_family
 
 
@@ -35,12 +37,21 @@ async def list_activities(
     season: str | None,
     weather: str | None,
     cost: str | None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[Activity]:
     repo = ActivityRepository(session)
     membership = await get_user_family(session, user_id)
     family_id = membership.family_id if membership else None
     return await repo.get_all(
-        age=age, season=season, weather=weather, cost=cost, exclude_paid=True, family_id=family_id
+        age=age,
+        season=season,
+        weather=weather,
+        cost=cost,
+        exclude_paid=True,
+        family_id=family_id,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -55,6 +66,14 @@ async def create_activity(
         raise NoFamilyError("You must create or join a family before adding activities")
 
     repo = ActivityRepository(session)
+    # Advisory lock makes count-then-create atomic against parallel requests;
+    # released when repo.create() commits
+    await lock_family_quota(session, membership.family_id)
+    if await repo.count_custom_for_family(membership.family_id) >= settings.CUSTOM_ACTIVITY_LIMIT:
+        await session.rollback()
+        raise ActivityLimitReached(
+            f"Your family has reached the limit of {settings.CUSTOM_ACTIVITY_LIMIT} custom activities"
+        )
     return await repo.create(
         created_by_user_id=user_id,
         family_id=membership.family_id,

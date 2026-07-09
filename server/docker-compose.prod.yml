@@ -34,7 +34,13 @@ services:
       - "traefik.http.routers.api.tls.certresolver=letsencrypt"
       - "traefik.http.services.api.loadbalancer.server.port=8000"
       - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
-      - "traefik.http.routers.api.middlewares=api-strip"
+      # Edge guards: reject oversized bodies before they reach the API
+      # (15 MB = 10 MB file cap + multipart overhead) and throttle per source IP.
+      - "traefik.http.middlewares.api-buffer.buffering.maxRequestBodyBytes=15728640"
+      - "traefik.http.middlewares.api-buffer.buffering.memRequestBodyBytes=1048576"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=30"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=60"
+      - "traefik.http.routers.api.middlewares=api-strip,api-buffer,api-ratelimit"
 
   client:
     image: ${CLIENT_IMAGE}

@@ -59,9 +59,10 @@ export default function CollageBuilderScreen() {
   const { t, i18n } = useTranslation();
   const { mode, preset: presetParam } = useLocalSearchParams<{ mode: string; preset?: string }>();
 
-  // Only the custom collage lets the user pick/change activities per slot. Preset
-  // and random collages arrive with all nine activities predefined and locked.
-  const editable = mode === 'custom';
+  // Custom and random collages let the user pick/change activities per slot —
+  // random just pre-fills the nine slots as a starting point. Preset collages
+  // arrive with all nine activities predefined and locked.
+  const editable = mode === 'custom' || mode === 'random';
   // Preset titles are fixed (the preset's own name); custom and random collages
   // let the parent rename the collage via the pencil icon.
   const titleEditable = mode !== 'preset';
