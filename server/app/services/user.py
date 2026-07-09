@@ -140,10 +140,23 @@ async def export_data(session: AsyncSession, user: User) -> dict:
             }
         )
 
+    from app.services.activity_resource import _resource_dict
+
+    created_activities = [
+        {
+            "id": activity.id,
+            "title": activity.title,
+            "description": activity.description,
+            "resources": [_resource_dict(r) for r in activity.resources],
+        }
+        for activity in data["created_activities"]
+    ]
+
     return {
         "user": _user_dict(user),
         "children": children,
         "consents": consents,
         "group_memberships": group_memberships,
         "completions": completions,
+        "created_activities": created_activities,
     }

@@ -28,9 +28,9 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 **Purpose**: Establish the authoritative contract before any handler work (hard rule from CLAUDE.md).
 
-- [ ] T001 Merge all paths and schemas from `specs/005-activity-resources/contracts/openapi-additions.yaml` into `docs/openapi.yaml` (6 endpoints under `/activities/{activity_id}...`; schemas `ActivityResource`, `ActivityResourcePhoto`, `ActivityDetail`, `CreateResourceRequest`, `UpdateResourceRequest`)
-- [ ] T002 Regenerate `server/app/schemas/generated.py` via the `datamodel-codegen` command in CLAUDE.md (run from repo root), then run `cd server && pytest` to confirm the baseline still passes with the new schemas
-- [ ] T003 [P] Add resource TypeScript interfaces (`ActivityResource`, `ActivityResourcePhoto`, `ActivityDetail`, request payloads) to `client/lib/api/activities.ts` (types only, no calls yet)
+- [X] T001 Merge all paths and schemas from `specs/005-activity-resources/contracts/openapi-additions.yaml` into `docs/openapi.yaml` (6 endpoints under `/activities/{activity_id}...`; schemas `ActivityResource`, `ActivityResourcePhoto`, `ActivityDetail`, `CreateResourceRequest`, `UpdateResourceRequest`)
+- [X] T002 Regenerate `server/app/schemas/generated.py` via the `datamodel-codegen` command in CLAUDE.md (run from repo root), then run `cd server && pytest` to confirm the baseline still passes with the new schemas
+- [X] T003 [P] Add resource TypeScript interfaces (`ActivityResource`, `ActivityResourcePhoto`, `ActivityDetail`, request payloads) to `client/lib/api/activities.ts` (types only, no calls yet)
 
 ---
 
@@ -40,14 +40,14 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 [P] Create `ActivityResource` ORM model in `server/app/models/activity_resource.py` (UUID PK, `activity_id` FK CASCADE, `kind`, `position`, `label`, `url`, `note_text`, `TimestampMixin`; CHECK constraints per [data-model.md](data-model.md))
-- [ ] T005 [P] Create `ActivityResourcePhoto` ORM model in `server/app/models/activity_resource_photo.py` (UUID PK, `resource_id` FK CASCADE, `photo_key`, `status` processing|ready, `position`, `TimestampMixin`; CHECK on status)
-- [ ] T006 Add `resources` relationship (`order_by=position`, `cascade="all, delete-orphan"`) to `server/app/models/activity.py` (depends on T004, T005)
-- [ ] T007 Register the two new models in `server/app/models/__init__.py` (depends on T004, T005)
-- [ ] T008 Create Alembic migration in `server/alembic/versions/` for `activity_resources` and `activity_resource_photos` (both tables, FKs, indexes, CHECKs); apply with `alembic upgrade head` (depends on T006, T007)
-- [ ] T009 Implement `ActivityResourceRepository` in `server/app/repositories/activity_resource.py` (get resources for activity ordered by position; get by id; create/update/delete resource; add/delete photo; count helpers for limit checks) (depends on T004, T005)
-- [ ] T010 Create service module `server/app/services/activity_resource.py` with shared helpers only: `assert_can_view(activity, family_id)` and `assert_owner(activity, family_id)` (reuse existing activity access rules: global `family_id IS NULL`, own family, or shared-challenge access), plus limit constants (10 resources/activity, 5 photos/resource) and an http/https URL validator (depends on T009)
-- [ ] T011 Add domain exceptions (e.g., `ResourceNotFound`, `ResourceLimitExceeded`, `NotResourceOwner`, `InvalidResourceUrl`) to `server/app/services/exceptions.py` and map them to HTTP status in the activities router error handling
+- [X] T004 [P] Create `ActivityResource` ORM model in `server/app/models/activity_resource.py` (UUID PK, `activity_id` FK CASCADE, `kind`, `position`, `label`, `url`, `note_text`, `TimestampMixin`; CHECK constraints per [data-model.md](data-model.md))
+- [X] T005 [P] Create `ActivityResourcePhoto` ORM model in `server/app/models/activity_resource_photo.py` (UUID PK, `resource_id` FK CASCADE, `photo_key`, `status` processing|ready, `position`, `TimestampMixin`; CHECK on status)
+- [X] T006 Add `resources` relationship (`order_by=position`, `cascade="all, delete-orphan"`) to `server/app/models/activity.py` (depends on T004, T005)
+- [X] T007 Register the two new models in `server/app/models/__init__.py` (depends on T004, T005)
+- [X] T008 Create Alembic migration in `server/alembic/versions/` for `activity_resources` and `activity_resource_photos` (both tables, FKs, indexes, CHECKs); apply with `alembic upgrade head` (depends on T006, T007)
+- [X] T009 Implement `ActivityResourceRepository` in `server/app/repositories/activity_resource.py` (get resources for activity ordered by position; get by id; create/update/delete resource; add/delete photo; count helpers for limit checks) (depends on T004, T005)
+- [X] T010 Create service module `server/app/services/activity_resource.py` with shared helpers only: `assert_can_view(activity, family_id)` and `assert_owner(activity, family_id)` (reuse existing activity access rules: global `family_id IS NULL`, own family, or shared-challenge access), plus limit constants (10 resources/activity, 5 photos/resource) and an http/https URL validator (depends on T009)
+- [X] T011 Add domain exceptions (e.g., `ResourceNotFound`, `ResourceLimitExceeded`, `NotResourceOwner`, `InvalidResourceUrl`) to `server/app/services/exceptions.py` and map them to HTTP status in the activities router error handling
 
 **Checkpoint**: Tables, models, repository, and shared ownership/visibility helpers exist — stories can begin.
 
@@ -61,17 +61,17 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] Integration tests for resource creation in `server/tests/test_activity_resources_create.py`: external link (valid + rejected non-http/malformed), internal text note (valid + rejected empty), photo-only internal via multipart (returns `processing`), per-activity resource limit and per-resource photo limit, non-owner `403` (storage mocked)
+- [X] T012 [P] [US1] Integration tests for resource creation in `server/tests/integration/test_activity_resources_create.py` (plus service unit tests in `server/tests/unit/test_activity_resource_service.py`): external link (valid + rejected non-http/malformed), internal text note (valid + rejected empty), photo-only internal via multipart (returns `processing`), per-activity resource limit and per-resource photo limit, non-owner `403` (storage mocked)
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement `create_external_resource` and `create_internal_text_resource` in `server/app/services/activity_resource.py` (validate url/scheme, non-empty note, enforce resource limit, assign next `position`, assert owner)
-- [ ] T014 [US1] Implement `POST /activities/{activity_id}/resources` JSON endpoint in `server/app/api/activities.py` (dispatch by `kind`, return `ActivityResource` from `generated.py`)
-- [ ] T015 [US1] Implement resource-photo upload + background compression in `server/app/services/activity_resource.py`, reusing the completion pipeline pattern (`storage.upload_bytes` → Pillow compress → final key → `status=ready`); include `create_photo_only_resource(image, note_text?)` and `add_photo(resource_id, image)` with photo-limit enforcement
-- [ ] T016 [US1] Implement multipart endpoints in `server/app/api/activities.py`: `POST /activities/{activity_id}/resources/photos` (creates internal resource, 202) and `POST /activities/{activity_id}/resources/{resource_id}/photos` (adds photo, 202), using `BackgroundTasks` like completions
-- [ ] T017 [US1] Add resource authoring API calls (`createResource`, `createResourcePhoto`, `addResourcePhoto`) to `client/lib/api/activities.ts`
-- [ ] T018 [US1] Build the resources editor in `client/app/create-activity.tsx` (add/remove external links and note+photo blocks inline) plus a small `client/components/add-resource-sheet.tsx`; on save, create the activity then POST each resource/photo (theme tokens only, no hardcoded values)
-- [ ] T019 [P] [US1] Add German + English i18n strings for resource authoring in `client/lib/i18n/de.ts` and `client/lib/i18n/en.ts`
+- [X] T013 [US1] Implement `create_external_resource` and `create_internal_text_resource` in `server/app/services/activity_resource.py` (validate url/scheme, non-empty note, enforce resource limit, assign next `position`, assert owner)
+- [X] T014 [US1] Implement `POST /activities/{activity_id}/resources` JSON endpoint in `server/app/api/activities.py` (dispatch by `kind`, return `ActivityResource` from `generated.py`)
+- [X] T015 [US1] Implement resource-photo upload + background compression in `server/app/services/activity_resource.py`, reusing the completion pipeline pattern (`storage.upload_bytes` → Pillow compress → final key → `status=ready`); include `create_photo_only_resource(image, note_text?)` and `add_photo(resource_id, image)` with photo-limit enforcement
+- [X] T016 [US1] Implement multipart endpoints in `server/app/api/activities.py`: `POST /activities/{activity_id}/resources/photos` (creates internal resource, 202) and `POST /activities/{activity_id}/resources/{resource_id}/photos` (adds photo, 202), using `BackgroundTasks` like completions
+- [X] T017 [US1] Add resource authoring API calls (`createResource`, `createResourcePhoto`, `addResourcePhoto`) to `client/lib/api/activities.ts`
+- [X] T018 [US1] Build the resources editor in `client/app/create-activity.tsx` (add/remove external links and note+photo blocks inline) plus a small `client/components/add-resource-sheet.tsx`; on save, create the activity then POST each resource/photo (theme tokens only, no hardcoded values)
+- [X] T019 [P] [US1] Add German + English i18n strings for resource authoring in `client/lib/i18n/de.ts` and `client/lib/i18n/en.ts`
 
 **Checkpoint**: An owner can fully author resources on an activity; verifiable via API and the create screen.
 
@@ -85,14 +85,14 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Integration tests for `GET /activities/{activity_id}` in `server/tests/test_activity_detail.py`: resources returned in `position` order; internal photo carries pre-signed `photo_url` when `ready` and none while `processing`; `can_edit` true for owner / false for accessible non-owner; `404` for inaccessible activity (storage mocked)
+- [X] T020 [P] [US2] Integration tests for `GET /activities/{activity_id}` in `server/tests/integration/test_activity_detail.py`: resources returned in `position` order; internal photo carries pre-signed `photo_url` when `ready` and none while `processing`; `can_edit` true for owner / false for accessible non-owner; `404` for inaccessible activity (storage mocked)
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement `get_activity_detail(session, user_id, activity_id, language)` in `server/app/services/activity.py` (authorize via `assert_can_view`, load resources + photos via repository, generate pre-signed URLs for `ready` photos with `expires=900`, set `can_edit`)
-- [ ] T022 [US2] Implement `GET /activities/{activity_id}` endpoint in `server/app/api/activities.py` returning `ActivityDetail`; reuse `_activity_schema` for the base fields and attach `resources` + `can_edit`
-- [ ] T023 [US2] Fetch and render resources in `client/app/activity/[id].tsx`: external links with an "opens external site" affordance (open in device browser on tap only), internal notes with inline text + photos; empty state when none; `let cancelled = false` guard on the async effect
-- [ ] T024 [P] [US2] Add German + English i18n strings for resource viewing (section heading, "external site" label) in `client/lib/i18n/de.ts` and `client/lib/i18n/en.ts`
+- [X] T021 [US2] Implemented as `get_activity_with_resources(session, user_id, activity_id)` in `server/app/services/activity_resource.py` (authorizes via `_load_viewable_activity`, loads resources + photos via repository, generates pre-signed URLs for `ready` photos with `expires=900`, returns `can_edit`)
+- [X] T022 [US2] Implement `GET /activities/{activity_id}` endpoint in `server/app/api/activities.py` returning `ActivityDetail`; reuse `_activity_schema` for the base fields and attach `resources` + `can_edit`
+- [X] T023 [US2] Fetch and render resources in `client/app/activity/[id].tsx`: external links with an "opens external site" affordance (open in device browser on tap only), internal notes with inline text + photos; empty state when none; `let cancelled = false` guard on the async effect
+- [X] T024 [P] [US2] Add German + English i18n strings for resource viewing (section heading, "external site" label) in `client/lib/i18n/de.ts` and `client/lib/i18n/en.ts`
 
 **Checkpoint**: Both P1 stories work — resources can be authored (US1) and consumed (US2). This is the recommended demo/MVP slice.
 
@@ -106,13 +106,13 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 ### Tests for User Story 3
 
-- [ ] T025 [P] [US3] Integration tests in `server/tests/test_activity_resources_edit.py`: update label/url/note (valid + kind-mismatch rejected), delete single photo (row + `storage.delete_object` called), delete resource (cascades photos + storage), non-owner `403`, `404` for missing ids (storage mocked)
+- [X] T025 [P] [US3] Integration tests in `server/tests/integration/test_activity_resources_edit.py` (route level) plus service unit tests (storage cleanup, kind-mismatch) in `server/tests/unit/test_activity_resource_service.py`: update label/url/note (valid + kind-mismatch rejected), delete single photo (row + `storage.delete_object` called), delete resource (cascades photos + storage), non-owner `403`, `404` for missing ids (storage mocked)
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement `update_resource`, `delete_resource`, `delete_photo` in `server/app/services/activity_resource.py` (assert owner; only kind-valid fields updatable; best-effort `storage.delete_object` on photo/resource delete, mirroring `delete_completion`)
-- [ ] T027 [US3] Implement `PATCH /activities/{activity_id}/resources/{resource_id}`, `DELETE /activities/{activity_id}/resources/{resource_id}`, and `DELETE /activities/{activity_id}/resources/{resource_id}/photos/{photo_id}` in `server/app/api/activities.py`
-- [ ] T028 [US3] Add edit/remove UI gated by `can_edit` in `client/app/activity/[id].tsx` (and/or the create-activity editor) plus `updateResource`, `deleteResource`, `deleteResourcePhoto` calls in `client/lib/api/activities.ts`
+- [X] T026 [US3] Implement `update_resource`, `delete_resource`, `delete_photo` in `server/app/services/activity_resource.py` (assert owner; only kind-valid fields updatable; best-effort `storage.delete_object` on photo/resource delete, mirroring `delete_completion`)
+- [X] T027 [US3] Implement `PATCH /activities/{activity_id}/resources/{resource_id}`, `DELETE /activities/{activity_id}/resources/{resource_id}`, and `DELETE /activities/{activity_id}/resources/{resource_id}/photos/{photo_id}` in `server/app/api/activities.py`
+- [X] T028 [US3] Add edit/remove UI gated by `can_edit` in `client/app/activity/[id].tsx` (and/or the create-activity editor) plus `updateResource`, `deleteResource`, `deleteResourcePhoto` calls in `client/lib/api/activities.ts`
 
 **Checkpoint**: All three stories independently functional.
 
@@ -120,10 +120,12 @@ Monorepo: server `server/app/...`, `server/tests/...`, `server/alembic/versions/
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T029 [P] Extend the account/family hard-deletion sweep and `export_data` in `server/app/services/user.py` (and any deletion job/repository it calls) to collect and delete `activity_resource_photos.photo_key` objects, guaranteeing zero orphaned resource photos after erasure (SC-006)
-- [ ] T030 [P] Run schemathesis contract tests (`schemathesis run ../docs/openapi.yaml --base-url http://localhost:8000`) and fix any contract drift for the new endpoints
-- [ ] T031 [P] `ruff format . && ruff check .` in `server/`; run client lint/typecheck for the touched files
-- [ ] T032 Execute [quickstart.md](quickstart.md) end-to-end (Scenarios 1–3 + edge/rule checks) and run the full `cd server && pytest` suite to confirm green
+- [X] T029 [P] Extend the account/family hard-deletion sweep and `export_data` in `server/app/services/user.py` (and any deletion job/repository it calls) to collect and delete `activity_resource_photos.photo_key` objects, guaranteeing zero orphaned resource photos after erasure (SC-006). Note: resource photo keys live under the same `photos/{family_id}/` prefix the family teardown sweep (`app/services/seed.py::_delete_family_photos`) already purges; the sweep was additionally extended to the `raw/{family_id}/` prefix (stuck-processing uploads), and `export_data` now includes `created_activities` with their resources (DataExport schema extended in `docs/openapi.yaml` first, then codegen)
+- [X] T030 [P] Run schemathesis contract tests (`schemathesis run ../docs/openapi.yaml --url http://localhost:8000`) and fix any contract drift for the new endpoints — fixed missing `401` (and one `404`) responses on the five authoring endpoints; one known-acceptable artifact remains (`PATCH .../resources/photos` returns 401 instead of 405 because the literal path overlaps the `{resource_id}` sibling route and auth runs before path validation — same behavior class as the rest of the API)
+- [X] T031 [P] `ruff format . && ruff check .` in `server/` (feature files clean; repo-wide findings from newer ruff on untouched files left as-is); client `tsc --noEmit` + eslint clean on all touched files
+- [X] T033 (post-review feedback) Surface resources in the actual user journey: the detail screen was unreachable (nothing navigated to `/activity/[id]`), so resources displayed nowhere. Extracted `client/components/resource-list.tsx` (shared read-only/editable renderer, used by `activity/[id].tsx`); `client/components/complete-activity-modal.tsx` now fetches `GET /activities/{id}` on open and shows a collapsed "ℹ️ Hilfreiche Infos (n)" toggle above the upload controls — hidden entirely when the activity has no resources, expanding inline to links/notes/photos, with an owner-only "Edit" link that closes the modal and opens `/activity/[id]` (making the edit UI reachable)
+- [X] T034 (post-review feedback) Seed demo resources: `_RESOURCE_SEEDS` in `server/app/services/seed.py` attaches curated resources to two activities the demo family has not completed — "Gemeinsam ein Gericht kochen" (recipe link + note, active featured challenge) and "Selbstgemachte Knete herstellen" (recipe note + `playdough.jpg` photo, summer challenge) — covering all three resource shapes. Teardown deletes and re-creates them per seed run (idempotent; verified live: re-seed keeps exactly 3 rows, photo URL serves 200). Also fixed the "Hilfreiche Infos" toggle layout (icon/label/chevron as separate gap-spaced elements instead of emoji-in-string, which overlapped)
+- [X] T032 Execute [quickstart.md](quickstart.md) end-to-end (Scenarios 1–3 + edge/rule checks) and run the full `cd server && pytest` suite to confirm green — all scenarios validated live against Docker Compose + real S3 (photo lifecycle processing→ready→pre-signed URL confirmed); 238 tests pass. Note: the migration originally shipped as revision `a1b2c3d4e5f6` collided with the pre-existing `a1b2c3d4e5f6_add_activity_ownership.py` (Alembic cycle, API crash-loop); renamed to `7e3b9d24c8a1_add_activity_resources.py`
 
 ---
 

@@ -1,10 +1,14 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.activity_resource import ActivityResource
 
 
 class Activity(Base, TimestampMixin):
@@ -34,4 +38,11 @@ class Activity(Base, TimestampMixin):
     )
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="CASCADE"), nullable=True
+    )
+
+    resources: Mapped[list["ActivityResource"]] = relationship(
+        "ActivityResource",
+        order_by="ActivityResource.position",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

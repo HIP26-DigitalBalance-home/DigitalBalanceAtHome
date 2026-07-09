@@ -1,4 +1,6 @@
 from app.models.activity import Activity  # noqa: F401
+from app.models.activity_resource import ActivityResource  # noqa: F401
+from app.models.activity_resource_photo import ActivityResourcePhoto  # noqa: F401
 from app.models.base import Base, TimestampMixin  # noqa: F401
 from app.models.challenge import (  # noqa: F401
     Challenge,

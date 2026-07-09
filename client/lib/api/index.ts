@@ -4,7 +4,17 @@ export type { ConsentPayload, FamilyPayload, ChildPayload } from './onboarding';
 export { groupsApi } from './groups';
 export type { FeedEntry, GroupSummary } from './groups';
 export { activitiesApi } from './activities';
-export type { ActivityItem, ActivityFilters, CreateActivityPayload } from './activities';
+export type {
+  ActivityItem,
+  ActivityFilters,
+  CreateActivityPayload,
+  ActivityDetail,
+  ActivityResource,
+  ActivityResourcePhoto,
+  ResourceKind,
+  CreateResourcePayload,
+  UpdateResourcePayload,
+} from './activities';
 export { collagePresetsApi } from './collage-presets';
 export type { CollagePreset } from './collage-presets';
 export { challengesApi } from './challenges';

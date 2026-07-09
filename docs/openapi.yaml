@@ -831,6 +831,199 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /activities/{activity_id}:
+    get:
+      operationId: getActivityDetail
+      tags: [Activities]
+      summary: Get one activity with its attached resources
+      description: |
+        Returns a single activity the caller can access (global/curated, own
+        family-created, or embedded in an accessible challenge) together with
+        its ordered resources. Internal-resource photos include a pre-signed
+        `photo_url` (15-min TTL) when `status` is `ready`.
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Activity with resources
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityDetail" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Activity not found or not accessible
+
+  /activities/{activity_id}/resources:
+    post:
+      operationId: createActivityResource
+      tags: [Activities]
+      summary: Attach an external link or a text note to an activity
+      description: |
+        Owner-only (caller's family must own the activity). For a photo-only
+        internal resource, use POST /activities/{activity_id}/resources/photos.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateResourceRequest" }
+      responses:
+        "201":
+          description: Resource created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityResource" }
+        "400":
+          description: Validation error (bad url, empty note, limit reached)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Activity not found
+
+  /activities/{activity_id}/resources/photos:
+    post:
+      operationId: createActivityResourcePhoto
+      tags: [Activities]
+      summary: Create an internal resource from an uploaded photo
+      description: |
+        Owner-only. Creates a new internal resource carrying the uploaded photo
+        (optional `note_text` form field). Photo is processed asynchronously.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+                note_text: { type: string, maxLength: 2000, nullable: true }
+      responses:
+        "202":
+          description: Photo accepted; resource created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityResource" }
+        "400":
+          description: Validation error (limit reached, bad image)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Activity not found
+
+  /activities/{activity_id}/resources/{resource_id}:
+    patch:
+      operationId: updateActivityResource
+      tags: [Activities]
+      summary: Edit a resource's label, url, or note text
+      parameters:
+        - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: resource_id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateResourceRequest" }
+      responses:
+        "200":
+          description: Updated resource
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityResource" }
+        "400":
+          description: Validation error
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Resource not found
+    delete:
+      operationId: deleteActivityResource
+      tags: [Activities]
+      summary: Remove a resource and its photos
+      parameters:
+        - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: resource_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Deleted (resource + photos + storage objects)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Resource not found
+
+  /activities/{activity_id}/resources/{resource_id}/photos:
+    post:
+      operationId: addActivityResourcePhoto
+      tags: [Activities]
+      summary: Add another photo to an existing internal resource
+      parameters:
+        - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: resource_id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+      responses:
+        "202":
+          description: Photo accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityResourcePhoto" }
+        "400":
+          description: Not an internal resource, or photo limit reached
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Resource not found
+
+  /activities/{activity_id}/resources/{resource_id}/photos/{photo_id}:
+    delete:
+      operationId: deleteActivityResourcePhoto
+      tags: [Activities]
+      summary: Remove a single photo from an internal resource
+      parameters:
+        - { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: resource_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: photo_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Deleted (row + storage object)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller's family does not own the activity
+        "404":
+          description: Photo not found
+
   # ── Challenges ──────────────────────────────────────────────
 
   /challenges:
@@ -1844,6 +2037,25 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CompletionHistoryItem"
+        created_activities:
+          type: array
+          description: Activities created by the user's family, including their attached resources
+          items:
+            type: object
+            required: [id, title, resources]
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              description:
+                type: string
+                nullable: true
+              resources:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityResource"
 
     # Consents
 
@@ -2189,6 +2401,110 @@ components:
           type: string
           enum: [free, low_cost]
           description: Defaults to "free" when omitted.
+
+    ActivityResourcePhoto:
+      type: object
+      required: [id, status, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [processing, ready]
+        position:
+          type: integer
+          minimum: 0
+        photo_url:
+          type: string
+          nullable: true
+          description: Pre-signed GET URL (15-min TTL); present only when status=ready
+
+    ActivityResource:
+      type: object
+      required: [id, kind, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [external, internal]
+        position:
+          type: integer
+          minimum: 0
+        label:
+          type: string
+          maxLength: 100
+          nullable: true
+        url:
+          type: string
+          maxLength: 2048
+          nullable: true
+          description: Present for external resources (http/https)
+        note_text:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Present for internal resources
+        photos:
+          type: array
+          nullable: true
+          description: Present for internal resources
+          items:
+            $ref: "#/components/schemas/ActivityResourcePhoto"
+
+    ActivityDetail:
+      allOf:
+        - $ref: "#/components/schemas/Activity"
+        - type: object
+          required: [resources, can_edit]
+          properties:
+            can_edit:
+              type: boolean
+              description: True when the caller's family owns the activity
+            resources:
+              type: array
+              items:
+                $ref: "#/components/schemas/ActivityResource"
+
+    CreateResourceRequest:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [external, internal]
+        label:
+          type: string
+          maxLength: 100
+          nullable: true
+        url:
+          type: string
+          maxLength: 2048
+          nullable: true
+          description: Required when kind=external; must be http/https
+        note_text:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Required (non-empty) when kind=internal on this JSON path
+
+    UpdateResourceRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 100
+          nullable: true
+        url:
+          type: string
+          maxLength: 2048
+          nullable: true
+        note_text:
+          type: string
+          maxLength: 2000
+          nullable: true
 
     CollagePreset:
       type: object

@@ -1,12 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddResourceSheet, type ResourceDraft } from '@/components/add-resource-sheet';
+import { ResourceList } from '@/components/resource-list';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/lib/app-theme-context';
-import type { ActivityItem } from '@/lib/api';
+import { activitiesApi, type ActivityDetail, type ActivityItem, type ActivityResource } from '@/lib/api';
+import { showAlert } from '@/lib/utils/alert';
 
 const SEASON_EMOJI: Record<string, string> = {
   spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️',
@@ -15,10 +19,149 @@ const WEATHER_EMOJI: Record<string, string> = {
   sunny: '☀️', cloudy: '☁️', rainy: '🌧️', any: '🌤️',
 };
 
+const MAX_RESOURCES = 10;
+
 export default function ActivityDetailScreen() {
-  const { colors, radii } = useAppTheme();
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ data: string }>();
+  const params = useLocalSearchParams<{ id: string; data?: string }>();
+
+  // The `data` param (when a caller passes the full activity) renders the base
+  // fields instantly; the fetch below fills in resources + can_edit.
+  let initial: ActivityItem | null = null;
+  try {
+    const parsed = JSON.parse(params.data ?? '');
+    if (parsed?.id) initial = parsed as ActivityItem;
+  } catch {
+    initial = null;
+  }
+
+  const activityId = params.id ?? initial?.id ?? null;
+
+  const [detail, setDetail] = useState<ActivityDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [editingResource, setEditingResource] = useState<ActivityResource | null>(null);
+
+  const load = useCallback(async () => {
+    if (!activityId) return null;
+    const res = await activitiesApi.getDetail(activityId);
+    return res.data;
+  }, [activityId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await load();
+        if (!cancelled && data) setDetail(data);
+      } catch {
+        // keep whatever we can render from the `data` param
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
+
+  // While any photo is still compressing, re-fetch so it appears once ready.
+  const hasProcessing = detail?.resources?.some((r) => r.photos?.some((p) => p.status === 'processing'));
+  useEffect(() => {
+    if (!hasProcessing) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const data = await load();
+        if (!cancelled && data) setDetail(data);
+      } catch {
+        // next interaction retries
+      }
+    }, 4000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [hasProcessing, detail, load]);
+
+  async function refresh() {
+    try {
+      const data = await load();
+      if (data) setDetail(data);
+    } catch {
+      // leave the current state
+    }
+  }
+
+  async function saveFromSheet(draft: ResourceDraft) {
+    if (!activityId) return;
+    setSheetVisible(false);
+    try {
+      if (editingResource) {
+        await activitiesApi.updateResource(activityId, editingResource.id, {
+          label: draft.label,
+          url: draft.kind === 'external' ? draft.url : undefined,
+          note_text: draft.kind === 'internal' ? draft.noteText : undefined,
+        });
+      } else if (draft.kind === 'internal' && draft.photoUri) {
+        await activitiesApi.createResourcePhoto(activityId, draft.photoUri, draft.photoMime ?? 'image/jpeg', draft.noteText);
+      } else {
+        await activitiesApi.createResource(activityId, {
+          kind: draft.kind,
+          label: draft.label,
+          url: draft.url,
+          note_text: draft.noteText,
+        });
+      }
+    } catch {
+      showAlert(t('common.error'));
+    }
+    setEditingResource(null);
+    await refresh();
+  }
+
+  async function removeResource(resourceId: string) {
+    if (!activityId) return;
+    try {
+      await activitiesApi.deleteResource(activityId, resourceId);
+    } catch {
+      showAlert(t('common.error'));
+    }
+    await refresh();
+  }
+
+  async function removePhoto(resourceId: string, photoId: string) {
+    if (!activityId) return;
+    try {
+      await activitiesApi.deleteResourcePhoto(activityId, resourceId, photoId);
+    } catch {
+      showAlert(t('common.error'));
+    }
+    await refresh();
+  }
+
+  function startEdit(resource: ActivityResource) {
+    setEditingResource(resource);
+    setSheetVisible(true);
+  }
+
+  const activity: ActivityItem | null = detail ?? initial;
+
+  if (!activity) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.center}>
+          {loading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <ThemedText style={{ color: colors.destructive }}>{t('activityDetail.notFound')}</ThemedText>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const seasonLabel: Record<string, string> = {
     spring: t('season.spring'), summer: t('season.summer'), autumn: t('season.autumn'), winter: t('season.winter'),
   };
@@ -26,23 +169,20 @@ export default function ActivityDetailScreen() {
     sunny: t('weather.sunny'), cloudy: t('weather.cloudy'), rainy: t('weather.rainy'), any: t('weather.any'),
   };
 
-  let activity: ActivityItem;
-  try {
-    const parsed = JSON.parse(params.data ?? '');
-    if (!parsed?.id) throw new Error('invalid');
-    activity = parsed as ActivityItem;
-  } catch {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.center}>
-          <ThemedText style={{ color: colors.destructive }}>{t('activityDetail.notFound')}</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const costLabel = activity.cost_indicator === 'free' ? t('cost.free') : t('cost.lowCost');
   const costColor = activity.cost_indicator === 'free' ? colors.accent : colors.primary;
+  const resources = detail?.resources ?? [];
+  const canEdit = detail?.can_edit ?? false;
+
+  const editingDraft: ResourceDraft | null = editingResource
+    ? {
+        key: editingResource.id,
+        kind: editingResource.kind,
+        label: editingResource.label,
+        url: editingResource.url,
+        noteText: editingResource.note_text,
+      }
+    : null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -100,12 +240,54 @@ export default function ActivityDetailScreen() {
           </View>
         )}
 
+        {(resources.length > 0 || canEdit) && (
+          <View style={styles.tagGroup}>
+            <ThemedText style={[styles.tagLabel, { color: colors.muted }]}>{t('resources.sectionTitle')}</ThemedText>
+
+            {resources.length === 0 && (
+              <ThemedText style={[styles.emptyText, { color: colors.muted }]}>{t('resources.none')}</ThemedText>
+            )}
+
+            <ResourceList
+              resources={resources}
+              canEdit={canEdit}
+              onEditResource={startEdit}
+              onRemoveResource={removeResource}
+              onRemovePhoto={removePhoto}
+            />
+
+            {canEdit && resources.length < MAX_RESOURCES && (
+              <Pressable
+                style={[styles.addResourceButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                onPress={() => {
+                  setEditingResource(null);
+                  setSheetVisible(true);
+                }}
+                accessibilityRole="button"
+              >
+                <ThemedText style={{ color: colors.primary }}>+ {t('resources.addButton')}</ThemedText>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         <View style={[styles.ctaBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ThemedText style={[styles.ctaHint, { color: colors.muted }]}>
             {t('activityDetail.ctaHint')}
           </ThemedText>
         </View>
       </ScrollView>
+
+      <AddResourceSheet
+        visible={sheetVisible}
+        initial={editingDraft}
+        allowPhoto={!editingResource}
+        onClose={() => {
+          setSheetVisible(false);
+          setEditingResource(null);
+        }}
+        onSave={saveFromSheet}
+      />
     </SafeAreaView>
   );
 }
@@ -136,6 +318,16 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   tagText: { fontSize: 13 },
+  emptyText: { fontSize: 12 },
+  addResourceButton: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+  },
   ctaBox: { borderRadius: 12, borderWidth: 1, padding: Spacing.md },
   ctaHint: { fontSize: 13, textAlign: 'center' },
 });

@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.activity import Activity
+from app.models.activity_resource import ActivityResource
 from app.models.challenge import Challenge, ChallengeActivity
 from app.models.child_profile import ChildProfile
 from app.models.completion import Completion
@@ -70,6 +72,7 @@ class UserRepository:
         children: list[ChildProfile] = []
         group_rows: list[tuple[GroupMembership, Group]] = []
         comp_rows: list[tuple[Completion, str, str]] = []
+        created_activities: list[Activity] = []
 
         if family_ids:
             child_result = await self.session.execute(
@@ -94,6 +97,14 @@ class UserRepository:
             )
             comp_rows = list(comp_result.tuples().all())
 
+            act_result = await self.session.execute(
+                select(Activity)
+                .where(Activity.family_id.in_(family_ids))
+                .options(selectinload(Activity.resources).selectinload(ActivityResource.photos))
+                .order_by(Activity.created_at.asc())
+            )
+            created_activities = list(act_result.scalars().all())
+
         consent_result = await self.session.execute(
             select(ConsentRecord).where(ConsentRecord.user_id == user_id).order_by(ConsentRecord.consented_at.asc())
         )
@@ -104,4 +115,5 @@ class UserRepository:
             "consents": consents,
             "group_rows": group_rows,
             "comp_rows": comp_rows,
+            "created_activities": created_activities,
         }

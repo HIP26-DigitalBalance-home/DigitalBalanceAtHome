@@ -201,3 +201,23 @@ class AnnualCapReached(DomainError):
 class ChoiceRequired(DomainError):
     status_code = 400
     code = "choice_required"
+
+
+class ResourceNotFound(DomainError):
+    status_code = 404
+    code = "resource_not_found"
+
+
+class NotResourceOwner(DomainError):
+    status_code = 403
+    code = "not_resource_owner"
+
+
+class ResourceLimitExceeded(DomainError):
+    status_code = 400
+    code = "resource_limit_exceeded"
+
+
+class InvalidResource(DomainError):
+    status_code = 400
+    code = "invalid_resource"

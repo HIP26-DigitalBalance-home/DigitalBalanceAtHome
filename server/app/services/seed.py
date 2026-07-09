@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.activity import Activity
+from app.models.activity_resource import ActivityResource
+from app.models.activity_resource_photo import ActivityResourcePhoto
 from app.models.challenge import Challenge, ChallengeActivity
 from app.models.child_profile import ChildProfile
 from app.models.completion import Completion
@@ -71,6 +73,35 @@ _ACTIVITY_PHOTO_MAP: list[tuple[str, str | None]] = [
     # Picnic
     ("picknick", "picnic.jpg"),
 ]
+
+# Curated "helpful info" resources for a couple of demo activities — enough to
+# showcase all three resource shapes (link, note, note+photo) without dressing
+# up every activity. Keyed by activity title; photos come from seed_photos/.
+# Both activities sit in challenges the demo family has NOT completed, so
+# tapping their collage slot opens the completion modal with the info row.
+_RESOURCE_SEEDS: dict[str, list[dict[str, Any]]] = {
+    "Gemeinsam ein Gericht kochen": [
+        {
+            "kind": "external",
+            "label": "Einfache Familienrezepte",
+            "url": "https://www.chefkoch.de/rezepte/was-koche-ich-heute/",
+        },
+        {
+            "kind": "internal",
+            "note_text": "Kinder können abmessen, rühren und abschmecken — einfach etwas mehr Zeit einplanen.",
+        },
+    ],
+    "Selbstgemachte Knete herstellen": [
+        {
+            "kind": "internal",
+            "note_text": (
+                "Grundrezept: 2 Tassen Mehl, 1 Tasse Salz, 1 EL Öl und nach und nach "
+                "1 Tasse Wasser einkneten. Mit Lebensmittelfarbe wird's bunt."
+            ),
+            "photo": "playdough.jpg",
+        },
+    ],
+}
 
 
 def _photo_for_activity(title: str) -> str | None:
@@ -180,11 +211,14 @@ async def _delete_family_photos(family_ids: set[uuid.UUID] | list[uuid.UUID]) ->
                     batch.clear()
 
             for fid in ids:
-                for page in paginator.paginate(Bucket=settings.S3_BUCKET_NAME, Prefix=f"photos/{fid}/"):
-                    for obj in page.get("Contents", []):
-                        batch.append({"Key": obj["Key"]})
-                        if len(batch) >= 1000:  # delete_objects caps at 1000 keys
-                            _flush()
+                # "photos/" holds finished images (completions + activity resources);
+                # "raw/" holds uploads whose background compression never finished.
+                for prefix in (f"photos/{fid}/", f"raw/{fid}/"):
+                    for page in paginator.paginate(Bucket=settings.S3_BUCKET_NAME, Prefix=prefix):
+                        for obj in page.get("Contents", []):
+                            batch.append({"Key": obj["Key"]})
+                            if len(batch) >= 1000:  # delete_objects caps at 1000 keys
+                                _flush()
             _flush()
 
         loop = asyncio.get_event_loop()
@@ -266,6 +300,15 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
     # Manual "time spent" entries are keyed to the (kept) real user, so the
     # family cascade above never touches them — clear them for a clean reset.
     await session.execute(delete(ManualTimeEntry).where(ManualTimeEntry.user_id == user.id))
+    # Demo resources live on shared curated activities, so no family cascade
+    # reaches them — delete and re-create for an idempotent reset. Photo rows
+    # cascade in the DB; the S3 objects live under the torn-down family's
+    # prefix, which the purge above already covered.
+    await session.execute(
+        delete(ActivityResource).where(
+            ActivityResource.activity_id.in_(select(Activity.id).where(Activity.title.in_(list(_RESOURCE_SEEDS))))
+        )
+    )
     await session.flush()
 
     # ── Rebuild the user's baseline: fresh family, consent, one child ─────────
@@ -409,6 +452,32 @@ async def seed_demo_data(session: AsyncSession, user: User) -> None:
         ),
         activities[18:27],
     )
+
+    # ── Curated resources on a couple of activities ───────────────────────────
+    for act in activities:
+        seeds = _RESOURCE_SEEDS.get(act.title)
+        if not seeds:
+            continue
+        for pos, spec in enumerate(seeds):
+            resource = ActivityResource(
+                activity_id=act.id,
+                kind=spec["kind"],
+                position=pos,
+                label=spec.get("label"),
+                url=spec.get("url"),
+                note_text=spec.get("note_text"),
+            )
+            session.add(resource)
+            await session.flush()
+            if spec.get("photo"):
+                resource_photo_key = await _upload_seed_photo(family.id, spec["photo"])
+                if resource_photo_key:
+                    session.add(
+                        ActivityResourcePhoto(
+                            resource_id=resource.id, photo_key=resource_photo_key, status="ready", position=0
+                        )
+                    )
+    await session.flush()
 
     # ── Seed completions ──────────────────────────────────────────────────────
     c1_slots = (
