@@ -2,7 +2,10 @@
 **Project:** Family Bonding Activity App  
 **Version:** 0.1 (pre-prototype)  
 **Date:** 2026-05-21  
-**Status:** Draft — pending client review
+**Status:** Historical — kept as the canonical FR-XXX / NFR-XXX requirement catalogue
+
+> [!important] **⚠️ Historical document.**
+> This SRS is a point-in-time snapshot from the planning phase (2026-05-21). The requirement IDs (FR-XXX, NFR-XXX) remain the canonical reference and are traced to the implementation in [`technical-documentation.md`](technical-documentation.md) Appendix E. **Where any statement here conflicts with the technical documentation, the technical documentation wins.** Known-stale examples: the client framework is no longer "TBD" (web-first Expo/React Native), challenges no longer have start/end dates, the weather API was never integrated, and the app is localized in German *and* English.
 
 ---
 

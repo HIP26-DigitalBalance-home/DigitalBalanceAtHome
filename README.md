@@ -97,13 +97,13 @@ The Home screen shows **✓ Server connected** (green) when the client can reach
 
 | Document | Description |
 |---|---|
+| [`docs/technical-documentation.md`](docs/technical-documentation.md) | **Full technical documentation** — architecture, runtime behaviour, data model, API and configuration reference, decision log (the as-built reference) |
 | [`docs/implementation-plan.md`](docs/implementation-plan.md) | Milestone-by-milestone build plan (M0–M12) |
 | [`docs/openapi.yaml`](docs/openapi.yaml) | OpenAPI 3.1 spec — the authoritative API contract |
 | [`docs/planning/ux-brief.md`](docs/planning/ux-brief.md) | User journeys, onboarding, engagement strategy |
 | [`docs/planning/data-model-brief.md`](docs/planning/data-model-brief.md) | Entities, relationships, lifecycle states |
 | [`docs/planning/compliance-brief.md`](docs/planning/compliance-brief.md) | GDPR obligations and required decisions |
-| [`docs/requirements.md`](docs/requirements.md) | Full SRS with FR-XXX / NFR-XXX requirements |
-| [`docs/architecture.md`](docs/architecture.md) | C4 diagrams, key flows, technology decisions |
+| [`docs/requirements.md`](docs/requirements.md) | Full SRS with FR-XXX / NFR-XXX requirements (historical — see status banner) |
 
 ## Clinical Context
 

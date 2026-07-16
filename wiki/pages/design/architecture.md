@@ -7,7 +7,7 @@ last_updated: 2026-06-11
 
 # Design: Architecture
 
-Source: `docs/architecture.md`
+Source: `docs/architecture.md` (deleted 2026-07-16 — superseded by `docs/technical-documentation.md`, which is now the authoritative architecture reference; this page reflects the 2026-06-11 state)
 
 ---
 

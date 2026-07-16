@@ -1,3 +1,6 @@
+> [!important]
+> This file is outdated. The business model resides in notion and is available upon request. Please reach out to the product team for the latest version.
+
 # **BOND Business Model - TLDR**
 
 **How we make money (3 streams):**

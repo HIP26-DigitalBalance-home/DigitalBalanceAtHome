@@ -14,7 +14,7 @@ DigitalBalanceAtHome/
 │   ├── planning/    UX brief, data model, compliance brief
 │   ├── implementation-plan.md
 │   ├── requirements.md
-│   └── architecture.md
+│   └── technical-documentation.md
 └── CLAUDE.md
 ```
 
@@ -367,8 +367,8 @@ mapping used by migration `d4e5f6a7b8c9`, so it's safe to run any time.
 | `docs/planning/ux-brief.md` | User journeys, onboarding, engagement strategy |
 | `docs/planning/data-model-brief.md` | All 10 entities, relationships, lifecycle states |
 | `docs/planning/compliance-brief.md` | GDPR obligations, required decisions, controls |
-| `docs/requirements.md` | Full SRS with FR-XXX / NFR-XXX requirements |
-| `docs/architecture.md` | C4 diagrams, key flows, technology decisions |
+| `docs/requirements.md` | Full SRS with FR-XXX / NFR-XXX requirements (historical — superseded by the technical documentation where they conflict) |
+| `docs/technical-documentation.md` | **As-built technical documentation** — architecture, runtime, data model, API/config reference, decision log |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
